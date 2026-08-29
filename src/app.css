@@ -1,0 +1,117 @@
+:root {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Dark is the default; theme.ts sets data-theme="light" to switch. "auto"
+     resolves to the OS preference (see theme.ts), so no media query is needed. */
+  color-scheme: dark;
+
+  /* ---- Dark palette (default) ---- */
+  --bg: #0d1017;
+  --bg-inset: #0b0e13;
+  --bg-panel: #11151c;
+  --bg-elevated: #161b22;
+
+  --border: #2a323d;
+  --border-muted: #222831;
+  --border-strong: #39424e;
+
+  --text: #c9d1d9;
+  --text-strong: #e6edf3;
+  --text-secondary: #9aa4b0;
+  --text-muted: #8b949e;
+  --text-dim: #6b7684;
+  --text-faint: #4d5661;
+  --on-accent: #ffffff;
+
+  --accent: #1f6feb;
+  --focus: #3b82f6;
+  --link: #58a6ff;
+  --danger: #f85149;
+  --danger-border: #4a2020;
+  --success: #3fb950;
+  --warning: #e3b341;
+
+  --dot-run: #61fced;
+  --dot-run-glow: #61fced88;
+  --dot-warn: #e5842f;
+  --dot-warn-glow: #e5842f88;
+
+  --success-bg: #12261a;
+  --danger-bg: #2a1416;
+  --info-bg: #10233b;
+
+  --overlay: rgba(0, 0, 0, 0.55);
+  --shadow: rgba(0, 0, 0, 0.5);
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ---- Light palette: applied when the theme resolves to light (data-theme set by theme.ts) ---- */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-inset: #eef1f4;
+  --bg-panel: #f6f8fa;
+  --bg-elevated: #f0f3f6;
+
+  --border: #d0d7de;
+  --border-muted: #d8dee4;
+  --border-strong: #afb8c1;
+
+  --text: #1f2328;
+  --text-strong: #010409;
+  --text-secondary: #57606a;
+  --text-muted: #6e7781;
+  --text-dim: #8c959f;
+  --text-faint: #b1bac4;
+  --on-accent: #ffffff;
+
+  --accent: #0969da;
+  --focus: #0969da;
+  --link: #0969da;
+  --danger: #cf222e;
+  --danger-border: #ffc1bc;
+  --success: #1a7f37;
+  --warning: #9a6700;
+
+  --dot-run: #0891b2;
+  --dot-run-glow: #0891b288;
+  --dot-warn: #bc4c00;
+  --dot-warn-glow: #bc4c0088;
+
+  --success-bg: #dafbe1;
+  --danger-bg: #ffebe9;
+  --info-bg: #ddf4ff;
+
+  --overlay: rgba(0, 0, 0, 0.4);
+  --shadow: rgba(31, 35, 40, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Slim scrollbars that follow the theme. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}

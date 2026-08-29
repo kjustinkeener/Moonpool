@@ -1,0 +1,56 @@
+[
+  {
+    "id": "notes-app",
+    "name": "Notes App",
+    "group": "Desktop apps",
+    "type": "desktop",
+    "cwd": "C:\\projects\\notes-app",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
+    "processName": "notes-app",
+    "openBrowser": false,
+    "note": "A little native app. 'desktop' apps show running when a process named 'processName' (its .exe, without extension) is found."
+  },
+  {
+    "id": "metrics-dashboard",
+    "name": "Metrics Dashboard",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "C:\\projects\\metrics-dashboard",
+    "command": "npm run dev",
+    "port": 5173,
+    "url": "http://localhost:5173",
+    "openBrowser": true,
+    "note": "A little web dashboard (Vite/React). 'web' apps show running when their port answers, and the browser opens when it goes live."
+  },
+  {
+    "id": "habit-tracker",
+    "name": "Habit Tracker",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "C:\\projects\\habit-tracker",
+    "command": "python app.py",
+    "port": 8000,
+    "url": "http://127.0.0.1:8000",
+    "openBrowser": true,
+    "env": { "PORT": "8000" },
+    "note": "A small Python web app. Run a foreground command so its logs stream into the terminal; 'env' injects variables like PORT."
+  },
+  {
+    "id": "cli-script",
+    "name": "CLI Script",
+    "group": "CLI tools",
+    "type": "cli",
+    "cwd": "C:\\projects\\scripts",
+    "command": "pwsh -NoLogo -NoProfile -NoExit -Command python daily_report.py",
+    "note": "Runs a script and keeps an interactive shell open in 'cwd'. Use the unquoted '-NoExit -Command <tokens>' form; leave off '-Command ...' for a plain shell."
+  },
+  {
+    "id": "docs-dashboard",
+    "name": "Docs Dashboard",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///C:/projects/docs-dashboard/index.html",
+    "openBrowser": true,
+    "note": "A self-contained HTML dashboard. 'static' apps with only a 'url' just open it in the browser (no terminal)."
+  }
+]

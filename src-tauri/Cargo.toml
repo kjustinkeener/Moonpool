@@ -1,0 +1,38 @@
+[package]
+name = "moonpool"
+version = "0.1.0"
+description = "A system-tray launcher hub for local apps and dev servers, with an embedded terminal per app."
+authors = ["Justin Keener"]
+license = "MIT"
+edition = "2021"
+repository = "https://github.com/kjustinkeener/Moonpool"
+homepage = "https://fasterdb.com/software/moonpool/"
+keywords = ["tauri", "launcher", "tray", "dev-tools", "terminal"]
+categories = ["command-line-utilities", "development-tools"]
+
+[lib]
+# The desktop entry point lives in lib.rs::run(); main.rs is a thin shim.
+name = "moonpool_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+portable-pty = "0.8"
+sysinfo = "=0.30.13"
+base64 = "0.22"
+
+[profile.release]
+# Smaller, faster release binaries. panic = "abort" is intentionally omitted so
+# the updater/tauri build stays on the default unwinding path.
+codegen-units = 1
+lto = true
+strip = true

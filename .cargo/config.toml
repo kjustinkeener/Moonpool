@@ -1,0 +1,5 @@
+# Statically link the MSVC C runtime so the release exe has no vcruntime140.dll
+# dependency - fully self-contained (needs only the WebView2 runtime, which ships
+# with Windows 10/11).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
