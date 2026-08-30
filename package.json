@@ -1,7 +1,7 @@
 {
   "name": "moonpool",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A system-tray launcher hub for local apps and dev servers, with an embedded terminal per app.",
   "keywords": [
     "tauri",

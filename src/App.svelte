@@ -12,6 +12,7 @@
     appIcon,
     getSettings,
     onControl,
+    reportOutcome,
   } from "./lib/api";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import type { AppEntry, AppStatus } from "./lib/types";
@@ -264,24 +265,49 @@
     });
 
     // External control channel (a second `moonpool.exe launch/stop/... <id>` run).
-    unlistenControl = await onControl(({ action, arg }) => {
-      const app = arg ? apps.find((a) => a.id === arg) : undefined;
-      switch (action) {
-        case "launch":
-          if (app) handleLaunch(app);
-          break;
-        case "stop":
-          if (app) handleStop(app);
-          break;
-        case "restart":
-          if (app) handleRestart(app);
-          break;
-        case "reload":
-          handleReload();
-          break;
-        case "refresh-icons":
-          loadAllIcons(true);
-          break;
+    // When the caller tagged the command with `--ticket <key>`, we wait for the
+    // action to actually take effect and report ok/error back under that key
+    // (it lands in state.json), so a script/agent can confirm it worked.
+    unlistenControl = await onControl(async ({ action, arg, ticket }) => {
+      const done = (ok: boolean, detail: string | null) => {
+        if (ticket) {
+          reportOutcome(ticket, action, arg, ok ? "ok" : "error", detail).catch(
+            () => {},
+          );
+        }
+      };
+      try {
+        const app = arg ? apps.find((a) => a.id === arg) : undefined;
+        switch (action) {
+          case "launch":
+          case "restart": {
+            if (!app) return done(false, `unknown app id: ${arg ?? ""}`);
+            if (action === "restart") await handleRestart(app);
+            else await handleLaunch(app);
+            // A pure static entry (URL only, nothing to run) has no running
+            // signal - opening it is the whole action, so call it done.
+            if (!hasRunSignal(app)) return done(true, "opened");
+            const ok = await waitForRunning(app.id, true, 25000);
+            return done(ok, ok ? null : "did not reach running in time");
+          }
+          case "stop": {
+            if (!app) return done(false, `unknown app id: ${arg ?? ""}`);
+            await handleStop(app);
+            if (!hasRunSignal(app)) return done(true, "stopped");
+            const ok = await waitForRunning(app.id, false, 15000);
+            return done(ok, ok ? null : "still running after stop");
+          }
+          case "reload":
+            await handleReload();
+            return done(true, null);
+          case "refresh-icons":
+            await loadAllIcons(true);
+            return done(true, null);
+          default:
+            return done(false, `unknown command: ${action}`);
+        }
+      } catch (e) {
+        done(false, String(e));
       }
     });
   });
@@ -328,6 +354,28 @@
       if ((t === "up" && active) || (t === "down" && !active)) clearPending(id);
     }
   });
+
+  // Does this app have a signal the poller can use to tell it's running? A pure
+  // static URL entry has none (opening it is the whole action); anything with a
+  // command (managed PTY), a port, or a process name does.
+  function hasRunSignal(app: AppEntry): boolean {
+    return !!(app.command || app.port || app.processName);
+  }
+
+  // Poll the live status map until app `id` reaches `want` (running/stopped) or
+  // the timeout elapses. Used to resolve a ticketed control command's outcome.
+  async function waitForRunning(
+    id: string,
+    want: boolean,
+    timeoutMs: number,
+  ): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if ((statuses[id]?.running ?? false) === want) return true;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return (statuses[id]?.running ?? false) === want;
+  }
 
   async function handleLaunch(app: AppEntry) {
     recordStart(app.id);

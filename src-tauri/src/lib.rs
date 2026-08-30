@@ -72,6 +72,23 @@ struct AppStatus {
     managed: bool,
 }
 
+/// Outcome record for one control command the caller tagged with a ticket.
+/// Published in state.json so a script/agent that fired `launch <id> --ticket K`
+/// can read back whether it worked without any stdout reply channel.
+#[derive(Clone, Serialize)]
+struct Ticket {
+    ticket: String,
+    action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    arg: Option<String>,
+    /// "pending" while the UI is acting, then "ok" or "error".
+    status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail: Option<String>,
+    /// Unix millis when this record last changed.
+    ts: u64,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 struct Settings {
     #[serde(default, rename = "debugLogging")]
@@ -127,7 +144,15 @@ struct HubState {
     apps: Mutex<HashMap<String, RunningApp>>,
     manifest: Mutex<Vec<AppEntry>>,
     settings: Mutex<Settings>,
+    /// Recent control-command outcomes, newest last; capped to avoid growth.
+    tickets: Mutex<Vec<Ticket>>,
+    /// Last status snapshot the poller computed, so an out-of-band state.json
+    /// flush (after a ticket update) still writes accurate running/managed flags.
+    last_statuses: Mutex<Vec<AppStatus>>,
 }
+
+/// Cap on retained ticket records (oldest dropped first).
+const MAX_TICKETS: usize = 50;
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -979,7 +1004,10 @@ fn spawn_status_poller(app: AppHandle) {
                     managed: is_managed,
                 });
             }
-            write_state(&app, &entries, &statuses);
+            if let Some(state) = app.try_state::<HubState>() {
+                *state.last_statuses.lock().unwrap() = statuses.clone();
+            }
+            write_state(&app);
             let _ = app.emit("status://update", statuses);
             std::thread::sleep(Duration::from_millis(2000));
         }
@@ -996,13 +1024,31 @@ fn spawn_status_poller(app: AppHandle) {
 struct ControlCommand {
     action: String,
     arg: Option<String>,
+    /// Caller-supplied correlation key. When present, the UI reports the command's
+    /// outcome back under this key in state.json (see `report_outcome`).
+    ticket: Option<String>,
 }
 
 /// Handle a second-instance invocation. `argv[0]` is the exe path; the rest is
 /// the command, e.g. `moonpool.exe launch my-app`.
 fn dispatch_control(app: &AppHandle, argv: &[String]) {
-    let args: Vec<&str> = argv.iter().skip(1).map(String::as_str).collect();
-    let action = match args.first() {
+    // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
+    // are positional (action + app id) exactly as before.
+    let raw: Vec<&str> = argv.iter().skip(1).map(String::as_str).collect();
+    let mut positional: Vec<&str> = Vec::new();
+    let mut ticket: Option<String> = None;
+    let mut i = 0;
+    while i < raw.len() {
+        if raw[i] == "--ticket" {
+            ticket = raw.get(i + 1).map(|s| s.to_string());
+            i += 2;
+        } else {
+            positional.push(raw[i]);
+            i += 1;
+        }
+    }
+
+    let action = match positional.first() {
         Some(a) => a.to_lowercase(),
         None => {
             // A bare second launch just means "come back" - surface the window.
@@ -1010,7 +1056,7 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
             return;
         }
     };
-    let arg = args.get(1).map(|s| s.to_string());
+    let arg = positional.get(1).map(|s| s.to_string());
 
     // `show` acts on the window directly; everything else is handled by the UI,
     // which owns launching/stopping/reloading/icon refresh.
@@ -1023,29 +1069,102 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         "launch" | "stop" | "restart" | "reload" | "refresh-icons"
     ) {
         log_line(app, &format!("control: ignoring unknown command '{action}'"));
+        if let Some(t) = &ticket {
+            record_ticket(app, t, &action, arg.clone(), "error", Some("unknown command".into()));
+        }
         return;
     }
     log_line(
         app,
         &format!("control: {action}{}", arg.as_deref().map(|a| format!(" {a}")).unwrap_or_default()),
     );
-    let _ = app.emit("control://command", ControlCommand { action, arg });
+    // Record a pending outcome up front so a caller polling state.json sees the
+    // command was received even before the UI finishes acting on it.
+    if let Some(t) = &ticket {
+        record_ticket(app, t, &action, arg.clone(), "pending", None);
+    }
+    let _ = app.emit("control://command", ControlCommand { action, arg, ticket });
 }
 
-/// Write a machine-readable snapshot (apps + live status) to
-/// <config>/Moonpool/state.json, refreshed every status tick. Lets external
-/// tools read what's registered and what's running without the UI.
-fn write_state(app: &AppHandle, entries: &[AppEntry], statuses: &[AppStatus]) {
+/// Milliseconds since the Unix epoch (0 if the clock is somehow before it).
+fn now_millis() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// Write a machine-readable snapshot (apps + live status + recent control-command
+/// outcomes) to <config>/Moonpool/state.json. Refreshed every status tick and
+/// again immediately whenever a ticket's outcome changes, so a script/agent can
+/// read back what's registered, what's running, and whether its tagged command
+/// succeeded - all without a stdout reply channel.
+fn write_state(app: &AppHandle) {
     let Some(path) = moonpool_dir(app).map(|d| d.join("state.json")) else {
         return;
     };
+    let Some(state) = app.try_state::<HubState>() else {
+        return;
+    };
+    let entries = state.manifest.lock().unwrap().clone();
+    let statuses = state.last_statuses.lock().unwrap().clone();
+    let tickets = state.tickets.lock().unwrap().clone();
     let snapshot = serde_json::json!({
         "apps": entries,
         "statuses": statuses,
+        "tickets": tickets,
     });
     if let Ok(text) = serde_json::to_string_pretty(&snapshot) {
         let _ = std::fs::write(path, text);
     }
+}
+
+/// Insert or update a ticket record, then flush state.json so a poller on the
+/// caller's side sees the change within one read rather than waiting ~2s.
+fn record_ticket(
+    app: &AppHandle,
+    ticket: &str,
+    action: &str,
+    arg: Option<String>,
+    status: &str,
+    detail: Option<String>,
+) {
+    if let Some(state) = app.try_state::<HubState>() {
+        let mut tickets = state.tickets.lock().unwrap();
+        let rec = Ticket {
+            ticket: ticket.to_string(),
+            action: action.to_string(),
+            arg,
+            status: status.to_string(),
+            detail,
+            ts: now_millis(),
+        };
+        match tickets.iter_mut().find(|t| t.ticket == ticket) {
+            Some(existing) => *existing = rec,
+            None => {
+                tickets.push(rec);
+                let overflow = tickets.len().saturating_sub(MAX_TICKETS);
+                if overflow > 0 {
+                    tickets.drain(0..overflow);
+                }
+            }
+        }
+    }
+    write_state(app);
+}
+
+/// Called by the UI once it has acted on a ticketed control command, reporting
+/// the final outcome ("ok" / "error") so it lands in state.json for the caller.
+#[tauri::command]
+fn report_outcome(
+    ticket: String,
+    action: String,
+    arg: Option<String>,
+    status: String,
+    detail: Option<String>,
+    app: AppHandle,
+) {
+    record_ticket(&app, &ticket, &action, arg, &status, detail);
 }
 
 // ---------------------------------------------------------------------------
@@ -1113,6 +1232,8 @@ pub fn run() {
             apps: Mutex::new(HashMap::new()),
             manifest: Mutex::new(Vec::new()),
             settings: Mutex::new(Settings::default()),
+            tickets: Mutex::new(Vec::new()),
+            last_statuses: Mutex::new(Vec::new()),
         })
         .setup(|app| {
             let handle = app.handle().clone();
@@ -1175,7 +1296,8 @@ pub fn run() {
             term_input,
             term_resize,
             stop_app,
-            open_url
+            open_url,
+            report_outcome
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");

@@ -67,9 +67,22 @@ export const onTermExit = (cb: (id: string) => void): Promise<UnlistenFn> =>
 export interface ControlCommand {
   action: "launch" | "stop" | "restart" | "reload" | "refresh-icons";
   arg: string | null;
+  /** Caller-supplied correlation key; when set, the outcome is reported back. */
+  ticket: string | null;
 }
 
 export const onControl = (
   cb: (c: ControlCommand) => void,
 ): Promise<UnlistenFn> =>
   listen<ControlCommand>("control://command", (e) => cb(e.payload));
+
+// Report a ticketed command's final outcome so it lands in state.json for the
+// caller to read back. Fire-and-forget; failures here are non-fatal.
+export const reportOutcome = (
+  ticket: string,
+  action: string,
+  arg: string | null,
+  status: "ok" | "error",
+  detail: string | null,
+): Promise<void> =>
+  invoke("report_outcome", { ticket, action, arg, status, detail });

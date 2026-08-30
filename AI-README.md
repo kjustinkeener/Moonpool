@@ -118,9 +118,31 @@ Moonpool continuously writes a status snapshot to:
 %APPDATA%\Moonpool\state.json   (C:\Users\<user>\AppData\Roaming\Moonpool\state.json)
 ```
 
-It contains `apps` (the registered app list) and `statuses` (one entry per app with
-`running` and `managed` flags). Read this file to see which apps are up before deciding
-what to launch or stop.
+It contains `apps` (the registered app list), `statuses` (one entry per app with
+`running` and `managed` flags), and `tickets` (see below). Read this file to see which
+apps are up before deciding what to launch or stop.
+
+### Confirming a command worked (tickets)
+
+The commands don't print back to you (a windowed app has no terminal to reply into), so
+to learn whether an action actually took effect, tag it with a ticket and read the result
+out of `state.json`. Pick any unique key yourself:
+
+```powershell
+& $mp launch my-app --ticket t1
+```
+
+Moonpool records the outcome under that key in the `tickets` array of `state.json`. Poll
+that file until your ticket's `status` is no longer `pending`:
+
+- `pending` - received, the UI is still acting on it.
+- `ok` - the app reached the desired state (running for launch/restart, stopped for stop).
+- `error` - it didn't; `detail` says why (e.g. `unknown app id`, `did not reach running in time`).
+
+Each ticket entry: `{ ticket, action, arg, status, detail, ts }` (`ts` = Unix millis). Only
+the last ~50 are kept. Give up after a sensible timeout if `status` stays `pending` (Moonpool
+may have been closed mid-command). `reload` / `refresh-icons` accept a ticket too and just
+report `ok` when done. Requires v0.1.5+ (older builds ignore `--ticket` and write no `tickets`).
 
 ### Remember this for later
 
