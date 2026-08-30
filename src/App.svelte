@@ -10,7 +10,9 @@
     manifestDir,
     saveManifest,
     appIcon,
+    getSettings,
   } from "./lib/api";
+  import { check, type Update } from "@tauri-apps/plugin-updater";
   import type { AppEntry, AppStatus } from "./lib/types";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
@@ -50,6 +52,28 @@
   // (the backend returns a Windows path with `\`, a POSIX path with `/`).
   let cfgSep = $derived(cfgDir.includes("\\") ? "\\" : "/");
   let promptCopied = $state(false);
+
+  // On-startup update check (gated by the checkOnStartup setting). If a newer
+  // release is found, `update` drives the banner in the terminal area.
+  let update = $state<Update | null>(null);
+  let updateStatus = $state("");
+  let updating = $state(false);
+  let updateDone = $state(false);
+
+  async function installUpdate() {
+    if (!update || updating || updateDone) return;
+    updating = true;
+    updateStatus = `Downloading ${update.version}…`;
+    try {
+      await update.downloadAndInstall();
+      updateStatus = "Update installed. Restart Moonpool to apply.";
+      updateDone = true;
+    } catch (e) {
+      updateStatus = `Update failed: ${e}`;
+    } finally {
+      updating = false;
+    }
+  }
 
   let groupNames = $derived([...new Set(apps.map((a) => a.group))]);
   let aiPrompt = $derived(
@@ -205,6 +229,17 @@
     } catch {
       lastStarted = {};
     }
+
+    // Fire-and-forget update check; silent on failure or when up to date.
+    getSettings()
+      .then((s) => {
+        if (s.checkOnStartup) return check();
+        return null;
+      })
+      .then((u) => {
+        if (u) update = u;
+      })
+      .catch(() => {});
 
     apps = await getApps();
     loadAllIcons();
@@ -403,6 +438,27 @@
             Its console streams here, live &mdash; type into it like a real terminal.
           </p>
 
+          {#if update}
+            <div class="update-banner" class:done={updateDone}>
+              <span class="ub-icon">{updateDone ? "✓" : "↑"}</span>
+              <span class="ub-text">
+                {#if updateStatus}
+                  {updateStatus}
+                {:else}
+                  Moonpool {update.version} is available (you have {update.currentVersion}).
+                {/if}
+              </span>
+              {#if !updateDone}
+                <button class="ub-btn" disabled={updating} onclick={installUpdate}>
+                  {updating ? "Installing…" : "Download & install"}
+                </button>
+                {#if !updating}
+                  <button class="ub-x" title="Dismiss" aria-label="Dismiss" onclick={() => (update = null)}>&times;</button>
+                {/if}
+              {/if}
+            </div>
+          {/if}
+
           <div class="quickstart">
             <div class="qs-head">
               <span>New here? Hand this to an AI agent to set up your apps:</span>
@@ -574,6 +630,68 @@
   .ph-sub {
     font-size: 12px;
     color: var(--text-faint);
+  }
+  .update-banner {
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-inset);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 12.5px;
+  }
+  .update-banner.done {
+    border-color: var(--dot-run);
+  }
+  .ub-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .update-banner.done .ub-icon {
+    background: var(--dot-run);
+  }
+  .ub-text {
+    flex: 1;
+    line-height: 1.4;
+  }
+  .ub-btn {
+    flex: none;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: var(--on-accent);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .ub-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .ub-x {
+    flex: none;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+  }
+  .ub-x:hover {
+    color: var(--text-strong);
   }
   .quickstart {
     width: 100%;

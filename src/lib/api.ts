@@ -19,6 +19,7 @@ export interface Settings {
   debugLogging: boolean;
   closeToTray: boolean;
   minimizeToTray: boolean;
+  checkOnStartup: boolean;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
 export const setDebugLogging = (enabled: boolean) =>
@@ -27,6 +28,8 @@ export const setCloseToTray = (enabled: boolean) =>
   invoke<void>("set_close_to_tray", { enabled });
 export const setMinimizeToTray = (enabled: boolean) =>
   invoke<void>("set_minimize_to_tray", { enabled });
+export const setCheckOnStartup = (enabled: boolean) =>
+  invoke<void>("set_check_on_startup", { enabled });
 export const openLog = () => invoke<void>("open_log");
 
 export const launchApp = (id: string, cols: number, rows: number) =>

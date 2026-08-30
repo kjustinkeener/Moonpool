@@ -5,6 +5,7 @@
     setDebugLogging,
     setCloseToTray,
     setMinimizeToTray,
+    setCheckOnStartup,
     openLog,
     manifestDir,
   } from "./api";
@@ -16,6 +17,7 @@
   let debugLogging = $state(false);
   let closeToTray = $state(true);
   let minimizeToTray = $state(true);
+  let checkOnStartup = $state(true);
   let dir = $state("");
 
   const THEMES: Theme[] = ["auto", "light", "dark"];
@@ -31,6 +33,7 @@
       debugLogging = s.debugLogging;
       closeToTray = s.closeToTray;
       minimizeToTray = s.minimizeToTray;
+      checkOnStartup = s.checkOnStartup;
     } catch {
       /* defaults */
     }
@@ -52,6 +55,11 @@
   async function toggleMinimizeToTray() {
     minimizeToTray = !minimizeToTray;
     await setMinimizeToTray(minimizeToTray).catch(() => {});
+  }
+
+  async function toggleCheckOnStartup() {
+    checkOnStartup = !checkOnStartup;
+    await setCheckOnStartup(checkOnStartup).catch(() => {});
   }
 </script>
 
@@ -83,6 +91,16 @@
         <div class="title">Minimize to tray</div>
         <div class="sub">
           Minimizing hides Moonpool to the tray (leaves the taskbar). Off: minimizes to the taskbar.
+        </div>
+      </div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" checked={checkOnStartup} onchange={toggleCheckOnStartup} />
+      <div class="text">
+        <div class="title">Check for updates on startup</div>
+        <div class="sub">
+          On launch, quietly checks GitHub for a newer version and shows a banner if one is found.
         </div>
       </div>
     </label>

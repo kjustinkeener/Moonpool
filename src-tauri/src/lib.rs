@@ -82,6 +82,9 @@ struct Settings {
     /// Hide to the tray (leave the taskbar) when the window is minimized.
     #[serde(default = "default_true", rename = "minimizeToTray")]
     minimize_to_tray: bool,
+    /// Check GitHub Releases for a newer version once, on app startup.
+    #[serde(default = "default_true", rename = "checkOnStartup")]
+    check_on_startup: bool,
 }
 
 fn default_true() -> bool {
@@ -94,6 +97,7 @@ impl Default for Settings {
             debug_logging: false,
             close_to_tray: true,
             minimize_to_tray: true,
+            check_on_startup: true,
         }
     }
 }
@@ -510,6 +514,20 @@ fn set_minimize_to_tray(
     let s = {
         let mut g = state.settings.lock().unwrap();
         g.minimize_to_tray = enabled;
+        g.clone()
+    };
+    save_settings(&app, &s)
+}
+
+#[tauri::command]
+fn set_check_on_startup(
+    enabled: bool,
+    app: AppHandle,
+    state: State<HubState>,
+) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.check_on_startup = enabled;
         g.clone()
     };
     save_settings(&app, &s)
@@ -1057,6 +1075,7 @@ pub fn run() {
             set_debug_logging,
             set_close_to_tray,
             set_minimize_to_tray,
+            set_check_on_startup,
             open_log,
             launch_app,
             term_input,
