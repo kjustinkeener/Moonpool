@@ -273,6 +273,9 @@
         case "stop":
           if (app) handleStop(app);
           break;
+        case "restart":
+          if (app) handleRestart(app);
+          break;
         case "reload":
           handleReload();
           break;

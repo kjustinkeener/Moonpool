@@ -1020,7 +1020,7 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
     }
     if !matches!(
         action.as_str(),
-        "launch" | "stop" | "reload" | "refresh-icons"
+        "launch" | "stop" | "restart" | "reload" | "refresh-icons"
     ) {
         log_line(app, &format!("control: ignoring unknown command '{action}'"));
         return;

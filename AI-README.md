@@ -86,15 +86,16 @@ or refresh on the user's behalf.
 ```
 "C:\Program Files\Moonpool\Moonpool.exe" launch <app-id>     # open an app and start it
 "C:\Program Files\Moonpool\Moonpool.exe" stop <app-id>       # stop a running app
+"C:\Program Files\Moonpool\Moonpool.exe" restart <app-id>    # stop, wait for the port/process to free, relaunch
 "C:\Program Files\Moonpool\Moonpool.exe" reload              # re-read apps.json
 "C:\Program Files\Moonpool\Moonpool.exe" refresh-icons       # re-pull every icon
 "C:\Program Files\Moonpool\Moonpool.exe" show                # bring the window to the front
 ```
 
-`<app-id>` is the `id` field from `apps.json`. There is no `restart` command - restart an app
-by running `stop <app-id>` then `launch <app-id>`. These only work while Moonpool is running;
-if it isn't, start it first (or a bare run just opens it). If the install path differs, use the
-path of the running `Moonpool.exe`.
+`<app-id>` is the `id` field from `apps.json`. `restart` is the managed stop-then-relaunch
+(it waits for the port/process to free before relaunching - prefer it over a manual stop +
+launch). These only work while Moonpool is running; if it isn't, start it first (or a bare run
+just opens it). If the install path differs, use the path of the running `Moonpool.exe`.
 
 ### Checking what's running
 
