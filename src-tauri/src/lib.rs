@@ -72,10 +72,30 @@ struct AppStatus {
     managed: bool,
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Settings {
     #[serde(default, rename = "debugLogging")]
     debug_logging: bool,
+    /// Hide to the tray (leave the taskbar) when the window is closed.
+    #[serde(default = "default_true", rename = "closeToTray")]
+    close_to_tray: bool,
+    /// Hide to the tray (leave the taskbar) when the window is minimized.
+    #[serde(default = "default_true", rename = "minimizeToTray")]
+    minimize_to_tray: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            debug_logging: false,
+            close_to_tray: true,
+            minimize_to_tray: true,
+        }
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -469,6 +489,30 @@ fn set_debug_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> R
         log_line(&app, "--- debug logging enabled ---");
     }
     Ok(())
+}
+
+#[tauri::command]
+fn set_close_to_tray(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.close_to_tray = enabled;
+        g.clone()
+    };
+    save_settings(&app, &s)
+}
+
+#[tauri::command]
+fn set_minimize_to_tray(
+    enabled: bool,
+    app: AppHandle,
+    state: State<HubState>,
+) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.minimize_to_tray = enabled;
+        g.clone()
+    };
+    save_settings(&app, &s)
 }
 
 /// Open the log file in the default app.
@@ -973,11 +1017,33 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Closing the window hides to tray instead of quitting; Quit (tray
-            // menu) is the only real exit, so Moonpool stays resident.
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let _ = window.hide();
-                api.prevent_close();
+            let (close_to_tray, minimize_to_tray) = window
+                .app_handle()
+                .try_state::<HubState>()
+                .map(|s| {
+                    let g = s.settings.lock().unwrap();
+                    (g.close_to_tray, g.minimize_to_tray)
+                })
+                .unwrap_or((true, true));
+            match event {
+                // With "close to tray" on, closing hides to the tray instead of
+                // quitting (Quit in the tray menu is the only real exit, so
+                // Moonpool stays resident). With it off, the close proceeds and
+                // the app exits normally.
+                tauri::WindowEvent::CloseRequested { api, .. } if close_to_tray => {
+                    let _ = window.hide();
+                    api.prevent_close();
+                }
+                // With "minimize to tray" on, minimizing hides to the tray too,
+                // so Moonpool leaves the taskbar. Tauri has no Minimized event,
+                // so detect it on Resized; the tray left-click / Show both
+                // unminimize on the way back.
+                tauri::WindowEvent::Resized(_)
+                    if minimize_to_tray && window.is_minimized().unwrap_or(false) =>
+                {
+                    let _ = window.hide();
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -989,6 +1055,8 @@ pub fn run() {
             app_icon,
             get_settings,
             set_debug_logging,
+            set_close_to_tray,
+            set_minimize_to_tray,
             open_log,
             launch_app,
             term_input,

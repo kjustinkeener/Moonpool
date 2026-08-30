@@ -1,12 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { getSettings, setDebugLogging, openLog, manifestDir } from "./api";
+  import {
+    getSettings,
+    setDebugLogging,
+    setCloseToTray,
+    setMinimizeToTray,
+    openLog,
+    manifestDir,
+  } from "./api";
   import { getTheme, setTheme, type Theme } from "./theme";
   import Modal from "./Modal.svelte";
 
   let { onClose }: { onClose: () => void } = $props();
 
   let debugLogging = $state(false);
+  let closeToTray = $state(true);
+  let minimizeToTray = $state(true);
   let dir = $state("");
 
   const THEMES: Theme[] = ["auto", "light", "dark"];
@@ -18,7 +27,10 @@
 
   onMount(async () => {
     try {
-      debugLogging = (await getSettings()).debugLogging;
+      const s = await getSettings();
+      debugLogging = s.debugLogging;
+      closeToTray = s.closeToTray;
+      minimizeToTray = s.minimizeToTray;
     } catch {
       /* defaults */
     }
@@ -30,6 +42,16 @@
   async function toggle() {
     debugLogging = !debugLogging;
     await setDebugLogging(debugLogging).catch(() => {});
+  }
+
+  async function toggleCloseToTray() {
+    closeToTray = !closeToTray;
+    await setCloseToTray(closeToTray).catch(() => {});
+  }
+
+  async function toggleMinimizeToTray() {
+    minimizeToTray = !minimizeToTray;
+    await setMinimizeToTray(minimizeToTray).catch(() => {});
   }
 </script>
 
@@ -44,6 +66,26 @@
         {/each}
       </div>
     </div>
+
+    <label class="row">
+      <input type="checkbox" checked={closeToTray} onchange={toggleCloseToTray} />
+      <div class="text">
+        <div class="title">Close to tray</div>
+        <div class="sub">
+          Closing the window hides Moonpool to the tray (leaves the taskbar). Off: closing quits.
+        </div>
+      </div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" checked={minimizeToTray} onchange={toggleMinimizeToTray} />
+      <div class="text">
+        <div class="title">Minimize to tray</div>
+        <div class="sub">
+          Minimizing hides Moonpool to the tray (leaves the taskbar). Off: minimizes to the taskbar.
+        </div>
+      </div>
+    </label>
 
     <label class="row">
       <input type="checkbox" checked={debugLogging} onchange={toggle} />
@@ -77,6 +119,7 @@
     align-items: flex-start;
     gap: 10px;
     cursor: pointer;
+    margin-bottom: 14px;
   }
   .row input {
     margin-top: 2px;

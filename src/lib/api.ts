@@ -17,10 +17,16 @@ export const appIcon = (id: string) => invoke<string | null>("app_icon", { id })
 
 export interface Settings {
   debugLogging: boolean;
+  closeToTray: boolean;
+  minimizeToTray: boolean;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
 export const setDebugLogging = (enabled: boolean) =>
   invoke<void>("set_debug_logging", { enabled });
+export const setCloseToTray = (enabled: boolean) =>
+  invoke<void>("set_close_to_tray", { enabled });
+export const setMinimizeToTray = (enabled: boolean) =>
+  invoke<void>("set_minimize_to_tray", { enabled });
 export const openLog = () => invoke<void>("open_log");
 
 export const launchApp = (id: string, cols: number, rows: number) =>
