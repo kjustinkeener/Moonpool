@@ -91,8 +91,9 @@ or refresh on the user's behalf.
 "C:\Program Files\Moonpool\Moonpool.exe" show                # bring the window to the front
 ```
 
-`<app-id>` is the `id` field from `apps.json`. These only work while Moonpool is running; if
-it isn't, start it first (or a bare run just opens it). If the install path differs, use the
+`<app-id>` is the `id` field from `apps.json`. There is no `restart` command - restart an app
+by running `stop <app-id>` then `launch <app-id>`. These only work while Moonpool is running;
+if it isn't, start it first (or a bare run just opens it). If the install path differs, use the
 path of the running `Moonpool.exe`.
 
 ### Checking what's running
