@@ -432,7 +432,7 @@
       {/each}
       {#if openTabs.length === 0}
         <div class="placeholder">
-          <div class="ph-moon">🌙</div>
+          <div class="ph-moon" aria-hidden="true"></div>
           <p class="ph-title">Pick an app on the left to launch it.</p>
           <p class="ph-sub">
             Its console streams here, live &mdash; type into it like a real terminal.
@@ -620,8 +620,31 @@
   }
   .ph-moon {
     font-size: 42px;
-    opacity: 0.5;
+    opacity: 0.8;
     margin-bottom: 8px;
+    position: relative;
+    isolation: isolate; /* contain the color blend to the emoji */
+  }
+  /* Base moon on its own layer so its saturation can be dialed independently
+     of the aqua overlay. */
+  .ph-moon::before {
+    content: "🌙";
+    display: block;
+    filter: saturate(0.4) brightness(0.95);
+  }
+  /* A second moon glyph, recolored to aqua, blended over the base (glyph-shaped,
+     not a rectangle), so only the moon picks up the tint. */
+  .ph-moon::after {
+    content: "🌙";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: sepia(1) saturate(6) hue-rotate(140deg);
+    mix-blend-mode: color;
+    opacity: 0.32;
+    pointer-events: none;
   }
   .ph-title {
     font-size: 14px;
@@ -634,18 +657,16 @@
   .update-banner {
     width: 100%;
     max-width: 560px;
+    margin-top: 22px;
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
     background: var(--bg-inset);
-    border: 1px solid var(--accent);
+    border: 1px solid var(--dot-run);
     border-radius: 8px;
     color: var(--text);
     font-size: 12.5px;
-  }
-  .update-banner.done {
-    border-color: var(--dot-run);
   }
   .ub-icon {
     flex: none;
@@ -655,13 +676,11 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: var(--accent);
-    color: var(--on-accent);
+    background: var(--dot-run);
+    /* Dark ink, not --on-accent (white): the aqua is light in both themes. */
+    color: #052a30;
     font-size: 12px;
     font-weight: 700;
-  }
-  .update-banner.done .ub-icon {
-    background: var(--dot-run);
   }
   .ub-text {
     flex: 1;
@@ -669,9 +688,10 @@
   }
   .ub-btn {
     flex: none;
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    color: var(--on-accent);
+    background: var(--dot-run);
+    border: 1px solid var(--dot-run);
+    color: #052a30;
+    font-weight: 600;
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
