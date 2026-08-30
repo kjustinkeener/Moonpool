@@ -53,6 +53,7 @@ Linux system tray needs `libayatana-appindicator` installed.
 - **Stays in the tray.** Closing the window hides to the tray; left-click the tray icon to
   reopen, tray menu -> Quit to exit.
 - **Linux-style terminal clipboard**: select to copy (then deselect), middle-click to paste.
+- **Command-line remote control.** With Moonpool running, `Moonpool.exe launch|stop|reload|refresh-icons|show <app-id>` drives the resident window (a script or AI agent can start/stop your apps), and a live `state.json` in the config folder reports what's running. See [`AI-README.md`](AI-README.md).
 
 ## Install
 

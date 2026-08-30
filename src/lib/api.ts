@@ -13,7 +13,8 @@ export const manifestDir = () => invoke<string>("manifest_dir");
 export const saveManifest = (entries: AppEntry[]) =>
   invoke<void>("save_manifest", { entries });
 
-export const appIcon = (id: string) => invoke<string | null>("app_icon", { id });
+export const appIcon = (id: string, refresh = false) =>
+  invoke<string | null>("app_icon", { id, refresh });
 
 export interface Settings {
   debugLogging: boolean;
@@ -60,3 +61,15 @@ export const onTermOutput = (
 
 export const onTermExit = (cb: (id: string) => void): Promise<UnlistenFn> =>
   listen<string>("term://exit", (e) => cb(e.payload));
+
+// External control channel: commands forwarded from a second `moonpool.exe` run
+// (single-instance) that the UI executes as if the user had clicked.
+export interface ControlCommand {
+  action: "launch" | "stop" | "reload" | "refresh-icons";
+  arg: string | null;
+}
+
+export const onControl = (
+  cb: (c: ControlCommand) => void,
+): Promise<UnlistenFn> =>
+  listen<ControlCommand>("control://command", (e) => cb(e.payload));

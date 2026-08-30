@@ -11,6 +11,7 @@
     saveManifest,
     appIcon,
     getSettings,
+    onControl,
   } from "./lib/api";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import type { AppEntry, AppStatus } from "./lib/types";
@@ -31,15 +32,18 @@
   // Bump a tab's generation to force TermView to remount (fresh terminal + relaunch).
   let gen = $state<Record<string, number>>({});
   let unlisten: UnlistenFn | null = null;
+  let unlistenControl: UnlistenFn | null = null;
 
   // Resolved app icons (data URI or url), fetched from the backend.
   let iconSrc = $state<Record<string, string>>({});
-  async function loadIcon(id: string) {
-    const src = await appIcon(id).catch(() => null);
+  // `refresh` forces a fresh re-pull past the exe/favicon caches - used on app
+  // startup and on every launch, since icons change between successive builds.
+  async function loadIcon(id: string, refresh = false) {
+    const src = await appIcon(id, refresh).catch(() => null);
     if (src) iconSrc = { ...iconSrc, [id]: src };
   }
-  function loadAllIcons() {
-    for (const a of apps) loadIcon(a.id);
+  function loadAllIcons(refresh = false) {
+    for (const a of apps) loadIcon(a.id, refresh);
   }
 
   // Modals + AI quickstart.
@@ -242,18 +246,39 @@
       .catch(() => {});
 
     apps = await getApps();
-    loadAllIcons();
+    loadAllIcons(true);
     manifestDir()
       .then((d) => (cfgDir = d))
       .catch(() => {});
     unlisten = await onStatus((list) => {
+      // A desktop exe icon / web favicon only resolves once the app is running,
+      // and it may have changed since the last build - so on each stopped->running
+      // transition, force a fresh re-pull (not every poll, only the rising edge).
+      for (const s of list) {
+        const wasRunning = statuses[s.id]?.running ?? false;
+        if (s.running && !wasRunning) loadIcon(s.id, true);
+      }
       const m: Record<string, AppStatus> = {};
       for (const s of list) m[s.id] = s;
       statuses = m;
-      // A desktop exe icon / web favicon only becomes resolvable once the app is
-      // running, so (re)fetch icons for newly-running apps that don't have one yet.
-      for (const s of list) {
-        if (s.running && !iconSrc[s.id]) loadIcon(s.id);
+    });
+
+    // External control channel (a second `moonpool.exe launch/stop/... <id>` run).
+    unlistenControl = await onControl(({ action, arg }) => {
+      const app = arg ? apps.find((a) => a.id === arg) : undefined;
+      switch (action) {
+        case "launch":
+          if (app) handleLaunch(app);
+          break;
+        case "stop":
+          if (app) handleStop(app);
+          break;
+        case "reload":
+          handleReload();
+          break;
+        case "refresh-icons":
+          loadAllIcons(true);
+          break;
       }
     });
   });
@@ -278,6 +303,7 @@
 
   onDestroy(() => {
     unlisten?.();
+    unlistenControl?.();
     // Clear any outstanding timers so they can't fire and set $state after unmount.
     for (const id of Object.keys(pendingTimers)) clearTimeout(pendingTimers[id]);
     for (const arr of Object.values(highlightTimers)) arr.forEach(clearTimeout);
@@ -302,6 +328,8 @@
 
   async function handleLaunch(app: AppEntry) {
     recordStart(app.id);
+    // Re-pull the icon on every launch - a rebuilt app/site may have a new one.
+    loadIcon(app.id, true);
     // Static entries with only a URL just open in the browser - no terminal.
     if (app.type === "static" && !app.command) {
       if (app.url) await openUrl(app.url);
@@ -329,7 +357,7 @@
   async function handleReload() {
     apps = await reloadManifest();
     iconSrc = {};
-    loadAllIcons();
+    loadAllIcons(true);
   }
   async function handleEdit() {
     await openManifest();

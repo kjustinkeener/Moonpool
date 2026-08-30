@@ -246,6 +246,20 @@ fn file_mtime(p: &Path) -> Option<SystemTime> {
     std::fs::metadata(p).ok()?.modified().ok()
 }
 
+/// Append a unique query param so the WebView refetches a remote icon URL instead
+/// of serving a cached (stale) copy. No-op unless `refresh` is set.
+fn cache_bust(url: &str, refresh: bool) -> String {
+    if !refresh {
+        return url.to_string();
+    }
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let sep = if url.contains('?') { '&' } else { '?' };
+    format!("{url}{sep}mp_icon={nonce}")
+}
+
 /// The first existing candidate icon file inside `dir`.
 fn find_project_icon(dir: &Path) -> Option<PathBuf> {
     PROJECT_ICON_CANDIDATES
@@ -559,7 +573,15 @@ fn manifest_dir(app: AppHandle) -> Result<String, String> {
 /// Resolve an app's icon to an <img> src: manifest icon -> icons/<id>.* ->
 /// desktop exe icon -> web favicon -> None (frontend shows a glyph).
 #[tauri::command]
-fn app_icon(id: String, app: AppHandle, state: State<HubState>) -> Option<String> {
+fn app_icon(
+    id: String,
+    refresh: Option<bool>,
+    app: AppHandle,
+    state: State<HubState>,
+) -> Option<String> {
+    // `refresh` forces past the exe mtime-cache and the WebView's favicon cache,
+    // so an icon changed in a new build of the target app shows up immediately.
+    let refresh = refresh.unwrap_or(false);
     let entry = {
         let m = state.manifest.lock().unwrap();
         m.iter().find(|e| e.id == id).cloned()
@@ -577,9 +599,11 @@ fn app_icon(id: String, app: AppHandle, state: State<HubState>) -> Option<String
         .map(str::trim)
         .filter(|s| !s.is_empty())
     {
-        if icon.starts_with("http://") || icon.starts_with("https://") || icon.starts_with("data:")
-        {
+        if icon.starts_with("data:") {
             return Some(icon.to_string());
+        }
+        if icon.starts_with("http://") || icon.starts_with("https://") {
+            return Some(cache_bust(icon, refresh));
         }
         let p = PathBuf::from(icon);
         if p.is_file() {
@@ -621,10 +645,11 @@ fn app_icon(id: String, app: AppHandle, state: State<HubState>) -> Option<String
             .or_else(|| entry.process_name.as_deref().and_then(running_exe_path));
         if let (true, Some(exe)) = (id_is_safe_filename, exe) {
             let out = std::env::temp_dir().join(format!("moonpool-icon-{id}.png"));
-            let cached_fresh = file_mtime(&out)
-                .zip(file_mtime(&exe))
-                .map(|(o, e)| o >= e)
-                .unwrap_or(false);
+            let cached_fresh = !refresh
+                && file_mtime(&out)
+                    .zip(file_mtime(&exe))
+                    .map(|(o, e)| o >= e)
+                    .unwrap_or(false);
             if (cached_fresh || platform::extract_exe_icon(&exe, &out)) && out.is_file() {
                 if let Some(u) = file_to_data_uri(&out) {
                     return Some(u);
@@ -645,7 +670,7 @@ fn app_icon(id: String, app: AppHandle, state: State<HubState>) -> Option<String
                     None => true,
                 };
                 if up {
-                    return Some(format!("{origin}/favicon.ico"));
+                    return Some(cache_bust(&format!("{origin}/favicon.ico"), refresh));
                 }
             }
         }
@@ -954,10 +979,73 @@ fn spawn_status_poller(app: AppHandle) {
                     managed: is_managed,
                 });
             }
+            write_state(&app, &entries, &statuses);
             let _ = app.emit("status://update", statuses);
             std::thread::sleep(Duration::from_millis(2000));
         }
     });
+}
+
+// ---------------------------------------------------------------------------
+// External control channel (single-instance argv forwarding)
+// ---------------------------------------------------------------------------
+
+/// A command forwarded to the UI, mirroring a user action so the terminal tab,
+/// icons, and status all stay consistent. `arg` is the app id where relevant.
+#[derive(Clone, serde::Serialize)]
+struct ControlCommand {
+    action: String,
+    arg: Option<String>,
+}
+
+/// Handle a second-instance invocation. `argv[0]` is the exe path; the rest is
+/// the command, e.g. `moonpool.exe launch my-app`.
+fn dispatch_control(app: &AppHandle, argv: &[String]) {
+    let args: Vec<&str> = argv.iter().skip(1).map(String::as_str).collect();
+    let action = match args.first() {
+        Some(a) => a.to_lowercase(),
+        None => {
+            // A bare second launch just means "come back" - surface the window.
+            show_main(app);
+            return;
+        }
+    };
+    let arg = args.get(1).map(|s| s.to_string());
+
+    // `show` acts on the window directly; everything else is handled by the UI,
+    // which owns launching/stopping/reloading/icon refresh.
+    if action == "show" {
+        show_main(app);
+        return;
+    }
+    if !matches!(
+        action.as_str(),
+        "launch" | "stop" | "reload" | "refresh-icons"
+    ) {
+        log_line(app, &format!("control: ignoring unknown command '{action}'"));
+        return;
+    }
+    log_line(
+        app,
+        &format!("control: {action}{}", arg.as_deref().map(|a| format!(" {a}")).unwrap_or_default()),
+    );
+    let _ = app.emit("control://command", ControlCommand { action, arg });
+}
+
+/// Write a machine-readable snapshot (apps + live status) to
+/// <config>/Moonpool/state.json, refreshed every status tick. Lets external
+/// tools read what's registered and what's running without the UI.
+fn write_state(app: &AppHandle, entries: &[AppEntry], statuses: &[AppStatus]) {
+    let Some(path) = moonpool_dir(app).map(|d| d.join("state.json")) else {
+        return;
+    };
+    let snapshot = serde_json::json!({
+        "apps": entries,
+        "statuses": statuses,
+    });
+    if let Ok(text) = serde_json::to_string_pretty(&snapshot) {
+        let _ = std::fs::write(path, text);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1011,6 +1099,12 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Must be the FIRST plugin. A second run of the exe (Moonpool is already
+        // resident in the tray) forwards its args here instead of starting anew;
+        // this is the external control channel used by scripts/agents.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            dispatch_control(app, &argv);
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())

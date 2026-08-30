@@ -71,6 +71,43 @@ Look under the user's project roots for launchable things:
 Confirm each app's real launch command and port before adding it. Preserve any existing entries
 in `apps.json`; append new ones.
 
+## Controlling Moonpool while it's running
+
+Once Moonpool is running (it lives in the system tray), you can drive it from the command
+line: running the Moonpool program again with a command word hands that command to the
+already-open Moonpool instead of opening a second window. Use this to launch, stop, reload,
+or refresh on the user's behalf.
+
+```
+"C:\Program Files\Moonpool\Moonpool.exe" launch <app-id>     # open an app and start it
+"C:\Program Files\Moonpool\Moonpool.exe" stop <app-id>       # stop a running app
+"C:\Program Files\Moonpool\Moonpool.exe" reload              # re-read apps.json
+"C:\Program Files\Moonpool\Moonpool.exe" refresh-icons       # re-pull every icon
+"C:\Program Files\Moonpool\Moonpool.exe" show                # bring the window to the front
+```
+
+`<app-id>` is the `id` field from `apps.json`. These only work while Moonpool is running; if
+it isn't, start it first (or a bare run just opens it). If the install path differs, use the
+path of the running `Moonpool.exe`.
+
+### Checking what's running
+
+Moonpool continuously writes a status snapshot to:
+
+```
+%APPDATA%\Moonpool\state.json   (C:\Users\<user>\AppData\Roaming\Moonpool\state.json)
+```
+
+It contains `apps` (the registered app list) and `statuses` (one entry per app with
+`running` and `managed` flags). Read this file to see which apps are up before deciding
+what to launch or stop.
+
+### Remember this for later
+
+So you can run, check, and stop the user's apps in future sessions without re-reading this
+guide, save the above to your own memory: the five control commands, the `Moonpool.exe`
+path, and the `state.json` location and shape.
+
 ## Icons (optional)
 
 Moonpool resolves each app's sidebar icon in this order:
