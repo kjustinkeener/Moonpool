@@ -7,7 +7,8 @@ matching note below:
 
 - `screenshot.png` - a hero screenshot of the Moonpool window: the grouped,
   searchable sidebar on the left and an app's embedded terminal on the right.
-  Referenced near the top of `README.md`. **Not committed yet.**
+  Referenced near the top of `README.md`. Present (1341x905, generated from the
+  `tools/screenshot-demo/` kit).
 - `demo.gif` - a short (5-15s) screen recording of the core loop: pick an app
   from the sidebar, watch it launch in the embedded terminal, then stop it.
   Referenced in the README's demo slot. **Not committed yet.**

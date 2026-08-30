@@ -1,0 +1,130 @@
+[
+  {
+    "id": "notes",
+    "name": "Notes",
+    "group": "Desktop apps",
+    "type": "desktop",
+    "cwd": "C:\\projects\\notes",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
+    "processName": "notes",
+    "openBrowser": false,
+    "note": "Native note-taking app (Tauri). Status shows running when a 'notes' process is found."
+  },
+  {
+    "id": "pixel-forge",
+    "name": "Pixel Forge",
+    "group": "Desktop apps",
+    "type": "desktop",
+    "cwd": "C:\\projects\\pixel-forge",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
+    "processName": "pixel-forge",
+    "openBrowser": false,
+    "note": "Desktop image editor. dev-run.ps1 pre-builds then runs the app."
+  },
+  {
+    "id": "db-inspector",
+    "name": "DB Inspector",
+    "group": "Desktop apps",
+    "type": "desktop",
+    "cwd": "C:\\projects\\db-inspector",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
+    "processName": "db-inspector",
+    "openBrowser": false,
+    "note": "Native SQL query + schema browser."
+  },
+  {
+    "id": "metrics",
+    "name": "Metrics Dashboard",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "C:\\claude-local\\MoonPool\\tools\\screenshot-demo\\metrics-site",
+    "command": "python -m http.server 5173",
+    "port": 5173,
+    "url": "http://localhost:5173",
+    "openBrowser": true,
+    "note": "Live demo dashboard (real, runnable): serves a static site on :5173 so the terminal streams real output and the dot goes green."
+  },
+  {
+    "id": "api-gateway",
+    "name": "API Gateway",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "C:\\projects\\api-gateway",
+    "command": "npm run dev",
+    "port": 3000,
+    "url": "http://localhost:3000",
+    "openBrowser": true,
+    "note": "Node/Express API. Status goes green when :3000 answers."
+  },
+  {
+    "id": "blog",
+    "name": "Blog",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "C:\\projects\\blog",
+    "command": "npm run dev",
+    "port": 4321,
+    "url": "http://localhost:4321",
+    "openBrowser": true,
+    "note": "Astro content site dev server."
+  },
+  {
+    "id": "habit-tracker",
+    "name": "Habit Tracker",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "C:\\projects\\habit-tracker",
+    "command": "python app.py",
+    "port": 8000,
+    "url": "http://127.0.0.1:8000",
+    "openBrowser": true,
+    "env": { "PORT": "8000" },
+    "note": "Small Python web app; 'env' injects PORT."
+  },
+  {
+    "id": "handbook",
+    "name": "Team Handbook",
+    "group": "Docs",
+    "type": "static",
+    "cwd": "C:\\projects\\handbook",
+    "command": "open-docs.cmd",
+    "openBrowser": false,
+    "note": "Static docs site; open-docs.cmd regenerates and opens it."
+  },
+  {
+    "id": "design-system",
+    "name": "Design System",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///C:/projects/design-system/index.html",
+    "openBrowser": true,
+    "note": "Self-contained component gallery; opens index.html directly."
+  },
+  {
+    "id": "deploy",
+    "name": "Deploy",
+    "group": "CLI tools",
+    "type": "cli",
+    "cwd": "C:\\projects\\infra",
+    "command": "pwsh -NoLogo -NoProfile -NoExit",
+    "note": "Interactive shell in the infra dir for running deploy scripts."
+  },
+  {
+    "id": "backup",
+    "name": "Backup",
+    "group": "CLI tools",
+    "type": "cli",
+    "cwd": "C:\\projects\\scripts",
+    "command": "pwsh -NoLogo -NoProfile -NoExit -Command python backup.py --dry-run",
+    "note": "Runs a backup script (dry-run) then keeps the shell open."
+  },
+  {
+    "id": "log-tail",
+    "name": "Log Tailer",
+    "group": "CLI tools",
+    "type": "cli",
+    "cwd": "C:\\projects\\scripts",
+    "command": "pwsh -NoLogo -NoProfile -NoExit",
+    "note": "Interactive shell for tailing and grepping logs."
+  }
+]
