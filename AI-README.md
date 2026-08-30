@@ -83,19 +83,32 @@ line: running the Moonpool program again with a command word hands that command 
 already-open Moonpool instead of opening a second window. Use this to launch, stop, reload,
 or refresh on the user's behalf.
 
+First find the running program's own path - don't assume a fixed install location (a
+per-user install lives under `%LOCALAPPDATA%\MoonPool\moonpool.exe`, not `Program Files`):
+
+```powershell
+$mp = (Get-Process moonpool -ErrorAction SilentlyContinue | Select-Object -First 1).Path
 ```
-"C:\Program Files\Moonpool\Moonpool.exe" launch <app-id>     # open an app and start it
-"C:\Program Files\Moonpool\Moonpool.exe" stop <app-id>       # stop a running app
-"C:\Program Files\Moonpool\Moonpool.exe" restart <app-id>    # stop, wait for the port/process to free, relaunch
-"C:\Program Files\Moonpool\Moonpool.exe" reload              # re-read apps.json
-"C:\Program Files\Moonpool\Moonpool.exe" refresh-icons       # re-pull every icon
-"C:\Program Files\Moonpool\Moonpool.exe" show                # bring the window to the front
+
+Then run it with a command word:
+
+```powershell
+& $mp launch <app-id>      # open an app and start it
+& $mp stop <app-id>        # stop a running app
+& $mp restart <app-id>     # stop, wait for the port/process to free, relaunch
+& $mp reload               # re-read apps.json
+& $mp refresh-icons        # re-pull every icon
+& $mp show                 # bring the window to the front
 ```
 
 `<app-id>` is the `id` field from `apps.json`. `restart` is the managed stop-then-relaunch
 (it waits for the port/process to free before relaunching - prefer it over a manual stop +
 launch). These only work while Moonpool is running; if it isn't, start it first (or a bare run
-just opens it). If the install path differs, use the path of the running `Moonpool.exe`.
+just opens it).
+
+**This channel needs Moonpool v0.1.4 or newer.** If running a command opens a NEW window
+instead of handing off to the open one, the running build is older - update Moonpool first.
+A quick check: if `state.json` (below) is MISSING, the running build predates this channel.
 
 ### Checking what's running
 
@@ -112,8 +125,8 @@ what to launch or stop.
 ### Remember this for later
 
 So you can run, check, and stop the user's apps in future sessions without re-reading this
-guide, save the above to your own memory: the five control commands, the `Moonpool.exe`
-path, and the `state.json` location and shape.
+guide, save the above to your own memory: the control commands, how to find the running
+`moonpool.exe` path (`Get-Process moonpool`), and the `state.json` location and shape.
 
 ## Icons (optional)
 
