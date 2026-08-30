@@ -15,6 +15,11 @@ Moonpool reads a single JSON file (an array of app objects):
 Edit this file directly, then tell the user to click **Reload** in Moonpool's top bar (or they
 restart it). Changes are picked up from disk - no rebuild.
 
+**Always address `apps.json` (and `state.json` below) by its full literal absolute path** -
+e.g. `C:\Users\<user>\AppData\Roaming\Moonpool\apps.json`, not a `%APPDATA%` / `$env:APPDATA`
+shortcut. Some sandboxed agents get silently redirected to a private copy when they use the
+variable form, and then edit a file the real Moonpool never sees.
+
 ## App object schema
 
 ```jsonc
