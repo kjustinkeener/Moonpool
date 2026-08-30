@@ -1068,22 +1068,42 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         action.as_str(),
         "launch" | "stop" | "restart" | "reload" | "refresh-icons"
     ) {
-        log_line(app, &format!("control: ignoring unknown command '{action}'"));
+        log_line(
+            app,
+            &format!("control: ignoring unknown command '{action}'"),
+        );
         if let Some(t) = &ticket {
-            record_ticket(app, t, &action, arg.clone(), "error", Some("unknown command".into()));
+            record_ticket(
+                app,
+                t,
+                &action,
+                arg.clone(),
+                "error",
+                Some("unknown command".into()),
+            );
         }
         return;
     }
     log_line(
         app,
-        &format!("control: {action}{}", arg.as_deref().map(|a| format!(" {a}")).unwrap_or_default()),
+        &format!(
+            "control: {action}{}",
+            arg.as_deref().map(|a| format!(" {a}")).unwrap_or_default()
+        ),
     );
     // Record a pending outcome up front so a caller polling state.json sees the
     // command was received even before the UI finishes acting on it.
     if let Some(t) = &ticket {
         record_ticket(app, t, &action, arg.clone(), "pending", None);
     }
-    let _ = app.emit("control://command", ControlCommand { action, arg, ticket });
+    let _ = app.emit(
+        "control://command",
+        ControlCommand {
+            action,
+            arg,
+            ticket,
+        },
+    );
 }
 
 /// Milliseconds since the Unix epoch (0 if the clock is somehow before it).
