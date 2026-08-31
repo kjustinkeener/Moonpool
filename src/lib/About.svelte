@@ -57,9 +57,9 @@
     </p>
 
     <div class="links">
-      <button class="link" onclick={() => openUrl("https://fasterdb.com/software/moonpool/")}>Website</button>
+      <button class="link" onclick={() => openUrl("https://fasterdb.com/software/moonpool/")}>fasterdb.com/software/moonpool</button>
       <span class="dot">·</span>
-      <button class="link" onclick={() => openUrl("https://github.com/kjustinkeener/Moonpool")}>GitHub</button>
+      <button class="link" onclick={() => openUrl("https://github.com/kjustinkeener/Moonpool")}>github.com/kjustinkeener/Moonpool</button>
     </div>
 
     <div class="row">
@@ -161,6 +161,14 @@
     margin-top: 14px;
     font-size: 12px;
     color: var(--text-dim);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+  }
+  .links .link {
+    white-space: nowrap;
   }
   .foot {
     font-size: 11px;

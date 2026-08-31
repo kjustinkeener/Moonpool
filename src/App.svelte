@@ -513,9 +513,6 @@
         <div class="placeholder">
           <div class="ph-moon" aria-hidden="true"></div>
           <p class="ph-title">Pick an app on the left to launch it.</p>
-          <p class="ph-sub">
-            Its console streams here, live &mdash; type into it like a real terminal.
-          </p>
 
           {#if update}
             <div class="update-banner" class:done={updateDone}>
