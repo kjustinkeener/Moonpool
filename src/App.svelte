@@ -23,6 +23,7 @@
   import TermView from "./lib/TermView.svelte";
   import About from "./lib/About.svelte";
   import AppEditor from "./lib/AppEditor.svelte";
+  import Titlebar from "./lib/Titlebar.svelte";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
   import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -517,6 +518,8 @@
 </script>
 
 <div class="app" class:resizing>
+  <Titlebar />
+  <div class="body">
   <div class="sidebar-host" style:width="{sidebarWidth}px">
     <Sidebar
       {apps}
@@ -632,6 +635,7 @@
       {/if}
     </section>
   </main>
+  </div>
 
   {#if showAbout}
     <About onClose={() => (showAbout = false)} />
@@ -650,8 +654,15 @@
 <style>
   .app {
     display: flex;
+    flex-direction: column;
     height: 100vh;
     width: 100vw;
+    overflow: hidden;
+  }
+  .body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
     overflow: hidden;
   }
   .app.resizing {

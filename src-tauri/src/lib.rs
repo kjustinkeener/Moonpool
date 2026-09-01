@@ -1287,6 +1287,11 @@ pub fn run() {
             *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
             seed_ai_readme(&handle);
             build_tray(&handle)?;
+            // Belt-and-braces: strip the native title bar on the main window even if
+            // the config value didn't take (the frontend draws its own title bar).
+            if let Some(win) = handle.get_webview_window("main") {
+                let _ = win.set_decorations(false);
+            }
             spawn_status_poller(handle);
             Ok(())
         })
