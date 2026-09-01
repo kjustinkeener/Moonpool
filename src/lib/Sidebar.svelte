@@ -24,6 +24,9 @@
     onReload,
     onAbout,
     onSettings,
+    cliHidden = false,
+    onExpandCli,
+    updateWaiting = false,
     clashes,
   }: {
     apps: AppEntry[];
@@ -47,6 +50,9 @@
     onReload: () => void;
     onAbout: () => void;
     onSettings: () => void;
+    cliHidden?: boolean;
+    onExpandCli?: () => void;
+    updateWaiting?: boolean;
     clashes: { port: number; names: string[] }[];
   } = $props();
 
@@ -190,6 +196,26 @@
       {/if}
     </div>
     <input placeholder="Filter apps..." aria-label="Filter apps" bind:value={filter} />
+    {#if cliHidden}
+      <button
+        class="cli-expand"
+        class:attention={updateWaiting}
+        title={updateWaiting ? "Update available, open to install" : "Show CLI pane"}
+        aria-label={updateWaiting ? "Update available, show CLI pane" : "Show CLI pane"}
+        onclick={() => onExpandCli?.()}
+      >
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+          <path
+            d="M9 6l6 6-6 6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    {/if}
   </div>
   <div class="scroll">
     {#each groups as g (g.group)}
@@ -286,7 +312,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--bg-panel);
+    background: color-mix(in srgb, var(--bg-panel) calc(var(--app-alpha) * 100%), transparent);
   }
   .search {
     display: flex;
@@ -309,6 +335,51 @@
   }
   .search input:focus {
     border-color: var(--focus);
+  }
+  .cli-expand {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+  }
+  .cli-expand:hover {
+    color: var(--text-strong);
+    border-color: var(--focus);
+  }
+  /* Update waiting behind the collapsed pane: pulse the button so the user knows
+     to open it and install. Uses the same aqua as the update banner. */
+  .cli-expand.attention {
+    color: #052a30;
+    background: var(--dot-run);
+    border-color: var(--dot-run);
+    animation: cli-pulse 1.6s ease-in-out infinite;
+  }
+  .cli-expand.attention:hover {
+    color: #052a30;
+    border-color: var(--dot-run);
+  }
+  @keyframes cli-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 var(--dot-run-glow);
+    }
+    50% {
+      box-shadow: 0 0 8px 3px var(--dot-run-glow);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cli-expand.attention {
+      animation: none;
+      box-shadow: 0 0 8px 2px var(--dot-run-glow);
+    }
   }
   .menu-wrap {
     position: relative;

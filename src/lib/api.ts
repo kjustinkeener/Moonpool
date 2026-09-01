@@ -21,6 +21,7 @@ export interface Settings {
   closeToTray: boolean;
   minimizeToTray: boolean;
   checkOnStartup: boolean;
+  transparency: number;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
 export const setDebugLogging = (enabled: boolean) =>
@@ -31,7 +32,32 @@ export const setMinimizeToTray = (enabled: boolean) =>
   invoke<void>("set_minimize_to_tray", { enabled });
 export const setCheckOnStartup = (enabled: boolean) =>
   invoke<void>("set_check_on_startup", { enabled });
+export const setTransparency = (value: number) =>
+  invoke<void>("set_transparency", { value });
 export const openLog = () => invoke<void>("open_log");
+
+// Open (or focus, if already open) the detached Settings window. It's a real OS
+// window loading the app at #settings, so it floats free of the main window and
+// drags via its own title bar.
+export async function openSettingsWindow(): Promise<void> {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const existing = await WebviewWindow.getByLabel("settings");
+  if (existing) {
+    await existing.show().catch(() => {});
+    await existing.setFocus().catch(() => {});
+    return;
+  }
+  const w = new WebviewWindow("settings", {
+    url: "index.html#settings",
+    title: "Moonpool Settings",
+    width: 460,
+    height: 620,
+    resizable: true,
+    center: true,
+    transparent: true,
+  });
+  w.once("tauri://error", (e) => console.error("settings window", e));
+}
 
 export const launchApp = (id: string, cols: number, rows: number) =>
   invoke<void>("launch_app", { id, cols, rows });

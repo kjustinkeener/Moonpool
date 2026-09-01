@@ -2,7 +2,32 @@
 // `data-theme` attribute on <html> so an explicit choice overrides the OS
 // preference. "auto" resolves to the OS setting and follows it live.
 
-export type Theme = "light" | "dark" | "auto";
+// A theme id: "auto" follows the OS; "light"/"dark" are the built-in palettes;
+// the rest are fixed named palettes defined in app.css.
+export type Theme = string;
+
+// Picker options (id + label). Add a theme here and give it a block in app.css.
+export const THEMES: { id: string; label: string }[] = [
+  { id: "auto", label: "Auto (system)" },
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "purple", label: "Midnight Purple" },
+  { id: "ocean", label: "Ocean" },
+  { id: "matrix", label: "Matrix" },
+  { id: "amber", label: "Amber" },
+  { id: "rose", label: "Rose" },
+  { id: "nord", label: "Nord" },
+  { id: "dracula", label: "Dracula" },
+  { id: "gruvbox", label: "Gruvbox" },
+  { id: "solarized", label: "Solarized" },
+  { id: "crimson", label: "Crimson" },
+  { id: "mint", label: "Mint" },
+  { id: "paper", label: "Paper" },
+  { id: "sky", label: "Sky" },
+  { id: "lavender", label: "Lavender" },
+  { id: "sage", label: "Sage" },
+];
+const KNOWN = new Set(THEMES.map((t) => t.id));
 
 const KEY = "moonpool.theme";
 const listeners = new Set<() => void>();
@@ -15,10 +40,10 @@ export function getTheme(): Theme {
   } catch {
     /* storage unavailable */
   }
-  return t === "light" || t === "dark" || t === "auto" ? t : "auto";
+  return t && KNOWN.has(t) ? t : "auto";
 }
 
-function resolve(theme: Theme): "light" | "dark" {
+function resolve(theme: Theme): string {
   if (theme !== "auto") return theme;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }

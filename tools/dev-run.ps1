@@ -41,7 +41,7 @@ if ($buildRc -ne 0) {
 }
 
 # Free the Vite dev port if a previous run's server is still holding it.
-$devPort = 1450
+$devPort = 1460
 $listeners = Get-NetTCPConnection -LocalPort $devPort -State Listen -ErrorAction SilentlyContinue
 if ($listeners) {
     foreach ($procId in ($listeners.OwningProcess | Sort-Object -Unique)) {

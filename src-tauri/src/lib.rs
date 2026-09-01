@@ -94,7 +94,7 @@ struct Settings {
     #[serde(default, rename = "debugLogging")]
     debug_logging: bool,
     /// Hide to the tray (leave the taskbar) when the window is closed.
-    #[serde(default = "default_true", rename = "closeToTray")]
+    #[serde(default, rename = "closeToTray")]
     close_to_tray: bool,
     /// Hide to the tray (leave the taskbar) when the window is minimized.
     #[serde(default = "default_true", rename = "minimizeToTray")]
@@ -102,19 +102,26 @@ struct Settings {
     /// Check GitHub Releases for a newer version once, on app startup.
     #[serde(default = "default_true", rename = "checkOnStartup")]
     check_on_startup: bool,
+    /// Background transparency, 0 (opaque) to 90 (percent see-through).
+    #[serde(default = "default_transparency", rename = "transparency")]
+    transparency: u8,
 }
 
 fn default_true() -> bool {
     true
+}
+fn default_transparency() -> u8 {
+    15
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             debug_logging: false,
-            close_to_tray: true,
+            close_to_tray: false,
             minimize_to_tray: true,
             check_on_startup: true,
+            transparency: default_transparency(),
         }
     }
 }
@@ -567,6 +574,16 @@ fn set_check_on_startup(
     let s = {
         let mut g = state.settings.lock().unwrap();
         g.check_on_startup = enabled;
+        g.clone()
+    };
+    save_settings(&app, &s)
+}
+
+#[tauri::command]
+fn set_transparency(value: u8, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.transparency = value.min(90);
         g.clone()
     };
     save_settings(&app, &s)
@@ -1244,6 +1261,10 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             dispatch_control(app, &argv);
         }))
+        // Remembers the main window's size/position across restarts. Restored on
+        // launch; we also save eagerly on Resized/Moved below, since the tray-Quit
+        // path can kill the process before the plugin's save-on-exit runs.
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -1296,6 +1317,16 @@ pub fn run() {
                 {
                     let _ = window.hide();
                 }
+                // Persist size/position eagerly: a tray Quit can kill the process
+                // before the plugin's save-on-exit fires. Skip while minimized so we
+                // don't record the collapsed geometry.
+                tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)
+                    if window.label() == "main"
+                        && !window.is_minimized().unwrap_or(false) =>
+                {
+                    use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+                    let _ = window.app_handle().save_window_state(StateFlags::all());
+                }
                 _ => {}
             }
         })
@@ -1311,6 +1342,7 @@ pub fn run() {
             set_close_to_tray,
             set_minimize_to_tray,
             set_check_on_startup,
+            set_transparency,
             open_log,
             launch_app,
             term_input,

@@ -13,17 +13,20 @@
     getSettings,
     onControl,
     reportOutcome,
+    openSettingsWindow,
   } from "./lib/api";
+  import { listen } from "@tauri-apps/api/event";
+  import { setTheme, type Theme } from "./lib/theme";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import type { AppEntry, AppStatus } from "./lib/types";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
   import About from "./lib/About.svelte";
   import AppEditor from "./lib/AppEditor.svelte";
-  import Settings from "./lib/Settings.svelte";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
   import type { UnlistenFn } from "@tauri-apps/api/event";
+  import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 
   let apps = $state<AppEntry[]>([]);
   let statuses = $state<Record<string, AppStatus>>({});
@@ -34,6 +37,9 @@
   let gen = $state<Record<string, number>>({});
   let unlisten: UnlistenFn | null = null;
   let unlistenControl: UnlistenFn | null = null;
+  // Live updates pushed from the detached Settings window.
+  let unlistenTransparency: UnlistenFn | null = null;
+  let unlistenTheme: UnlistenFn | null = null;
 
   // Resolved app icons (data URI or url), fetched from the backend.
   let iconSrc = $state<Record<string, string>>({});
@@ -49,7 +55,6 @@
 
   // Modals + AI quickstart.
   let showAbout = $state(false);
-  let showSettings = $state(false);
   let showEditor = $state(false);
   let editingEntry = $state<AppEntry | null>(null);
   let cfgDir = $state("");
@@ -91,6 +96,13 @@
       `and port before adding it, and preserve any existing entries. When you're done, I'll click ` +
       `Reload in Moonpool.`,
   );
+
+  // Drive the app-wide background opacity from the Transparency setting. Shared so
+  // the Settings slider can preview live via the window event below.
+  function applyTransparency(pct: number) {
+    const alpha = Math.max(0.1, 1 - Math.min(90, Math.max(0, pct)) / 100);
+    document.documentElement.style.setProperty("--app-alpha", String(alpha));
+  }
 
   async function copyPrompt() {
     await writeText(aiPrompt).catch(() => {});
@@ -225,9 +237,48 @@
   let sidebarWidth = $state(280);
   let resizing = $state(false);
 
+  // Collapsible CLI pane: hiding it shrinks the window down to just the sidebar;
+  // a ">" button by the filter box brings it back to its former width.
+  const RESIZER_W = 5;
+  let cliVisible = $state(true);
+  // Width the main/CLI pane had before it was collapsed, restored on re-open.
+  let savedMainWidth = 700;
+
+  async function collapseCli() {
+    if (!cliVisible) return;
+    const win = getCurrentWindow();
+    const innerH = window.innerHeight;
+    savedMainWidth = Math.max(300, window.innerWidth - sidebarWidth - RESIZER_W);
+    cliVisible = false;
+    localStorage.setItem("moonpool.cliVisible", "0");
+    localStorage.setItem("moonpool.savedMainWidth", String(savedMainWidth));
+    try {
+      await win.setSize(new LogicalSize(sidebarWidth, innerH));
+    } catch {}
+  }
+
+  async function expandCli() {
+    if (cliVisible) return;
+    const win = getCurrentWindow();
+    const innerH = window.innerHeight;
+    cliVisible = true;
+    localStorage.setItem("moonpool.cliVisible", "1");
+    try {
+      await win.setSize(
+        new LogicalSize(sidebarWidth + RESIZER_W + savedMainWidth, innerH),
+      );
+    } catch {}
+  }
+
   onMount(async () => {
     const saved = Number(localStorage.getItem("moonpool.sidebarWidth"));
     if (saved >= MIN_W && saved <= MAX_W) sidebarWidth = saved;
+
+    // Restore collapsed CLI state. The window-state plugin already restored the
+    // narrow width, so just reflect the flag; don't resize again here.
+    const savedMain = Number(localStorage.getItem("moonpool.savedMainWidth"));
+    if (savedMain > 0) savedMainWidth = savedMain;
+    cliVisible = localStorage.getItem("moonpool.cliVisible") !== "0";
 
     try {
       lastStarted = JSON.parse(localStorage.getItem("moonpool.lastStarted") ?? "{}");
@@ -238,6 +289,7 @@
     // Fire-and-forget update check; silent on failure or when up to date.
     getSettings()
       .then((s) => {
+        applyTransparency(s.transparency ?? 0);
         if (s.checkOnStartup) return check();
         return null;
       })
@@ -245,6 +297,14 @@
         if (u) update = u;
       })
       .catch(() => {});
+
+    // The detached Settings window broadcasts changes so the hub updates live.
+    unlistenTransparency = await listen<number>("settings:transparency", (e) =>
+      applyTransparency(e.payload),
+    );
+    unlistenTheme = await listen<Theme>("settings:theme", (e) =>
+      setTheme(e.payload),
+    );
 
     apps = await getApps();
     loadAllIcons(true);
@@ -333,6 +393,8 @@
   onDestroy(() => {
     unlisten?.();
     unlistenControl?.();
+    unlistenTransparency?.();
+    unlistenTheme?.();
     // Clear any outstanding timers so they can't fire and set $state after unmount.
     for (const id of Object.keys(pendingTimers)) clearTimeout(pendingTimers[id]);
     for (const arr of Object.values(highlightTimers)) arr.forEach(clearTimeout);
@@ -477,10 +539,14 @@
       onEditFile={handleEdit}
       onReload={handleReload}
       onAbout={() => (showAbout = true)}
-      onSettings={() => (showSettings = true)}
+      onSettings={() => openSettingsWindow()}
+      cliHidden={!cliVisible}
+      onExpandCli={expandCli}
+      updateWaiting={!!update && !updateDone}
       {clashes}
     />
   </div>
+  {#if cliVisible}
   <div
     class="resizer"
     role="separator"
@@ -488,22 +554,29 @@
     title="Drag to resize"
     onpointerdown={startResize}
   ></div>
+  {/if}
 
-  <main class="main">
-    {#if openTabs.length > 0}
-      <div class="tabs">
-        {#each openTabs as id (id)}
-          {@const a = appById(id)}
-          <div class="tab" class:active={activeTab === id}>
-            <button class="tab-name" onclick={() => (activeTab = id)}>
-              <span class="tab-dot" class:on={statuses[id]?.running}></span>
-              {a?.name ?? id}
-            </button>
-            <button class="tab-x" title="Close tab" onclick={() => closeTab(id)}>&times;</button>
-          </div>
-        {/each}
-      </div>
-    {/if}
+  <!-- Kept mounted (just hidden) when collapsed, so running terminals and their
+       scrollback survive a hide/show. -->
+  <main class="main" class:hidden={!cliVisible}>
+    <div class="tabs">
+      {#each openTabs as id (id)}
+        {@const a = appById(id)}
+        <div class="tab" class:active={activeTab === id}>
+          <button class="tab-name" onclick={() => (activeTab = id)}>
+            <span class="tab-dot" class:on={statuses[id]?.running}></span>
+            {a?.name ?? id}
+          </button>
+          <button class="tab-x" title="Close tab" onclick={() => closeTab(id)}>&times;</button>
+        </div>
+      {/each}
+      <button
+        class="cli-collapse"
+        title="Hide CLI pane"
+        aria-label="Hide CLI pane"
+        onclick={collapseCli}>&times;</button
+      >
+    </div>
 
     <section class="terminals">
       {#each openTabs as id (id + "#" + (gen[id] ?? 0))}
@@ -563,9 +636,6 @@
   {#if showAbout}
     <About onClose={() => (showAbout = false)} />
   {/if}
-  {#if showSettings}
-    <Settings onClose={() => (showSettings = false)} />
-  {/if}
   {#if showEditor}
     <AppEditor
       entry={editingEntry}
@@ -610,12 +680,15 @@
     flex-direction: column;
     min-width: 0;
   }
+  .main.hidden {
+    display: none;
+  }
   .tabs {
     display: flex;
     gap: 2px;
     height: 34px;
     padding: 0 8px;
-    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) calc(var(--app-alpha) * 100%), transparent);
     border-bottom: 1px solid var(--border-muted);
     overflow-x: auto;
     flex: none;
@@ -675,11 +748,33 @@
   .tab-x:hover {
     color: var(--danger);
   }
+  /* Collapse button pinned to the right end of the tabs strip. */
+  .cli-collapse {
+    margin-left: auto;
+    align-self: center;
+    flex: none;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 3px 8px;
+  }
+  .cli-collapse:hover {
+    color: var(--text-strong);
+    border-color: var(--border);
+    background: var(--bg-inset);
+  }
   .terminals {
     flex: 1;
     position: relative;
     min-height: 0;
-    background: var(--bg);
+    /* Transparent: the terminal's own translucent background is the single tint
+       layer for a running CLI, and .placeholder carries the tint for the empty
+       state. Tinting here too would stack alphas and darken the terminal. */
+    background: transparent;
   }
   .placeholder {
     position: absolute;
@@ -693,6 +788,8 @@
     overflow: auto;
     padding: 24px;
     box-sizing: border-box;
+    /* Empty-state tint (the running terminal carries its own; see .terminals). */
+    background: color-mix(in srgb, var(--bg) calc(var(--app-alpha) * 100%), transparent);
   }
   .ph-moon {
     font-size: 42px;

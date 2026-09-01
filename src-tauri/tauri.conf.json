@@ -5,7 +5,7 @@
   "identifier": "com.moonpool.app",
   "build": {
     "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1450",
+    "devUrl": "http://localhost:1460",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
@@ -15,7 +15,8 @@
         "title": "Moonpool",
         "width": 1200,
         "height": 780,
-        "resizable": true
+        "resizable": true,
+        "transparent": true
       }
     ],
     "security": {
