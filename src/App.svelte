@@ -771,9 +771,9 @@
     flex: 1;
     position: relative;
     min-height: 0;
-    /* Transparent: the terminal's own translucent background is the single tint
-       layer for a running CLI, and .placeholder carries the tint for the empty
-       state. Tinting here too would stack alphas and darken the terminal. */
+    /* Transparent: the .term box carries the single tint layer for a running
+       CLI, and .placeholder carries the tint for the empty state. Tinting here
+       too would stack alphas and darken the terminal. */
     background: transparent;
   }
   .placeholder {

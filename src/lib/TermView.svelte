@@ -5,9 +5,10 @@
   import "@xterm/xterm/css/xterm.css";
   import { launchApp, termInput, termResize, onTermOutput, onTermExit } from "./api";
   import { onThemeChange } from "./theme";
+  import { scrollFade } from "./scrollfade";
   import { ansiFor } from "./ansi";
   import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
-  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import { type UnlistenFn } from "@tauri-apps/api/event";
 
   let { id, active }: { id: string; active: boolean } = $props();
 
@@ -22,38 +23,21 @@
   let lastCols = 0;
   let lastRows = 0;
   let unsubTheme: (() => void) | null = null;
-  let unlistenTransparency: UnlistenFn | null = null;
 
-  // Resolve a CSS color to "r,g,b" via a canvas (handles any color form).
-  function toRgb(color: string, fallback: string): string {
-    try {
-      const ctx = document.createElement("canvas").getContext("2d");
-      if (!ctx) return fallback;
-      ctx.fillStyle = color; // normalizes to #rrggbb
-      const n = parseInt(ctx.fillStyle.slice(1), 16);
-      return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
-    } catch {
-      return fallback;
-    }
-  }
-
-  // xterm has no access to CSS variables, so read the themed bg/fg from :root.
-  // The terminal's OWN background carries the app-wide transparency (--app-alpha)
-  // and is the single translucent layer for the terminal region -- the .term box
-  // and .terminals pane behind it are fully transparent, so alphas don't stack
-  // (which darkened the terminal) and the text keeps an opaque-enough backing to
-  // stay legible over the desktop.
-  function termTheme(alphaOverride?: number) {
+  // xterm has no access to CSS variables, so read the themed fg from :root.
+  // xterm's OWN background is fully transparent; the single translucent tint
+  // layer for the terminal region is the .term box behind the canvas (it also
+  // covers .term's padding, so no untinted gap shows above/left of the grid).
+  // Alphas don't stack (which darkened the terminal) and the text keeps an
+  // opaque-enough backing to stay legible over the desktop.
+  function termTheme() {
     const cs = getComputedStyle(document.documentElement);
-    const bg = cs.getPropertyValue("--bg").trim() || "#0d1017";
     const fg = cs.getPropertyValue("--text").trim() || "#c9d1d9";
-    const alpha =
-      alphaOverride ?? (Number(cs.getPropertyValue("--app-alpha").trim()) || 1);
     // The resolved theme id lives on <html data-theme> (theme.ts sets it); use it
     // to theme the 16 ANSI colors so program output matches the palette.
     const id = document.documentElement.dataset.theme || "dark";
     return {
-      background: `rgba(${toRgb(bg, "13,16,23")},${alpha})`,
+      background: "rgba(0,0,0,0)",
       foreground: fg,
       cursor: fg,
       ...ansiFor(id),
@@ -61,12 +45,6 @@
   }
   function onSchemeChange() {
     if (term) term.options.theme = termTheme();
-  }
-  // 0..90 percent from the slider -> the same alpha the app uses; avoids racing
-  // the CSS var write in the other listener.
-  function onTransparency(pct: number) {
-    const alpha = Math.max(0.1, 1 - Math.min(90, Math.max(0, pct)) / 100);
-    if (term) term.options.theme = termTheme(alpha);
   }
 
   function doFit() {
@@ -107,9 +85,6 @@
     fit.fit();
 
     unsubTheme = onThemeChange(onSchemeChange);
-    unlistenTransparency = await listen<number>("settings:transparency", (e) =>
-      onTransparency(e.payload),
-    );
 
     term.onData((d) => termInput(id, d));
 
@@ -167,7 +142,6 @@
     ro?.disconnect();
     if (fitTimer) clearTimeout(fitTimer);
     unsubTheme?.();
-    unlistenTransparency?.();
     cleanupMouse?.();
     unlistenOut?.();
     unlistenExit?.();
@@ -175,7 +149,7 @@
   });
 </script>
 
-<div class="term" bind:this={el} style:display={active ? "block" : "none"}></div>
+<div class="term" bind:this={el} use:scrollFade style:display={active ? "block" : "none"}></div>
 
 <style>
   .term {
@@ -185,25 +159,29 @@
        its paint position and interactive hitbox stay aligned. */
     padding: 6px 0 6px 8px;
     box-sizing: border-box;
-    /* Fully transparent: the single translucent layer is the .terminals pane
-       behind us. Tinting here too would stack alphas and darken the terminal. */
-    background: transparent;
+    /* This box is the single translucent tint layer for the terminal region:
+       it backs xterm's transparent canvas AND fills the padding, so no untinted
+       gap shows above/left of the grid. xterm's own bg stays transparent so the
+       alphas don't stack (which darkened the terminal). */
+    background: color-mix(in srgb, var(--bg) calc(var(--app-alpha) * 100%), transparent);
   }
 
   /* Defining an explicit ::-webkit-scrollbar width forces a classic, space-reserving
      scrollbar in WebView2 (not an overlay), which the fit addon accounts for. No
      scrollbar-gutter and no thumb border - both split the visible bar from its hitbox. */
   :global(.xterm .xterm-viewport)::-webkit-scrollbar {
-    width: 12px;
+    width: 10px;
   }
   :global(.xterm .xterm-viewport)::-webkit-scrollbar-track {
     background: transparent;
   }
+  /* Match the app-list scrollbar (width/color) and follow --scroll-alpha, which
+     .term sets from transparency and raises to 1 on hover. */
   :global(.xterm .xterm-viewport)::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: 6px;
+    background: color-mix(in srgb, var(--border) calc(var(--scroll-alpha) * 100%), transparent);
+    border-radius: 5px;
   }
   :global(.xterm .xterm-viewport)::-webkit-scrollbar-thumb:hover {
-    background: var(--text-faint);
+    background: color-mix(in srgb, var(--border-strong) calc(var(--scroll-alpha) * 100%), transparent);
   }
 </style>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AppEntry, AppStatus, AppType } from "./types";
   import { flip } from "svelte/animate";
+  import { scrollFade } from "./scrollfade";
 
   let {
     apps,
@@ -217,7 +218,7 @@
       </button>
     {/if}
   </div>
-  <div class="scroll">
+  <div class="scroll" use:scrollFade>
     {#each groups as g (g.group)}
       <button class="group-label" onclick={() => toggleGroup(g.group)}>
         <span class="glabel">{g.group}</span>

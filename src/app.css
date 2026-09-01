@@ -744,15 +744,34 @@ button {
   font-family: inherit;
 }
 
-/* Slim scrollbars that follow the theme. */
+/* Slim scrollbars that follow the theme. The thumb's opacity tracks
+   --scroll-alpha: a registered (animatable) custom property that scrollable
+   panes set to the app-wide transparency, then raise to 1 on hover (instant)
+   and ease back over 1s on mouse-out. Panes that don't set it inherit the
+   initial value of 1, so their scrollbars stay fully opaque. */
+@property --scroll-alpha {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: color-mix(in srgb, var(--border) calc(var(--scroll-alpha) * 100%), transparent);
   border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong);
+  background: color-mix(in srgb, var(--border-strong) calc(var(--scroll-alpha) * 100%), transparent);
+}
+
+/* Scrollable panes: idle, the scrollbar follows the transparency setting. The
+   hover jump and 1s mouse-out fade are stepped from JS (use:scrollFade), which
+   pins --scroll-alpha inline while hovered/animating -- WebView2 won't animate a
+   CSS transition on a scrollbar pseudo-element. .term drives the CLI viewport's
+   scrollbar via the inherited custom property. */
+.scroll,
+.term {
+  --scroll-alpha: var(--app-alpha);
 }

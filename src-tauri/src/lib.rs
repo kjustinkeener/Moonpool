@@ -111,7 +111,7 @@ fn default_true() -> bool {
     true
 }
 fn default_transparency() -> u8 {
-    15
+    0
 }
 
 impl Default for Settings {
@@ -1321,8 +1321,7 @@ pub fn run() {
                 // before the plugin's save-on-exit fires. Skip while minimized so we
                 // don't record the collapsed geometry.
                 tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)
-                    if window.label() == "main"
-                        && !window.is_minimized().unwrap_or(false) =>
+                    if window.label() == "main" && !window.is_minimized().unwrap_or(false) =>
                 {
                     use tauri_plugin_window_state::{AppHandleExt, StateFlags};
                     let _ = window.app_handle().save_window_state(StateFlags::all());
