@@ -339,9 +339,11 @@
   --dot-warn: #ebcb8b;
   --dot-warn-glow: #ebcb8b88;
 
-  --success-bg: #1c2b1e;
-  --danger-bg: #2e1c20;
-  --info-bg: #1a2433;
+  /* Tints sit slightly above the panel (#3d424d), so status pills read as soft
+     color, not dark holes on this lighter-ground theme. */
+  --success-bg: #3a4a3c;
+  --danger-bg: #4b3a3f;
+  --info-bg: #384656;
 
   --overlay: rgba(0, 0, 0, 0.55);
   --shadow: rgba(0, 0, 0, 0.5);
@@ -381,9 +383,10 @@
   --dot-warn: #f1fa8c;
   --dot-warn-glow: #f1fa8c88;
 
-  --success-bg: #16261a;
-  --danger-bg: #2a1618;
-  --info-bg: #1a2340;
+  /* Tints sit slightly above the panel (#373944) on this lighter-ground theme. */
+  --success-bg: #35482f;
+  --danger-bg: #4a343a;
+  --info-bg: #363c56;
 
   --overlay: rgba(0, 0, 0, 0.55);
   --shadow: rgba(0, 0, 0, 0.5);
@@ -423,9 +426,10 @@
   --dot-warn: #fe8019;
   --dot-warn-glow: #fe801988;
 
-  --success-bg: #23260d;
-  --danger-bg: #2a1512;
-  --info-bg: #10233b;
+  /* Tints sit slightly above the panel (#373737) on this lighter-ground theme. */
+  --success-bg: #41451f;
+  --danger-bg: #4a352c;
+  --info-bg: #35414f;
 
   --overlay: rgba(0, 0, 0, 0.55);
   --shadow: rgba(0, 0, 0, 0.5);

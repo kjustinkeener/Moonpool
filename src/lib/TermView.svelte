@@ -5,6 +5,7 @@
   import "@xterm/xterm/css/xterm.css";
   import { launchApp, termInput, termResize, onTermOutput, onTermExit } from "./api";
   import { onThemeChange } from "./theme";
+  import { ansiFor } from "./ansi";
   import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
@@ -48,10 +49,14 @@
     const fg = cs.getPropertyValue("--text").trim() || "#c9d1d9";
     const alpha =
       alphaOverride ?? (Number(cs.getPropertyValue("--app-alpha").trim()) || 1);
+    // The resolved theme id lives on <html data-theme> (theme.ts sets it); use it
+    // to theme the 16 ANSI colors so program output matches the palette.
+    const id = document.documentElement.dataset.theme || "dark";
     return {
       background: `rgba(${toRgb(bg, "13,16,23")},${alpha})`,
       foreground: fg,
       cursor: fg,
+      ...ansiFor(id),
     };
   }
   function onSchemeChange() {
