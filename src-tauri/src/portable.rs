@@ -7,7 +7,7 @@
 //! the flag sits next to the exe, we are portable. Delete it to return to installed
 //! mode. See `docs/portable-mode.md` for the full design.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use serde::Serialize;
@@ -163,5 +163,82 @@ pub fn establish_portable(app: AppHandle) -> Result<(), String> {
     crate::platform::hidden(&mut c);
     c.spawn().map_err(|e| format!("relaunch: {e}"))?;
     app.exit(0);
+    Ok(())
+}
+
+/// Create a self-contained portable Moonpool in `target_dir`: copy this exe there,
+/// drop the `moonpool.portable` flag, and make a `moonpool-config` folder. This is
+/// the inverse of installing - it's meant to be run from an INSTALLED Moonpool to
+/// stamp out a movable copy (per-department folder, USB stick, a zip to hand off).
+///
+/// `clone = true` copies the current install's apps.json, icons and settings into the
+/// portable copy so it's a working clone; `false` leaves the config empty so the
+/// copy boots fresh (its first launch seeds the example manifest). The current
+/// install is never touched. Returns the new exe's path.
+#[tauri::command]
+pub fn export_portable(app: AppHandle, target_dir: String, clone: bool) -> Result<String, String> {
+    let target = PathBuf::from(&target_dir);
+    if !target.is_dir() {
+        return Err("target folder does not exist".into());
+    }
+    let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_target = target.join("moonpool.exe");
+
+    // Don't stamp a copy onto the running exe's own folder.
+    if src_exe.canonicalize().ok() == exe_target.canonicalize().ok() {
+        return Err("pick a different folder - that's this exe's own folder".into());
+    }
+
+    std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
+    std::fs::write(target.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
+
+    let cfg = target.join(DATA_SUBDIR);
+    std::fs::create_dir_all(&cfg).map_err(|e| format!("create config dir: {e}"))?;
+
+    if clone {
+        if let Some(src_cfg) = data_dir(&app) {
+            // Durable config only; skip runtime/cache files (state.json, logs, webview)
+            // that shouldn't travel with the bundle.
+            for name in ["apps.json", "settings.json", "AI-README.md"] {
+                let s = src_cfg.join(name);
+                if s.is_file() {
+                    std::fs::copy(&s, cfg.join(name)).map_err(|e| format!("copy {name}: {e}"))?;
+                }
+            }
+            let icons = src_cfg.join("icons");
+            if icons.is_dir() {
+                copy_dir(&icons, &cfg.join("icons")).map_err(|e| format!("copy icons: {e}"))?;
+            }
+        }
+    }
+
+    Ok(exe_target.display().to_string())
+}
+
+/// Recursively copy a directory's files and subdirectories.
+fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let src = entry.path();
+        let dst = to.join(entry.file_name());
+        if src.is_dir() {
+            copy_dir(&src, &dst)?;
+        } else {
+            std::fs::copy(&src, &dst)?;
+        }
+    }
+    Ok(())
+}
+
+/// Open a folder in the OS file manager (used after creating a portable copy so the
+/// user can zip it). explorer.exe often returns a non-zero exit even on success, so
+/// we only spawn it and don't check the status.
+#[tauri::command]
+pub fn reveal_path(path: String) -> Result<(), String> {
+    let mut c = std::process::Command::new("explorer");
+    c.arg(&path);
+    crate::platform::hidden(&mut c);
+    c.spawn().map_err(|e| format!("open folder: {e}"))?;
     Ok(())
 }
