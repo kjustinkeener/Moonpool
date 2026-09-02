@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { performInstall, launchInstalledAndExit } from "./lib/api";
+  import {
+    performInstall,
+    launchInstalledAndExit,
+    establishPortable,
+  } from "./lib/api";
   import wordmark from "./assets/moonpool-wordmark.png";
 
   let {
@@ -11,7 +15,7 @@
   import { onMount } from "svelte";
 
   let desktop = $state(true);
-  let phase = $state<"idle" | "working" | "done" | "error">("idle");
+  let phase = $state<"idle" | "working" | "done" | "portable" | "error">("idle");
   let error = $state("");
 
   // The window is transparent, but app.css paints body with a solid theme color -
@@ -132,6 +136,20 @@
       phase = "error";
     }
   }
+
+  // Portable: keep the exe here, drop the flag file, relaunch in portable mode.
+  // The backend relaunches and exits this process, so we just show a brief beat.
+  async function runPortable() {
+    if (phase === "working" || phase === "portable") return;
+    phase = "portable";
+    error = "";
+    try {
+      await establishPortable();
+    } catch (e) {
+      error = String(e);
+      phase = "error";
+    }
+  }
 </script>
 
 <!-- Whole window drags; Tauri auto-excludes interactive controls (button, input). -->
@@ -167,6 +185,10 @@
       <div class="state ok">
         <span class="check">✓</span> Installed, starting moonpool…
       </div>
+    {:else if phase === "portable"}
+      <div class="state ok">
+        <span class="check">✓</span> Portable mode, starting moonpool…
+      </div>
     {:else if phase === "error"}
       <div class="state err">Install failed: {error}</div>
       <button class="cta" onclick={install}>Try again</button>
@@ -183,6 +205,14 @@
         <input type="checkbox" style={boxStyle} bind:checked={desktop} disabled={phase === "working"} />
         <span>Add a desktop shortcut</span>
       </label>
+      <button
+        class="portable"
+        onclick={runPortable}
+        disabled={phase === "working"}
+        title="Keep moonpool here and run from this folder - move it anywhere (USB stick, zip). Data stays beside the exe."
+      >
+        or run portable from this folder
+      </button>
     {/if}
 
     <div class="foot">
@@ -338,6 +368,22 @@
     user-select: none;
   }
   .opt input { accent-color: var(--accent); cursor: pointer; }
+
+  /* Secondary, low-emphasis action: a plain text link under the primary CTA. */
+  .portable {
+    display: block;
+    margin: 12px auto 0;
+    padding: 2px 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .portable:hover:not(:disabled) { color: var(--text-secondary); }
+  .portable:disabled { cursor: default; opacity: 0.6; }
 
   .state { margin-top: 6px; font-size: 14px; }
   .state.ok { color: var(--text-strong); }

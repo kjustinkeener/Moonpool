@@ -29,6 +29,7 @@ use tauri_plugin_opener::OpenerExt;
 
 mod install;
 mod platform;
+mod portable;
 mod update;
 
 // ---------------------------------------------------------------------------
@@ -176,9 +177,10 @@ const EXAMPLE_MANIFEST: &str = include_str!("../resources/apps.example.json");
 /// AI configuration guide, seeded next to the manifest so agents can read it.
 const AI_README: &str = include_str!("../../AI-README.md");
 
-/// Moonpool's config directory: <config>/Moonpool.
+/// Moonpool's config directory. Installed: `%APPDATA%\Moonpool`. Portable:
+/// `{exe dir}\moonpool-config` (see `portable`), so all data travels with the folder.
 fn moonpool_dir(app: &AppHandle) -> Option<PathBuf> {
-    app.path().config_dir().ok().map(|d| d.join("Moonpool"))
+    portable::data_dir(app)
 }
 
 /// Location of the user-editable manifest: <config>/Moonpool/apps.json.
@@ -630,10 +632,15 @@ fn app_icon(
     // `refresh` forces past the exe mtime-cache and the WebView's favicon cache,
     // so an icon changed in a new build of the target app shows up immediately.
     let refresh = refresh.unwrap_or(false);
-    let entry = {
+    let mut entry = {
         let m = state.manifest.lock().unwrap();
         m.iter().find(|e| e.id == id).cloned()
     }?;
+    // Resolve {MP_HOME}/{MP_DATA} tokens and ./-anchored paths so icon lookup (cwd,
+    // file:// url, explicit icon path) works for portable bundles.
+    entry.cwd = entry.cwd.as_deref().map(|c| portable::resolve_path(c, &app));
+    entry.url = entry.url.as_deref().map(|u| portable::resolve_tokens(u, &app));
+    entry.icon = entry.icon.as_deref().map(|i| portable::resolve_path(i, &app));
 
     // `id` is used as a filename below (icons/<id>.<ext> and moonpool-icon-<id>.png).
     // A hand-edited apps.json could set id to something like `..\..\x`; refuse to
@@ -765,11 +772,18 @@ fn launch_app(
         }
     }
 
+    // Expand {MP_HOME}/{MP_DATA} tokens and anchor ./ paths so a portable bundle's
+    // entries resolve against the folder rather than the process cwd.
     let command = entry
         .command
-        .clone()
+        .as_deref()
+        .map(|c| portable::resolve_tokens(c, &app))
         .ok_or_else(|| "app has no launch command".to_string())?;
-    let cwd = entry.cwd.clone().unwrap_or_else(|| ".".to_string());
+    let cwd = entry
+        .cwd
+        .as_deref()
+        .map(|c| portable::resolve_path(c, &app))
+        .unwrap_or_else(|| ".".to_string());
 
     let pty_system = native_pty_system();
     let pair = pty_system
@@ -932,6 +946,7 @@ fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
 
 #[tauri::command]
 fn open_url(app: AppHandle, url: String) -> Result<(), String> {
+    let url = portable::resolve_tokens(&url, &app);
     app.opener()
         .open_url(url, None::<&str>)
         .map_err(|e| e.to_string())
@@ -1013,7 +1028,8 @@ fn spawn_status_poller(app: AppHandle) {
                 // Open the browser once, when a web app we launched first goes green.
                 if detected && is_managed && e.open_browser && !opened.contains(&e.id) {
                     if let Some(url) = &e.url {
-                        let _ = app.opener().open_url(url.clone(), None::<&str>);
+                        let url = portable::resolve_tokens(url, &app);
+                        let _ = app.opener().open_url(url, None::<&str>);
                         opened.insert(e.id.clone());
                     }
                 }
@@ -1304,6 +1320,11 @@ pub fn run() {
             if install::needs_setup() {
                 b = b.with_denylist(&["main"]);
             }
+            // Portable mode: redirect the state file beside the exe so the window
+            // layout travels with the folder (and nothing lands in %APPDATA%).
+            if let Some(path) = portable::window_state_filename() {
+                b = b.with_filename(path);
+            }
             b.build()
         })
         .plugin(tauri_plugin_opener::init())
@@ -1500,6 +1521,8 @@ pub fn run() {
             install::setup_state,
             install::perform_install,
             install::launch_installed_and_exit,
+            portable::portable_state,
+            portable::establish_portable,
             update::update_check,
             update::update_apply
         ])

@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { AppEntry, AppType } from "./types";
   import Modal from "./Modal.svelte";
+  import { onMount } from "svelte";
+  import { portableState, isNonPortablePath } from "./api";
 
   let {
     entry,
@@ -41,6 +43,19 @@
     note: initial?.note ?? "",
   });
   let error = $state("");
+
+  // Portable mode drives the amber "won't move with this folder" hints on path
+  // fields. Only relevant when running portable; installed mode never warns.
+  let portable = $state(false);
+  onMount(() => {
+    portableState()
+      .then((s) => (portable = s.portable))
+      .catch(() => {});
+  });
+  let cwdWarn = $derived(portable && isNonPortablePath(f.cwd));
+  let urlWarn = $derived(portable && isNonPortablePath(f.url));
+  const PORTABLE_HINT =
+    "Absolute path - won't move with this folder. Use {MP_HOME}\\... or a ./ path to keep it portable.";
 
   // id is internal (app key + terminal-tab id + icon filename) and never shown,
   // so it's derived from the name rather than entered. App.svelte de-duplicates.
@@ -171,11 +186,17 @@
         </select>
       </label>
       <div class="type-hint">{ti.hint}</div>
-      <label class="wide" class:dim={!ti.fields.includes("cwd")} title="The working directory the command runs in - usually the app's project folder. Use an absolute path.">cwd<input bind:value={f.cwd} placeholder={ti.ph.cwd ?? "path to the app folder"} /></label>
+      <label class="wide" class:dim={!ti.fields.includes("cwd")} title={"The working directory the command runs in - usually the app's project folder. Use an absolute path, or {MP_HOME}\\... / ./ to stay portable."}>
+        <span class="lbl">cwd{#if cwdWarn}<span class="warn" title={PORTABLE_HINT}>not portable</span>{/if}</span>
+        <input bind:value={f.cwd} class:warned={cwdWarn} placeholder={ti.ph.cwd ?? "path to the app folder"} />
+      </label>
       <label class="wide" class:dim={!ti.fields.includes("command")} title="The command run in the embedded terminal to start the app, e.g. 'npm run dev' or 'python app.py'. Leave blank for a static URL-only entry.">command<input bind:value={f.command} placeholder={ti.ph.command ?? "command to run"} /></label>
       <label class:dim={!ti.fields.includes("port")} title="The local TCP port the app listens on. Moonpool shows Running when this port answers, and frees it on Stop. Used by web apps.">port<input bind:value={f.port} placeholder={ti.ph.port ?? "3000"} /></label>
       <label class:dim={!ti.fields.includes("processName")} title="For desktop apps: the process/executable name (without .exe) used to detect Running and to stop it. On Linux it must be 15 characters or fewer.">processName<input bind:value={f.processName} placeholder={ti.ph.processName ?? "my-app"} /></label>
-      <label class="wide" class:dim={!ti.fields.includes("url")} title="The URL to open: http://localhost:<port> for a web app, or file:///path/to/index.html for a static page.">url<input bind:value={f.url} placeholder={ti.ph.url ?? "http://localhost:3000"} /></label>
+      <label class="wide" class:dim={!ti.fields.includes("url")} title={"The URL to open: http://localhost:<port> for a web app, or file:///path/to/index.html for a static page. Use file:///{MP_HOME}/... to stay portable."}>
+        <span class="lbl">url{#if urlWarn}<span class="warn" title={PORTABLE_HINT}>not portable</span>{/if}</span>
+        <input bind:value={f.url} class:warned={urlWarn} placeholder={ti.ph.url ?? "http://localhost:3000"} />
+      </label>
       <label class="check" class:dim={!ti.fields.includes("openBrowser")} title="Automatically open the URL in your default browser when the app becomes reachable."><input type="checkbox" bind:checked={f.openBrowser} /> open browser</label>
       <label class="wide" title="Environment variables passed to the command, one KEY=VALUE per line (e.g. PORT=3000).">env (KEY=VALUE per line)<textarea bind:value={f.env} rows="2" placeholder="PORT=3000"></textarea></label>
       <label class="wide" title="Optional text shown as a tooltip when you hover this app in the sidebar.">note<input bind:value={f.note} placeholder="optional tooltip" /></label>
@@ -229,6 +250,28 @@
   }
   label.dim {
     opacity: 0.45;
+  }
+  .lbl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Amber = caveat, not error: the path still works, it just won't travel with a
+     portable bundle. Passive badge on the field's label. */
+  .warn {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #d99a26;
+    background: color-mix(in srgb, #d99a26 16%, transparent);
+    border: 1px solid color-mix(in srgb, #d99a26 45%, transparent);
+    border-radius: 4px;
+    padding: 0 5px;
+    line-height: 15px;
+    cursor: help;
+  }
+  input.warned {
+    border-color: color-mix(in srgb, #d99a26 55%, var(--border));
   }
   input,
   select,

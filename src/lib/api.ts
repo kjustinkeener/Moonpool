@@ -85,6 +85,52 @@ export const performInstall = (desktopShortcut: boolean) =>
   invoke<string>("perform_install", { desktopShortcut });
 export const launchInstalledAndExit = (exe: string) =>
   invoke<void>("launch_installed_and_exit", { exe });
+// Portable install: drop the flag file beside the exe and relaunch in portable mode.
+export const establishPortable = () => invoke<void>("establish_portable");
+
+export interface PortableState {
+  portable: boolean;
+  mpHome: string;
+  mpData: string;
+}
+export async function portableState(): Promise<PortableState> {
+  const s = await invoke<any>("portable_state");
+  return { portable: s.portable, mpHome: s.mp_home, mpData: s.mp_data };
+}
+
+/**
+ * Whether a path won't travel with a portable bundle (absolute drive path, UNC,
+ * POSIX-absolute, or containing a %ENV% var). {MP_HOME}/{MP_DATA} tokens and ./
+ * relative paths are portable. Mirrors the backend `is_non_portable_path`; kept in
+ * TS so the editor can flag paths live without a round-trip.
+ */
+export function isNonPortablePath(raw: string | undefined | null): boolean {
+  let s = (raw ?? "").trim();
+  if (!s) return false;
+  // http(s) URLs travel fine (localhost is machine-neutral, remote is remote).
+  if (/^https?:\/\//i.test(s)) return false;
+  // A file:// URL: judge its path portion.
+  const file = s.match(/^file:\/\/\/?(.*)$/i);
+  if (file) {
+    try {
+      s = decodeURIComponent(file[1]);
+    } catch {
+      s = file[1];
+    }
+  }
+  if (s.includes("%")) return true;
+  if (
+    s.startsWith("{MP_HOME}") ||
+    s.startsWith("{MP_DATA}") ||
+    s.startsWith("./") ||
+    s.startsWith(".\\")
+  )
+    return false;
+  const unc = s.startsWith("\\\\") || s.startsWith("//");
+  const drive = s.length >= 2 && s[1] === ":";
+  const posixAbs = s.startsWith("/");
+  return unc || drive || posixAbs;
+}
 
 export interface UpdateInfo {
   version: string;

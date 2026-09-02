@@ -1,8 +1,17 @@
 # Portable mode (design note)
 
-Status: **design, not yet implemented.** Captures the agreed shape so it survives
-across sessions. See also [HANDOFF-installer.md](../HANDOFF-installer.md) for the
+Status: **implemented (v0.1.10-dev), not yet released or end-to-end verified.** Backend
+detection + path resolution, installer "Portable" option, and the amber editor warning
+are in; compiles clean (`cargo check`, `svelte-check`). Still wants a real bundle-on-a-
+stick smoke test. See also [HANDOFF-installer.md](../HANDOFF-installer.md) for the
 custom installer/updater this builds on.
+
+Implementation lives in `src-tauri/src/portable.rs` (detection, `mp_home`/`data_dir`,
+`resolve_tokens`/`resolve_path`, the `portable_state` + `establish_portable` commands),
+wired through `moonpool_dir`, `launch_app`, `open_url`, `app_icon`, the status poller,
+and the window-state plugin in `lib.rs`. Frontend: `establishPortable`/`portableState`/
+`isNonPortablePath` in `src/lib/api.ts`, the installer link in `src/Installer.svelte`,
+and the amber badge in `src/lib/AppEditor.svelte`.
 
 ## Why
 
@@ -122,20 +131,28 @@ to AppData).
 
 ## Implementation checklist
 
-- [ ] Mode detection: `moonpool.portable` beside exe -> portable.
-- [ ] `moonpool_dir` returns `{MP_HOME}\moonpool-config` in portable mode.
-- [ ] Point the window-state plugin at the portable data folder too - it currently
-      writes to its own `%APPDATA%\com.moonpool.app` path, independent of `moonpool_dir`.
-      This is the one data leak that must be closed for a clean "nothing outside the
-      folder" claim.
-- [ ] Token + relative-path resolver applied to every path field read from `apps.json`.
-- [ ] Installer "Portable" option: write `moonpool.portable` (with note), skip exe
-      relocation.
-- [ ] Amber non-portable-path warning in the app editor / tile.
-- [ ] Update `apps.example.json` to demonstrate `{MP_HOME}` tokens (currently all
-      absolute stubs).
+- [x] Mode detection: `moonpool.portable` beside exe -> portable. (`portable::is_portable`,
+      cached; also short-circuits `install::needs_setup` so a portable exe boots the hub.)
+- [x] `moonpool_dir` returns `{MP_HOME}\moonpool-config` in portable mode.
+- [x] Point the window-state plugin at the portable data folder. The plugin only exposes
+      `with_filename` (not the dir), but it does `app_config_dir().join(filename)`, and
+      joining an **absolute** path replaces the base - so we hand it the absolute
+      `{MP_DATA}\.window-state.json`. Residual: the plugin still `create_dir_all`s the
+      (now empty) `%APPDATA%\com.moonpool.app`; no data lands there, but the empty dir is
+      created. Acceptable for the "no data outside the folder" claim.
+- [x] Token + relative-path resolver applied to every path field read from `apps.json`
+      (`launch_app` cwd/command, `open_url`, poller auto-open url, `app_icon` cwd/url/icon).
+      Raw tokens are preserved on disk / in the editor; resolution happens at point of use.
+- [x] Installer "Portable" option: `establish_portable` writes `moonpool.portable` (with
+      note), creates `moonpool-config`, and relaunches in place (skips exe relocation).
+- [x] Amber non-portable-path warning in the app editor (cwd + url fields). Classification
+      is `isNonPortablePath` in `api.ts` (TS-side, live as you type); `portable_state`
+      reports the mode. Tile badge: not done (editor-only for now).
+- [x] Update `apps.example.json` to demonstrate `{MP_HOME}` tokens (added a
+      `portable-dashboard` static entry; existing absolute stubs kept for the common
+      installed case).
 - [ ] Updater note: in-place self-replace works from a writable volume; no-ops on
-      read-only media. Acceptable; document it.
+      read-only media. Acceptable; document it. (Not yet handled/tested.)
 
 ## Website
 
