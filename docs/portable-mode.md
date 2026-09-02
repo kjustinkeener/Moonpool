@@ -159,15 +159,14 @@ to AppData).
       installed case).
 - [ ] Updater note: in-place self-replace works from a writable volume; no-ops on
       read-only media. Acceptable; document it. (Not yet handled/tested.)
-- [ ] **WebView2 profile leak (found during portable smoke test).** WebView2 always
-      stores its browser profile (cache, cookies, GPU/shader caches) at
-      `%LOCALAPPDATA%\com.moonpool.app\EBWebView`, regardless of mode - so portable is
-      NOT yet fully self-contained. Fix: in portable mode set the WebView2 user-data dir
-      into the bundle, either via Tauri's `app.windows[].additionalBrowserArgs` /
-      webview data-dir config or the `WEBVIEW2_USER_DATA_FOLDER` env var before window
-      creation, pointing at `{MP_DATA}\webview`. Until then the "nothing outside the
-      folder" claim has this one asterisk. (The window-state file itself is clean - it
-      lives in `moonpool_dir`; verified.)
+- [x] **WebView2 profile.** WebView2 stores its browser profile (cache, cookies,
+      GPU/shader caches) under `<identifier>\EBWebView`. In portable mode we now set
+      `WEBVIEW2_USER_DATA_FOLDER` to `{MP_DATA}\webview` early in `run()` (before any
+      window is built - `portable::webview_data_dir`), so the profile lives in the
+      bundle. Verified: the profile (`moonpool-config\webview\EBWebView`) is created in
+      the folder and no `EBWebView`/data lands in `%LOCALAPPDATA%`. Residue: an EMPTY,
+      unused `%LOCALAPPDATA%\<identifier>` dir (0 files) is still touched on startup - no
+      data, acceptable.
 
 ## Verified (2026-09-02)
 
