@@ -222,7 +222,7 @@
           <button onclick={() => pick(onAbout)}><span class="mi">ⓘ</span>About</button>
           {#if portable}
             <button onclick={doInstall} disabled={installing}>
-              <span class="mi">⬇</span>{installing ? "Installing…" : "Install Moonpool"}
+              <span class="mi">🖥</span>{installing ? "Installing…" : "Install Moonpool"}
             </button>
           {/if}
           {#each clashes as c (c.port)}
