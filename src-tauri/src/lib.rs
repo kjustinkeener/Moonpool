@@ -1383,7 +1383,7 @@ pub fn run() {
                     let mini = window.is_minimized().unwrap_or(false);
                     let scale = window.scale_factor().unwrap_or(1.0);
                     log_line(
-                        &window.app_handle(),
+                        window.app_handle(),
                         &format!(
                             "win Resized: {}x{} phys (scale {:.2}), minimized={}",
                             sz.width, sz.height, scale, mini
@@ -1440,7 +1440,7 @@ pub fn run() {
                     if let Ok(sz) = window.inner_size() {
                         if sz.width < MIN_SAVE_W || sz.height < MIN_SAVE_H {
                             log_line(
-                                &window.app_handle(),
+                                window.app_handle(),
                                 &format!(
                                     "win skip degenerate save: {}x{} phys (below floor)",
                                     sz.width, sz.height
@@ -1464,7 +1464,7 @@ pub fn run() {
                                 *s.last_good_size.lock().unwrap() = Some((sz.width, sz.height));
                             }
                             log_line(
-                                &window.app_handle(),
+                                window.app_handle(),
                                 &format!(
                                     "win eager-save geometry: {}x{} phys",
                                     sz.width, sz.height
