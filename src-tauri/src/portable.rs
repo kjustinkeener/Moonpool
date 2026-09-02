@@ -159,10 +159,47 @@ pub fn establish_portable(app: AppHandle) -> Result<(), String> {
     let _ = std::fs::create_dir_all(dir.join(DATA_SUBDIR));
 
     let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let mut c = std::process::Command::new(&exe);
-    crate::platform::hidden(&mut c);
-    c.spawn().map_err(|e| format!("relaunch: {e}"))?;
-    app.exit(0);
+    crate::install::relaunch_and_exit(&app, &exe);
+    Ok(())
+}
+
+/// Installer "run portable" with a chosen folder. If `target_dir` is the folder the
+/// exe is already sitting in (or empty), this is the in-place case: drop the flag
+/// beside the current exe and relaunch it. Otherwise stamp a copy into `target_dir`
+/// (exe + flag + empty config) and launch that. Either way the fresh process boots
+/// portable and this installer process exits. `clone` is intentionally omitted: a
+/// first-run install starts fresh (the example manifest seeds on first boot).
+#[tauri::command]
+pub fn establish_portable_at(app: AppHandle, target_dir: String) -> Result<(), String> {
+    let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let src_dir = src_exe
+        .parent()
+        .ok_or("cannot locate exe folder")?
+        .to_path_buf();
+
+    let same = target_dir.trim().is_empty() || {
+        let t = PathBuf::from(&target_dir);
+        if !t.is_dir() {
+            return Err("target folder does not exist".into());
+        }
+        t.canonicalize().ok() == src_dir.canonicalize().ok()
+    };
+
+    let exe_to_launch = if same {
+        std::fs::write(src_dir.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
+        let _ = std::fs::create_dir_all(src_dir.join(DATA_SUBDIR));
+        src_exe.clone()
+    } else {
+        let target = PathBuf::from(&target_dir);
+        let exe_target = target.join("moonpool.exe");
+        std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
+        std::fs::write(target.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
+        std::fs::create_dir_all(target.join(DATA_SUBDIR))
+            .map_err(|e| format!("create config dir: {e}"))?;
+        exe_target
+    };
+
+    crate::install::relaunch_and_exit(&app, &exe_to_launch);
     Ok(())
 }
 
