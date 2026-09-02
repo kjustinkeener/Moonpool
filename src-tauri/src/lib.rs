@@ -1303,6 +1303,16 @@ pub fn run() {
     // Remove a leftover `moonpool.old` from a prior self-update.
     update::cleanup_old();
 
+    // Portable: keep WebView2's browser profile inside the bundle too. WebView2 reads
+    // WEBVIEW2_USER_DATA_FOLDER when it creates its environment, so this must be set
+    // before any window is built. Otherwise it defaults to
+    // %LOCALAPPDATA%\<identifier>\EBWebView - the last thing that would land outside a
+    // portable folder.
+    if let Some(dir) = portable::webview_data_dir() {
+        let _ = std::fs::create_dir_all(&dir);
+        std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &dir);
+    }
+
     tauri::Builder::default()
         // Must be the FIRST plugin. A second run of the exe (Moonpool is already
         // resident in the tray) forwards its args here instead of starting anew;

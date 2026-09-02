@@ -79,6 +79,18 @@ pub fn data_dir(app: &AppHandle) -> Option<PathBuf> {
     }
 }
 
+/// Portable-only: where WebView2 should keep its browser profile (cache, cookies,
+/// GPU/shader caches) so it lands inside the bundle instead of
+/// `%LOCALAPPDATA%\<identifier>\EBWebView`. None in installed mode (leave WebView2's
+/// default). Doesn't need an `AppHandle`: portable data always lives beside the exe.
+pub fn webview_data_dir() -> Option<PathBuf> {
+    if is_portable() {
+        exe_dir().map(|d| d.join(DATA_SUBDIR).join("webview"))
+    } else {
+        None
+    }
+}
+
 /// Replace `{MP_HOME}` / `{MP_DATA}` tokens in a raw string with their resolved paths.
 /// Tokens work in all modes; unresolved tokens (no home/data dir) are left as-is.
 pub fn resolve_tokens(raw: &str, app: &AppHandle) -> String {
