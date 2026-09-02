@@ -108,12 +108,29 @@ pub fn perform_install(desktop_shortcut: bool) -> Result<String, String> {
     Ok(target.display().to_string())
 }
 
+/// Spawn `exe` and quit this process, handing off cleanly. The child is told to wait
+/// for THIS process to exit (`--wait-pid`) before it builds anything, so it doesn't
+/// race the single-instance lock we still hold and get routed back into us (which, for
+/// the installer, would just re-show the install card instead of booting the copy).
+pub fn relaunch_and_exit(app: &AppHandle, exe: &Path) {
+    let mut c = Command::new(exe);
+    c.arg("--wait-pid").arg(std::process::id().to_string());
+    platform::hidden(&mut c);
+    let _ = c.spawn();
+    app.exit(0);
+}
+
 /// Launch the installed exe and quit this (portable) process.
 #[tauri::command]
 pub fn launch_installed_and_exit(app: AppHandle, exe: String) {
-    let mut c = Command::new(&exe);
-    platform::hidden(&mut c);
-    let _ = c.spawn();
+    relaunch_and_exit(&app, Path::new(&exe));
+}
+
+/// Quit the app outright. Used by the installer's close button: the installer
+/// window is frameless (no OS titlebar), so without this the only way out before
+/// installing is Alt+F4 / Task Manager.
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
     app.exit(0);
 }
 

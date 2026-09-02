@@ -108,8 +108,13 @@ export const performInstall = (desktopShortcut: boolean) =>
   invoke<string>("perform_install", { desktopShortcut });
 export const launchInstalledAndExit = (exe: string) =>
   invoke<void>("launch_installed_and_exit", { exe });
+// Quit the app (installer close button - the window is frameless).
+export const quitApp = () => invoke<void>("quit_app");
 // Portable install: drop the flag file beside the exe and relaunch in portable mode.
 export const establishPortable = () => invoke<void>("establish_portable");
+// Portable install into a chosen folder (empty = the exe's own folder, in place).
+export const establishPortableAt = (targetDir: string) =>
+  invoke<void>("establish_portable_at", { targetDir });
 // From an installed Moonpool: stamp a self-contained portable copy into a folder.
 // clone=true copies current apps/icons/settings; false leaves it fresh. Returns exe path.
 export const exportPortable = (targetDir: string, clone: boolean) =>
