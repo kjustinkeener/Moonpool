@@ -79,27 +79,6 @@ pub fn data_dir(app: &AppHandle) -> Option<PathBuf> {
     }
 }
 
-/// Absolute path the window-state plugin should write to in portable mode, so the
-/// window layout travels with the folder too (`{MP_DATA}\.window-state.json`). None
-/// in installed mode (keep the plugin's default `%APPDATA%\com.moonpool.app` path).
-///
-/// The plugin only lets us override the *filename*, not the directory, but it joins
-/// that filename onto `app_config_dir()` -- and joining an absolute path replaces the
-/// base -- so handing it an absolute path redirects the state file into our folder.
-/// Doesn't need an `AppHandle`: portable data always lives beside the exe.
-pub fn window_state_filename() -> Option<String> {
-    if is_portable() {
-        exe_dir().map(|d| {
-            d.join(DATA_SUBDIR)
-                .join(".window-state.json")
-                .to_string_lossy()
-                .to_string()
-        })
-    } else {
-        None
-    }
-}
-
 /// Replace `{MP_HOME}` / `{MP_DATA}` tokens in a raw string with their resolved paths.
 /// Tokens work in all modes; unresolved tokens (no home/data dir) are left as-is.
 pub fn resolve_tokens(raw: &str, app: &AppHandle) -> String {
@@ -129,20 +108,6 @@ pub fn resolve_path(raw: &str, app: &AppHandle) -> String {
         }
     }
     s
-}
-
-/// Best-effort: in portable mode, remove the empty `%APPDATA%\<identifier>` directory
-/// the window-state plugin creates on save (it always `create_dir_all`s that dir even
-/// though our absolute filename redirects the actual state file into the bundle).
-/// `remove_dir` only succeeds on an empty dir, so this never touches real data. The
-/// plugin recreates it on its next save, so this just clears the between-runs leftover.
-pub fn cleanup_empty_appdata(app: &AppHandle) {
-    if !is_portable() {
-        return;
-    }
-    if let Ok(dir) = app.path().app_config_dir() {
-        let _ = std::fs::remove_dir(&dir);
-    }
 }
 
 /// Snapshot of portable state for the frontend (drives the amber warning UI).

@@ -31,6 +31,7 @@ mod install;
 mod platform;
 mod portable;
 mod update;
+mod winstate;
 
 // ---------------------------------------------------------------------------
 // Manifest
@@ -1309,24 +1310,12 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             dispatch_control(app, &argv);
         }))
-        // Remembers the main window's size/position across restarts. Restored on
-        // launch; we also save eagerly on Resized/Moved below, since the tray-Quit
-        // path can kill the process before the plugin's save-on-exit runs.
-        // In installer mode the window is shrunk to the install-card size, so deny
-        // "main" from state management there - otherwise that tiny size would be
-        // persisted and shrink the real hub on the next launch.
-        .plugin({
-            let mut b = tauri_plugin_window_state::Builder::default();
-            if install::needs_setup() {
-                b = b.with_denylist(&["main"]);
-            }
-            // Portable mode: redirect the state file beside the exe so the window
-            // layout travels with the folder (and nothing lands in %APPDATA%).
-            if let Some(path) = portable::window_state_filename() {
-                b = b.with_filename(path);
-            }
-            b.build()
-        })
+        // Window size/position persistence is hand-rolled (see `winstate`): restored
+        // in setup, saved eagerly on Resized/Moved below. We roll our own instead of
+        // tauri-plugin-window-state so the state file lives in `moonpool_dir` (next to
+        // apps.json) in both modes - nothing leaks outside a portable bundle, and there
+        // is no stray %APPDATA%\<id> directory. Installer mode never touches it (the
+        // window is the install-card size and setup/save are both skipped there).
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
@@ -1362,14 +1351,14 @@ pub fn run() {
             let manifest = load_manifest(&handle);
             *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
             seed_ai_readme(&handle);
-            // Portable: clear the empty %APPDATA% dir the window-state plugin leaves
-            // behind (best-effort; only removes it while empty).
-            portable::cleanup_empty_appdata(&handle);
             build_tray(&handle)?;
             // Belt-and-braces: strip the native title bar on the main window even if
             // the config value didn't take (the frontend draws its own title bar).
             if let Some(win) = handle.get_webview_window("main") {
                 let _ = win.set_decorations(false);
+                // Restore the saved geometry (no-op -> config default on a missing or
+                // corrupt file). Do this before seeding last-good size below.
+                winstate::restore(&win);
                 // Seed the last-good size from the initial (restored) window size so
                 // a Win+D before any user resize still has something to re-assert to
                 // (otherwise a fresh-launch minimize leaves the collapsed sliver).
@@ -1446,7 +1435,7 @@ pub fn run() {
                     });
                 }
                 // Persist size/position eagerly: a tray Quit can kill the process
-                // before the plugin's save-on-exit fires. Skip while minimized so we
+                // before any save-on-exit could fire. Skip while minimized so we
                 // don't record the collapsed geometry.
                 //
                 // The is_minimized() guard alone isn't enough: on a Win+D restore of
@@ -1458,7 +1447,6 @@ pub fn run() {
                 tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)
                     if window.label() == "main" && !window.is_minimized().unwrap_or(false) =>
                 {
-                    use tauri_plugin_window_state::{AppHandleExt, StateFlags};
                     const MIN_SAVE_W: u32 = 300;
                     const MIN_SAVE_H: u32 = 300;
                     if let Ok(sz) = window.inner_size() {
@@ -1494,7 +1482,11 @@ pub fn run() {
                                     sz.width, sz.height
                                 ),
                             );
-                            let _ = window.app_handle().save_window_state(StateFlags::all());
+                            if let Some(wv) =
+                                window.app_handle().get_webview_window("main")
+                            {
+                                winstate::save(&wv);
+                            }
                         }
                     }
                 }
