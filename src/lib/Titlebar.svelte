@@ -90,9 +90,10 @@
     margin-left: auto;
     display: flex;
     height: 100%;
+    padding-right: 4px;
   }
   .ctl {
-    width: 44px;
+    width: 30px;
     height: 100%;
     display: grid;
     place-items: center;

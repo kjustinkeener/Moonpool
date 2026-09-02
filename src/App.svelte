@@ -271,15 +271,39 @@
     } catch {}
   }
 
+  // Reveal the CLI as soon as there's any room past the sidebar + resizer, not
+  // just once a comfortable width opens up. 1px of main-pane space is enough.
+  const MIN_MAIN_SHOW = 1;
+
+  // Reconcile the collapsed flag with the actual window width: if the window is
+  // wide enough to hold the CLI (e.g. the user dragged it wider while collapsed,
+  // or the restored width disagrees with the saved flag), reveal the pane so the
+  // extra space is filled instead of left as a blank hole. No setSize here - the
+  // window already has the width; we just fill it.
+  function revealCliIfRoom() {
+    if (cliVisible) return;
+    const room = window.innerWidth - sidebarWidth - RESIZER_W;
+    if (room >= MIN_MAIN_SHOW) {
+      cliVisible = true;
+      savedMainWidth = Math.max(300, room);
+      localStorage.setItem("moonpool.cliVisible", "1");
+      localStorage.setItem("moonpool.savedMainWidth", String(savedMainWidth));
+    }
+  }
+
   onMount(async () => {
     const saved = Number(localStorage.getItem("moonpool.sidebarWidth"));
     if (saved >= MIN_W && saved <= MAX_W) sidebarWidth = saved;
 
-    // Restore collapsed CLI state. The window-state plugin already restored the
-    // narrow width, so just reflect the flag; don't resize again here.
+    // Restore collapsed CLI state, then reconcile with the real window width: if
+    // the flag says collapsed but the window is wide (e.g. the restored width and
+    // the saved flag disagree), fill the space with the CLI instead of leaving a
+    // blank hole. The window width is the source of truth.
     const savedMain = Number(localStorage.getItem("moonpool.savedMainWidth"));
     if (savedMain > 0) savedMainWidth = savedMain;
     cliVisible = localStorage.getItem("moonpool.cliVisible") !== "0";
+    revealCliIfRoom();
+    window.addEventListener("resize", revealCliIfRoom);
 
     try {
       lastStarted = JSON.parse(localStorage.getItem("moonpool.lastStarted") ?? "{}");
@@ -396,6 +420,7 @@
     unlistenControl?.();
     unlistenTransparency?.();
     unlistenTheme?.();
+    window.removeEventListener("resize", revealCliIfRoom);
     // Clear any outstanding timers so they can't fire and set $state after unmount.
     for (const id of Object.keys(pendingTimers)) clearTimeout(pendingTimers[id]);
     for (const arr of Object.values(highlightTimers)) arr.forEach(clearTimeout);

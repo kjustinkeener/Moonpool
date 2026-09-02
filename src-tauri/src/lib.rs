@@ -156,6 +156,10 @@ struct HubState {
     /// Last status snapshot the poller computed, so an out-of-band state.json
     /// flush (after a ticket update) still writes accurate running/managed flags.
     last_statuses: Mutex<Vec<AppStatus>>,
+    /// Last non-degenerate physical window size (w, h). Used to re-assert a sane
+    /// size when a Win+D restore of the borderless window brings it back as the
+    /// ~215x26 minimized-placeholder sliver.
+    last_good_size: Mutex<Option<(u32, u32)>>,
 }
 
 /// Cap on retained ticket records (oldest dropped first).
@@ -1212,6 +1216,23 @@ fn show_main(app: &AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
         let _ = win.unminimize();
+        // If the window was hidden while collapsed to the borderless minimize
+        // sliver (~215x26), showing it would bring back that sliver. Re-assert the
+        // last good size so Show always restores a usable window.
+        if let Ok(sz) = win.inner_size() {
+            if sz.width < 300 || sz.height < 300 {
+                let last = app
+                    .try_state::<HubState>()
+                    .and_then(|s| *s.last_good_size.lock().unwrap());
+                if let Some((w, h)) = last {
+                    let _ = win.set_size(tauri::PhysicalSize::new(w, h));
+                    // The collapsed sliver also sits at an off-screen minimize
+                    // position, so a resize alone shows it off-screen (taskbar
+                    // button, no visible window). Re-center to bring it on-screen.
+                    let _ = win.center();
+                }
+            }
+        }
         let _ = win.set_focus();
     }
 }
@@ -1275,6 +1296,7 @@ pub fn run() {
             settings: Mutex::new(Settings::default()),
             tickets: Mutex::new(Vec::new()),
             last_statuses: Mutex::new(Vec::new()),
+            last_good_size: Mutex::new(None),
         })
         .setup(|app| {
             let handle = app.handle().clone();
@@ -1291,6 +1313,16 @@ pub fn run() {
             // the config value didn't take (the frontend draws its own title bar).
             if let Some(win) = handle.get_webview_window("main") {
                 let _ = win.set_decorations(false);
+                // Seed the last-good size from the initial (restored) window size so
+                // a Win+D before any user resize still has something to re-assert to
+                // (otherwise a fresh-launch minimize leaves the collapsed sliver).
+                if let Ok(sz) = win.inner_size() {
+                    if sz.width >= 300 && sz.height >= 300 {
+                        if let Some(s) = handle.try_state::<HubState>() {
+                            *s.last_good_size.lock().unwrap() = Some((sz.width, sz.height));
+                        }
+                    }
+                }
             }
             spawn_status_poller(handle);
             Ok(())
@@ -1304,6 +1336,22 @@ pub fn run() {
                     (g.close_to_tray, g.minimize_to_tray)
                 })
                 .unwrap_or((true, true));
+            // Trace window geometry events to diagnose the borderless minimize-all
+            // collapse (window restoring to a title-bar-height sliver). No-op unless
+            // Debug logging is on.
+            if window.label() == "main" {
+                if let tauri::WindowEvent::Resized(sz) = event {
+                    let mini = window.is_minimized().unwrap_or(false);
+                    let scale = window.scale_factor().unwrap_or(1.0);
+                    log_line(
+                        &window.app_handle(),
+                        &format!(
+                            "win Resized: {}x{} phys (scale {:.2}), minimized={}",
+                            sz.width, sz.height, scale, mini
+                        ),
+                    );
+                }
+            }
             match event {
                 // With "close to tray" on, closing hides to the tray instead of
                 // quitting (Quit in the tray menu is the only real exit, so
@@ -1314,22 +1362,78 @@ pub fn run() {
                     api.prevent_close();
                 }
                 // With "minimize to tray" on, minimizing hides to the tray too,
-                // so Moonpool leaves the taskbar. Tauri has no Minimized event,
-                // so detect it on Resized; the tray left-click / Show both
-                // unminimize on the way back.
+                // so Moonpool leaves the taskbar. Tauri has no Minimized event, so
+                // detect it on Resized. But a RESTORE animation also fires transient
+                // minimized=true frames (verified via trace) - hiding on those made
+                // the window animate back full and then vanish. So debounce: wait a
+                // beat and only hide if it's STILL minimized (a real minimize stays
+                // that way; a restore's stray frame is immediately followed by a
+                // full-size frame). Also unminimize the hidden window so the next
+                // Show restores cleanly without a native minimize animation.
                 tauri::WindowEvent::Resized(_)
                     if minimize_to_tray && window.is_minimized().unwrap_or(false) =>
                 {
-                    let _ = window.hide();
+                    let w = window.clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                        if w.is_minimized().unwrap_or(false) {
+                            let _ = w.hide();
+                            let _ = w.unminimize();
+                        }
+                    });
                 }
                 // Persist size/position eagerly: a tray Quit can kill the process
                 // before the plugin's save-on-exit fires. Skip while minimized so we
                 // don't record the collapsed geometry.
+                //
+                // The is_minimized() guard alone isn't enough: on a Win+D restore of
+                // a borderless window, Windows fires a Resized where is_minimized() is
+                // already false but the size is still the ~215x26 minimized placeholder
+                // (verified via trace). Saving that persisted a title-bar sliver that
+                // came back on next launch. So also reject any geometry below a sane
+                // floor - a real window is never this small.
                 tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)
                     if window.label() == "main" && !window.is_minimized().unwrap_or(false) =>
                 {
                     use tauri_plugin_window_state::{AppHandleExt, StateFlags};
-                    let _ = window.app_handle().save_window_state(StateFlags::all());
+                    const MIN_SAVE_W: u32 = 300;
+                    const MIN_SAVE_H: u32 = 300;
+                    if let Ok(sz) = window.inner_size() {
+                        if sz.width < MIN_SAVE_W || sz.height < MIN_SAVE_H {
+                            log_line(
+                                &window.app_handle(),
+                                &format!(
+                                    "win skip degenerate save: {}x{} phys (below floor)",
+                                    sz.width, sz.height
+                                ),
+                            );
+                            // Re-assert the last good size so the live window doesn't
+                            // stay collapsed as the sliver (covers minimize-to-tray on
+                            // and off). Harmless if the window is currently hidden.
+                            let last = window
+                                .app_handle()
+                                .try_state::<HubState>()
+                                .and_then(|s| *s.last_good_size.lock().unwrap());
+                            if let Some((w, h)) = last {
+                                let _ = window.set_size(tauri::PhysicalSize::new(w, h));
+                            }
+                        } else {
+                            // Remember this as the last good size so the tray "show"
+                            // path can restore it if a Win+D brings the window back
+                            // collapsed.
+                            if let Some(s) = window.app_handle().try_state::<HubState>() {
+                                *s.last_good_size.lock().unwrap() = Some((sz.width, sz.height));
+                            }
+                            log_line(
+                                &window.app_handle(),
+                                &format!(
+                                    "win eager-save geometry: {}x{} phys",
+                                    sz.width, sz.height
+                                ),
+                            );
+                            let _ = window.app_handle().save_window_state(StateFlags::all());
+                        }
+                    }
                 }
                 _ => {}
             }
