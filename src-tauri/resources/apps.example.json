@@ -52,5 +52,14 @@
     "url": "file:///C:/projects/docs-dashboard/index.html",
     "openBrowser": true,
     "note": "A self-contained HTML dashboard. 'static' apps with only a 'url' just open it in the browser (no terminal)."
+  },
+  {
+    "id": "portable-dashboard",
+    "name": "Portable Dashboard",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/sales/index.html",
+    "openBrowser": true,
+    "note": "Portable-mode example: {MP_HOME} resolves to Moonpool's folder, so this entry travels with a zip/USB bundle. A ./-relative cwd works too. Tokens work in installed mode as well (there {MP_HOME} is the install dir)."
   }
 ]
