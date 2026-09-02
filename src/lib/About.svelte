@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
-  import { check } from "@tauri-apps/plugin-updater";
-  import { openUrl } from "./api";
+  import { openUrl, updateCheck, updateApply } from "./api";
   import Modal from "./Modal.svelte";
 
   const credits = [
@@ -31,17 +30,18 @@
     checking = true;
     status = "Checking for updates...";
     try {
-      const update = await check();
-      if (update) {
-        status = `Update ${update.version} available - downloading...`;
-        await update.downloadAndInstall();
-        status = "Update installed. Restart Moonpool to apply.";
+      const r = await updateCheck();
+      if (r.available) {
+        status = `Update ${r.available.version} available - downloading...`;
+        // On success the backend relaunches and exits; this won't return.
+        await updateApply(r.available);
+        status = "Update installed. Restarting…";
       } else {
         status = "You're on the latest version.";
+        checking = false;
       }
     } catch (e) {
       status = `Update check failed: ${e}`;
-    } finally {
       checking = false;
     }
   }

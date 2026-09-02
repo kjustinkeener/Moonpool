@@ -1,6 +1,6 @@
 [package]
 name = "moonpool"
-version = "0.1.8"
+version = "0.1.9"
 description = "A system-tray launcher hub for local apps and dev servers, with an embedded terminal per app."
 authors = ["Justin Keener"]
 license = "MIT"
@@ -22,7 +22,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 tauri-plugin-clipboard-manager = "2"
-tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
@@ -31,6 +30,10 @@ serde_json = "1"
 portable-pty = "0.8"
 sysinfo = "=0.30.13"
 base64 = "0.22"
+# Custom installer/updater: tiny blocking HTTP, minisign verify, semver compare.
+ureq = "2"
+minisign-verify = "0.2"
+semver = "1"
 
 [profile.release]
 # Smaller, faster release binaries. panic = "abort" is intentionally omitted so

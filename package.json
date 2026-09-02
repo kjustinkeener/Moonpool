@@ -1,7 +1,7 @@
 {
   "name": "moonpool",
   "private": true,
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "A system-tray launcher hub for local apps and dev servers, with an embedded terminal per app.",
   "keywords": [
     "tauri",
@@ -37,7 +37,6 @@
     "@tauri-apps/plugin-clipboard-manager": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-opener": "^2",
-    "@tauri-apps/plugin-updater": "^2",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0"
   },

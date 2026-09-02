@@ -1,20 +1,19 @@
 # Release + auto-update workflow
 #
 # Triggers on a version tag (e.g. v0.1.0) and builds Moonpool for Windows, macOS, and Linux,
-# then publishes a DRAFT GitHub Release containing the per-OS installers plus the updater
-# artifacts (the signatures and `latest.json` that the in-app updater reads).
+# then publishes a DRAFT GitHub Release containing the per-OS bundles. On Windows it also
+# publishes the CUSTOM updater artifacts that Moonpool's in-app self-updater reads:
+#   - moonpool.exe   the raw, self-installing/self-updating executable (the download)
+#   - update.json    { version, notes, url, signature } read from Releases/latest
+# The signature is a minisign signature of moonpool.exe, verified in-app against the
+# committed public key (src-tauri/src/update.rs). This replaces tauri-plugin-updater +
+# latest.json; the NSIS/MSI bundles are still built but are no longer the update path.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
-#   TAURI_SIGNING_PRIVATE_KEY           - the minisign/Tauri updater private key
+#   TAURI_SIGNING_PRIVATE_KEY           - the minisign/Tauri signing private key
 #                                         (generate with `npm run tauri signer generate`).
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  - the password protecting that private key
 #                                         (set to an empty string if the key has no password).
-#
-# Prerequisites (already configured, verify before the first release):
-#   - src-tauri/tauri.conf.json has `bundle.createUpdaterArtifacts: true` so the signed
-#     updater artifacts and `latest.json` are emitted. (Already true in this repo.)
-#   - The updater plugin's `pubkey` in tauri.conf.json matches TAURI_SIGNING_PRIVATE_KEY,
-#     and its `endpoints` point at this repo's Releases `latest.json`.
 #
 # To cut a release: bump the version in package.json and src-tauri/tauri.conf.json, commit,
 # then push a matching tag, for example:
@@ -91,3 +90,30 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Publish the custom self-updater artifacts (Windows only): the raw exe plus a
+      # minisign-signed update.json that the in-app updater reads from Releases/latest.
+      - name: Publish custom updater artifacts (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $exe = "src-tauri/target/release/moonpool.exe"
+          if (-not (Test-Path $exe)) { throw "raw exe not found at $exe" }
+
+          # Sign the raw exe with Tauri's signer (minisign-compatible). This writes
+          # "$exe.sig", whose content is base64 of the full minisign (.minisig) text.
+          npx tauri signer sign --private-key $env:TAURI_SIGNING_PRIVATE_KEY --password $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $exe
+
+          $sigB64 = (Get-Content "$exe.sig" -Raw).Trim()
+          $minisig = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($sigB64))
+
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $url = "https://github.com/kjustinkeener/Moonpool/releases/download/${{ github.ref_name }}/moonpool.exe"
+          $manifest = [ordered]@{ version = $version; notes = ""; url = $url; signature = $minisig }
+          $manifest | ConvertTo-Json -Depth 3 | Set-Content -Path update.json -Encoding utf8
+
+          gh release upload ${{ github.ref_name }} $exe update.json --clobber

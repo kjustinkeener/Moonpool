@@ -14,10 +14,12 @@
     onControl,
     reportOutcome,
     openSettingsWindow,
+    updateCheck,
+    updateApply,
+    type UpdateInfo,
   } from "./lib/api";
   import { listen } from "@tauri-apps/api/event";
   import { setTheme, type Theme } from "./lib/theme";
-  import { check, type Update } from "@tauri-apps/plugin-updater";
   import type { AppEntry, AppStatus } from "./lib/types";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
@@ -66,7 +68,8 @@
 
   // On-startup update check (gated by the checkOnStartup setting). If a newer
   // release is found, `update` drives the banner in the terminal area.
-  let update = $state<Update | null>(null);
+  let update = $state<UpdateInfo | null>(null);
+  let currentVersion = $state("");
   let updateStatus = $state("");
   let updating = $state(false);
   let updateDone = $state(false);
@@ -76,12 +79,12 @@
     updating = true;
     updateStatus = `Downloading ${update.version}…`;
     try {
-      await update.downloadAndInstall();
-      updateStatus = "Update installed. Restart Moonpool to apply.";
+      // On success the backend relaunches and exits, so this call never returns.
+      await updateApply(update);
+      updateStatus = "Update installed. Restarting…";
       updateDone = true;
     } catch (e) {
       updateStatus = `Update failed: ${e}`;
-    } finally {
       updating = false;
     }
   }
@@ -315,11 +318,14 @@
     getSettings()
       .then((s) => {
         applyTransparency(s.transparency ?? 0);
-        if (s.checkOnStartup) return check();
+        if (s.checkOnStartup) return updateCheck();
         return null;
       })
-      .then((u) => {
-        if (u) update = u;
+      .then((r) => {
+        if (r) {
+          currentVersion = r.current;
+          if (r.available) update = r.available;
+        }
       })
       .catch(() => {});
 
@@ -622,7 +628,7 @@
                 {#if updateStatus}
                   {updateStatus}
                 {:else}
-                  Moonpool {update.version} is available (you have {update.currentVersion}).
+                  Moonpool {update.version} is available (you have {currentVersion}).
                 {/if}
               </span>
               {#if !updateDone}

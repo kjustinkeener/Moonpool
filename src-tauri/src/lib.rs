@@ -27,7 +27,9 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
+mod install;
 mod platform;
+mod update;
 
 // ---------------------------------------------------------------------------
 // Manifest
@@ -1275,6 +1277,15 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Uninstall entry point (Add/Remove Programs calls `moonpool.exe --uninstall`).
+    // Handled before any window/tray so it's a clean, headless teardown.
+    if std::env::args().any(|a| a == "--uninstall") {
+        install::run_uninstall();
+        return;
+    }
+    // Remove a leftover `moonpool.old` from a prior self-update.
+    update::cleanup_old();
+
     tauri::Builder::default()
         // Must be the FIRST plugin. A second run of the exe (Moonpool is already
         // resident in the tray) forwards its args here instead of starting anew;
@@ -1285,10 +1296,18 @@ pub fn run() {
         // Remembers the main window's size/position across restarts. Restored on
         // launch; we also save eagerly on Resized/Moved below, since the tray-Quit
         // path can kill the process before the plugin's save-on-exit runs.
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // In installer mode the window is shrunk to the install-card size, so deny
+        // "main" from state management there - otherwise that tiny size would be
+        // persisted and shrink the real hub on the next launch.
+        .plugin({
+            let mut b = tauri_plugin_window_state::Builder::default();
+            if install::needs_setup() {
+                b = b.with_denylist(&["main"]);
+            }
+            b.build()
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .manage(HubState {
             apps: Mutex::new(HashMap::new()),
@@ -1300,6 +1319,20 @@ pub fn run() {
         })
         .setup(|app| {
             let handle = app.handle().clone();
+            // First-run install mode: the portable exe is running from outside the
+            // install dir. Show only the install card (the frontend routes to it via
+            // setup_state) - no tray, no status poller, and shrink the window to the
+            // card size. The hub proper boots on the next launch from the install dir.
+            if install::needs_setup() {
+                if let Some(win) = handle.get_webview_window("main") {
+                    let _ = win.set_decorations(false);
+                    let _ = win.set_resizable(false);
+                    let _ = win.set_size(tauri::LogicalSize::new(452.0, 432.0));
+                    let _ = win.center();
+                    let _ = win.show();
+                }
+                return Ok(());
+            }
             // Load settings first so logging (if enabled) captures the manifest load.
             let settings = load_settings(&handle);
             *handle.state::<HubState>().settings.lock().unwrap() = settings;
@@ -1328,6 +1361,12 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            // Installer mode has no tray: the minimize-to-tray / hide handlers below
+            // would hide the window with no way to bring it back (Win+M makes it
+            // vanish). Skip all of them and let the OS handle minimize normally.
+            if install::needs_setup() {
+                return;
+            }
             let (close_to_tray, minimize_to_tray) = window
                 .app_handle()
                 .try_state::<HubState>()
@@ -1457,7 +1496,12 @@ pub fn run() {
             term_resize,
             stop_app,
             open_url,
-            report_outcome
+            report_outcome,
+            install::setup_state,
+            install::perform_install,
+            install::launch_installed_and_exit,
+            update::update_check,
+            update::update_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");

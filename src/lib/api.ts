@@ -59,6 +59,47 @@ export async function openSettingsWindow(): Promise<void> {
   w.once("tauri://error", (e) => console.error("settings window", e));
 }
 
+// --- Custom installer + updater -------------------------------------------
+
+export interface SetupState {
+  needsSetup: boolean;
+  installed: boolean;
+  existing: boolean;
+  version: string;
+  buildDate: string;
+  installDir: string;
+}
+// Rust serializes with snake_case field names; normalize to camelCase here.
+export async function setupState(): Promise<SetupState> {
+  const s = await invoke<any>("setup_state");
+  return {
+    needsSetup: s.needs_setup,
+    installed: s.installed,
+    existing: s.existing,
+    version: s.version,
+    buildDate: s.build_date,
+    installDir: s.install_dir,
+  };
+}
+export const performInstall = (desktopShortcut: boolean) =>
+  invoke<string>("perform_install", { desktopShortcut });
+export const launchInstalledAndExit = (exe: string) =>
+  invoke<void>("launch_installed_and_exit", { exe });
+
+export interface UpdateInfo {
+  version: string;
+  notes: string;
+  url: string;
+  signature: string;
+}
+export interface CheckResult {
+  current: string;
+  available: UpdateInfo | null;
+}
+export const updateCheck = () => invoke<CheckResult>("update_check");
+export const updateApply = (info: UpdateInfo) =>
+  invoke<void>("update_apply", { info });
+
 export const launchApp = (id: string, cols: number, rows: number) =>
   invoke<void>("launch_app", { id, cols, rows });
 
