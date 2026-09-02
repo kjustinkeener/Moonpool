@@ -73,6 +73,59 @@ Candidate set (impressive, all instant, all fake/seeded data):
 Shipped under `src-tauri/resources/examples/dashboards/**`, embedded in the binary
 and written to the bundle `dashboards/` at first run.
 
+## Design bar: these are a portfolio piece
+
+The dashboards double as low-key advertising for consulting work, so they must look
+genuinely impressive - polished graphs of rich, complex-looking data, not toy demos.
+
+- **Vendor a charting lib inline, don't CDN it.** Embed the lib's JS in the bundle
+  (written out with the dashboards) so it stays offline / self-contained / cross-
+  platform. Candidates by license: **ECharts** (Apache-2.0, most impressive out of
+  the box), **Chart.js** (MIT), **uPlot** (MIT, tiny + fast). Lean ECharts for the
+  wow factor; share one copy under `dashboards/_lib/` referenced relatively so it's
+  not duplicated per page.
+- **One shared design system** under `dashboards/_lib/` (tokens: type scale, color,
+  spacing; a dark polished theme; a matching chart theme) so every dashboard reads
+  as one coherent, high-end suite.
+- **Rich seeded datasets** that look like real analytics: time-series with trend +
+  forecast bands, cohort-retention heatmap, revenue waterfall, conversion funnel,
+  correlation matrix, geo/choropleth, KPI tiles with sparklines and deltas.
+- **Tasteful, low-key attribution** (a small footer / about) - present but not
+  salesy; the polish is the pitch.
+
+## Also: show how you'd actually use the app
+
+The seed is not just eye-candy - it should model realistic Moonpool usage so a
+viewer immediately gets what it's for (a tray launcher/control panel for local apps
+and dev servers). Curate the manifest as a small, believable local-dev stack:
+
+- Sensible **groups**: "Dashboards", "Web apps", "CLI tools", "Docs" - so the
+  organizing pattern is obvious.
+- A **dev-workflow story**: a web app that shows running when its port answers, a
+  background API, a CLI report tile, a docs dashboard - i.e. the teaching
+  placeholders, written as a coherent stack rather than disconnected samples.
+- Ideally a **"Moonpool control panel" dashboard** that visualizes app status (up/
+  down, ports, groups) from `state.json` - a dogfood example that's also one of the
+  impressive graphs.
+
+So the two jobs of the bundle: (1) impressive polished dashboards = the portfolio
+pitch; (2) a realistic seeded stack = a how-to for Moonpool itself.
+
+### Flagship (combine both): the Moonpool control-panel dashboard
+
+The best single artifact does both at once: a polished, ECharts-grade dashboard
+whose complex data is Moonpool's **own live state** - app up/down, ports, groups,
+uptime timeline, launch frequency, port map. Real data (not faked), presented at
+portfolio quality, and simultaneously the clearest possible demo of what the app is
+for. This is the centerpiece; the other dashboards orbit it.
+
+Data plumbing to resolve: how the dashboard gets `state.json` at portfolio richness.
+Options - (a) live-read `{MP_DATA}/state.json` on an interval (needs Moonpool to
+expose it to the webview, since a static file:// page can't read a sibling file
+cross-origin); (b) seed a realistic snapshot + accumulate a small history file over
+runs; (c) a hybrid: live status now + seeded history for the timelines. Pick in the
+build phase; (c) likely gives the best look with the least fakery.
+
 ## Two seed variants (branch on portable flag at first run)
 
 Today: single `EXAMPLE_MANIFEST = include_str!("../resources/apps.example.json")`,
@@ -113,6 +166,7 @@ Content split (same static dashboards, different framing):
 
 ## Open decisions
 
-3. **Dashboard set**: which of the candidates ship, and whether they share one small
-   inline design system (tokens/typography) so they look like a coherent suite. The
-   Help/Docs browser is confirmed in (flagship teaching dashboard).
+3. **Dashboard set**: RESOLVED in approach - polished, ECharts-backed (inline-
+   vendored, Apache-2.0), shared dark design system under `dashboards/_lib/`, rich
+   seeded datasets; Help/Docs browser is the flagship teaching dashboard. Still to
+   pin: the exact list of dashboards to ship first.
