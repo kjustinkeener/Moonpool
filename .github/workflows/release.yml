@@ -106,7 +106,7 @@ jobs:
 
           # Sign the raw exe with Tauri's signer (minisign-compatible). This writes
           # "$exe.sig", whose content is base64 of the full minisign (.minisig) text.
-          npx tauri signer sign --private-key $env:TAURI_SIGNING_PRIVATE_KEY --password $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD $exe
+          npx tauri signer sign --private-key "$env:TAURI_SIGNING_PRIVATE_KEY" --password "$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD" $exe
 
           $sigB64 = (Get-Content "$exe.sig" -Raw).Trim()
           $minisig = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($sigB64))
