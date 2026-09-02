@@ -101,6 +101,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
+          # Pass empty-string args (the key has no password) through to native exes
+          # verbatim instead of dropping them, so <FILE> isn't swallowed by --password.
+          $PSNativeCommandArgumentPassing = 'Standard'
           $exe = "src-tauri/target/release/moonpool.exe"
           if (-not (Test-Path $exe)) { throw "raw exe not found at $exe" }
 
