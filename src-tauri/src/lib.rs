@@ -1539,6 +1539,8 @@ pub fn run() {
             install::launch_installed_and_exit,
             portable::portable_state,
             portable::establish_portable,
+            portable::export_portable,
+            portable::reveal_path,
             update::update_check,
             update::update_apply
         ])
