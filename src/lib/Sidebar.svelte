@@ -215,14 +215,14 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="menu-backdrop" role="presentation" onclick={() => (menuOpen = false)}></div>
         <div class="menu">
-          <button onclick={() => pick(onAdd)}>Add app</button>
-          <button onclick={() => pick(onEditFile)}>Edit apps.json</button>
-          <button onclick={() => pick(onReload)}>Reload</button>
-          <button onclick={() => pick(onSettings)}>Settings</button>
-          <button onclick={() => pick(onAbout)}>About</button>
+          <button onclick={() => pick(onAdd)}><span class="mi">＋</span>Add app</button>
+          <button onclick={() => pick(onEditFile)}><span class="mi">✎</span>Edit apps.json</button>
+          <button onclick={() => pick(onReload)}><span class="mi">↻</span>Reload</button>
+          <button onclick={() => pick(onSettings)}><span class="mi">⚙</span>Settings</button>
+          <button onclick={() => pick(onAbout)}><span class="mi">ⓘ</span>About</button>
           {#if portable}
             <button onclick={doInstall} disabled={installing}>
-              {installing ? "Installing…" : "Install Moonpool"}
+              <span class="mi">⬇</span>{installing ? "Installing…" : "Install Moonpool"}
             </button>
           {/if}
           {#each clashes as c (c.port)}
@@ -456,7 +456,9 @@
     box-shadow: 0 8px 24px var(--shadow);
   }
   .menu button {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 9px;
     width: 100%;
     text-align: left;
     background: none;
@@ -466,6 +468,17 @@
     padding: 7px 10px;
     border-radius: 5px;
     cursor: pointer;
+  }
+  .menu .mi {
+    display: inline-flex;
+    justify-content: center;
+    width: 16px;
+    flex: none;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .menu button:hover .mi {
+    color: inherit;
   }
   .menu button:hover {
     background: var(--accent);
