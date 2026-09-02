@@ -27,6 +27,7 @@
     onReload,
     onAbout,
     onSettings,
+    onExportPortable,
     cliHidden = false,
     onExpandCli,
     updateWaiting = false,
@@ -53,6 +54,7 @@
     onReload: () => void;
     onAbout: () => void;
     onSettings: () => void;
+    onExportPortable: () => void;
     cliHidden?: boolean;
     onExpandCli?: () => void;
     updateWaiting?: boolean;
@@ -223,6 +225,10 @@
           {#if portable}
             <button onclick={doInstall} disabled={installing}>
               <span class="mi">🖥</span>{installing ? "Installing…" : "Install Moonpool"}
+            </button>
+          {:else}
+            <button onclick={() => pick(onExportPortable)}>
+              <span class="mi">💾</span>Create portable copy…
             </button>
           {/if}
           {#each clashes as c (c.port)}
