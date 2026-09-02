@@ -639,9 +639,18 @@ fn app_icon(
     }?;
     // Resolve {MP_HOME}/{MP_DATA} tokens and ./-anchored paths so icon lookup (cwd,
     // file:// url, explicit icon path) works for portable bundles.
-    entry.cwd = entry.cwd.as_deref().map(|c| portable::resolve_path(c, &app));
-    entry.url = entry.url.as_deref().map(|u| portable::resolve_tokens(u, &app));
-    entry.icon = entry.icon.as_deref().map(|i| portable::resolve_path(i, &app));
+    entry.cwd = entry
+        .cwd
+        .as_deref()
+        .map(|c| portable::resolve_path(c, &app));
+    entry.url = entry
+        .url
+        .as_deref()
+        .map(|u| portable::resolve_tokens(u, &app));
+    entry.icon = entry
+        .icon
+        .as_deref()
+        .map(|i| portable::resolve_path(i, &app));
 
     // `id` is used as a filename below (icons/<id>.<ext> and moonpool-icon-<id>.png).
     // A hand-edited apps.json could set id to something like `..\..\x`; refuse to
@@ -1419,7 +1428,9 @@ pub fn run() {
                 // quitting (Quit in the tray menu is the only real exit, so
                 // Moonpool stays resident). With it off, the close proceeds and
                 // the app exits normally.
-                tauri::WindowEvent::CloseRequested { api, .. } if close_to_tray => {
+                tauri::WindowEvent::CloseRequested { api, .. }
+                    if close_to_tray && window.label() == "main" =>
+                {
                     let _ = window.hide();
                     api.prevent_close();
                 }
@@ -1433,7 +1444,9 @@ pub fn run() {
                 // full-size frame). Also unminimize the hidden window so the next
                 // Show restores cleanly without a native minimize animation.
                 tauri::WindowEvent::Resized(_)
-                    if minimize_to_tray && window.is_minimized().unwrap_or(false) =>
+                    if minimize_to_tray
+                        && window.label() == "main"
+                        && window.is_minimized().unwrap_or(false) =>
                 {
                     let w = window.clone();
                     std::thread::spawn(move || {
@@ -1492,9 +1505,7 @@ pub fn run() {
                                     sz.width, sz.height
                                 ),
                             );
-                            if let Some(wv) =
-                                window.app_handle().get_webview_window("main")
-                            {
+                            if let Some(wv) = window.app_handle().get_webview_window("main") {
                                 winstate::save(&wv);
                             }
                         }

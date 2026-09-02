@@ -3,6 +3,7 @@ import "./app.css";
 import { initTheme } from "./lib/theme";
 import App from "./App.svelte";
 import SettingsWindow from "./SettingsWindow.svelte";
+import AboutWindow from "./AboutWindow.svelte";
 import Installer from "./Installer.svelte";
 import { setupState } from "./lib/api";
 
@@ -15,6 +16,11 @@ async function boot() {
   // The detached Settings window loads the same bundle at #settings.
   if (window.location.hash === "#settings") {
     return mount(SettingsWindow, { target });
+  }
+
+  // The detached About window loads the same bundle at #about.
+  if (window.location.hash === "#about") {
+    return mount(AboutWindow, { target });
   }
 
   // First-run install mode: the portable exe is running from outside its install
