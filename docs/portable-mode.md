@@ -134,15 +134,18 @@ to AppData).
 - [x] Mode detection: `moonpool.portable` beside exe -> portable. (`portable::is_portable`,
       cached; also short-circuits `install::needs_setup` so a portable exe boots the hub.)
 - [x] `moonpool_dir` returns `{MP_HOME}\moonpool-config` in portable mode.
-- [x] Point the window-state plugin at the portable data folder. The plugin only exposes
-      `with_filename` (not the dir), but it does `app_config_dir().join(filename)`, and
-      joining an **absolute** path replaces the base - so we hand it the absolute
-      `{MP_DATA}\.window-state.json`. Residual: the plugin still `create_dir_all`s the
-      (now empty) `%APPDATA%\com.moonpool.app` on each save (that dir is resolved via the
-      Windows known-folder API, so no filename/env trick moves it). No data lands there;
-      `portable::cleanup_empty_appdata` deletes it (only while empty) at startup, so it's
-      gone between runs and exists only transiently while running. Fully closing it means
-      dropping the plugin for a hand-rolled save/restore - not worth it for an empty dir.
+- [x] Window size/position now hand-rolled in `src-tauri/src/winstate.rs`, replacing
+      `tauri-plugin-window-state` (dropped entirely, both modes). The plugin only let us
+      override the state *filename*, not its dir, and always `create_dir_all`ed
+      `%APPDATA%\<id>` (resolved via the Windows known-folder API, unmovable). Our version
+      writes `window-state.json` into `moonpool_dir` - `%APPDATA%\Moonpool` installed,
+      `{MP_DATA}` portable - so it sits with apps.json, travels with a bundle, and leaves
+      no stray AppData dir. Restore runs in `setup`; save is the existing eager
+      Resized/Moved hook (same degenerate-geometry floor guard). A missing or **corrupt**
+      file falls back to the config default size/pos (1200x780, OS-centered). Off-screen
+      guard: position is only restored if the saved rect still overlaps a live monitor.
+      Note: installed users lose their old saved geometry once (old file was under
+      `com.moonpool.app`); harmless, just re-centers on the first launch after upgrade.
 - [x] Token + relative-path resolver applied to every path field read from `apps.json`
       (`launch_app` cwd/command, `open_url`, poller auto-open url, `app_icon` cwd/url/icon).
       Raw tokens are preserved on disk / in the editor; resolution happens at point of use.
