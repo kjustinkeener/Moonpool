@@ -1080,6 +1080,21 @@ struct ControlCommand {
 
 /// Handle a second-instance invocation. `argv[0]` is the exe path; the rest is
 /// the command, e.g. `moonpool.exe launch my-app`.
+/// Block until the process `pid` has exited (or a ~10s safety timeout). Used by the
+/// `--wait-pid` relaunch handshake so a freshly-spawned copy doesn't collide with the
+/// single-instance lock still held by the process that spawned it.
+fn wait_for_pid_exit(pid: u32) {
+    use sysinfo::{Pid, System};
+    let target = Pid::from_u32(pid);
+    let mut sys = System::new();
+    for _ in 0..200 {
+        if !sys.refresh_process(target) {
+            return; // process is gone
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
 fn dispatch_control(app: &AppHandle, argv: &[String]) {
     // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
     // are positional (action + app id) exactly as before.
@@ -1309,6 +1324,21 @@ pub fn run() {
         install::run_uninstall();
         return;
     }
+
+    // A relaunch we spawned (install / portable) passes `--wait-pid <pid>`: wait for
+    // that parent (the installer or previous instance) to fully exit BEFORE we build
+    // anything. Otherwise the single-instance plugin below routes us straight back
+    // into the still-alive parent - which, for a bare relaunch, just re-surfaces the
+    // parent's window (the installer) instead of letting this fresh copy boot the hub.
+    {
+        let args: Vec<String> = std::env::args().collect();
+        if let Some(i) = args.iter().position(|a| a == "--wait-pid") {
+            if let Some(pid) = args.get(i + 1).and_then(|s| s.parse::<u32>().ok()) {
+                wait_for_pid_exit(pid);
+            }
+        }
+    }
+
     // Remove a leftover `moonpool.old` from a prior self-update.
     update::cleanup_old();
 
@@ -1537,8 +1567,10 @@ pub fn run() {
             install::setup_state,
             install::perform_install,
             install::launch_installed_and_exit,
+            install::quit_app,
             portable::portable_state,
             portable::establish_portable,
+            portable::establish_portable_at,
             portable::export_portable,
             portable::reveal_path,
             update::update_check,

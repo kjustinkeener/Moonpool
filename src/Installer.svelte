@@ -2,8 +2,10 @@
   import {
     performInstall,
     launchInstalledAndExit,
-    establishPortable,
+    establishPortableAt,
+    quitApp,
   } from "./lib/api";
+  import { open } from "@tauri-apps/plugin-dialog";
   import wordmark from "./assets/moonpool-wordmark.png";
 
   let {
@@ -137,14 +139,28 @@
     }
   }
 
-  // Portable: keep the exe here, drop the flag file, relaunch in portable mode.
+  // Portable: let the user pick where the portable copy lives, then stamp it there
+  // (or in place if they pick this exe's own folder) and relaunch in portable mode.
   // The backend relaunches and exits this process, so we just show a brief beat.
   async function runPortable() {
     if (phase === "working" || phase === "portable") return;
-    phase = "portable";
     error = "";
+    let folder: string;
     try {
-      await establishPortable();
+      const picked = await open({
+        directory: true,
+        title: "Choose a folder for portable Moonpool",
+      });
+      if (typeof picked !== "string") return; // cancelled
+      folder = picked;
+    } catch (e) {
+      error = String(e);
+      phase = "error";
+      return;
+    }
+    phase = "portable";
+    try {
+      await establishPortableAt(folder);
     } catch (e) {
       error = String(e);
       phase = "error";
@@ -160,6 +176,7 @@
     style={cardStyle}
     data-tauri-drag-region
   >
+    <button class="close" onclick={quitApp} title="Close" aria-label="Close">✕</button>
     <div class="top">
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
       <div
@@ -209,9 +226,9 @@
         class="portable"
         onclick={runPortable}
         disabled={phase === "working"}
-        title="Keep moonpool here and run from this folder - move it anywhere (USB stick, zip). Data stays beside the exe."
+        title="Run moonpool from a folder you choose (USB stick, zip) - move it anywhere. Data stays beside the exe."
       >
-        or run portable from this folder
+        Install portable
       </button>
     {/if}
 
@@ -419,4 +436,31 @@
     white-space: nowrap;
   }
   .busy .art .orb { animation-duration: 1.1s; }
+
+  /* Close button: the installer window is frameless, so this is the only in-window
+     way out. Sits above the drag region (top-right) so the click isn't eaten by it. */
+  .close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .close:hover {
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    color: var(--text);
+  }
 </style>
