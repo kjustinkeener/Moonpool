@@ -14,6 +14,7 @@
     onControl,
     reportOutcome,
     openSettingsWindow,
+    openAboutWindow,
     updateCheck,
     updateApply,
     type UpdateInfo,
@@ -23,7 +24,6 @@
   import type { AppEntry, AppStatus } from "./lib/types";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
-  import About from "./lib/About.svelte";
   import AppEditor from "./lib/AppEditor.svelte";
   import Titlebar from "./lib/Titlebar.svelte";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -57,7 +57,6 @@
   }
 
   // Modals + AI quickstart.
-  let showAbout = $state(false);
   let showEditor = $state(false);
   let editingEntry = $state<AppEntry | null>(null);
   let cfgDir = $state("");
@@ -572,7 +571,7 @@
       onAdd={openAdd}
       onEditFile={handleEdit}
       onReload={handleReload}
-      onAbout={() => (showAbout = true)}
+      onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
       cliHidden={!cliVisible}
       onExpandCli={expandCli}
@@ -668,9 +667,6 @@
   </main>
   </div>
 
-  {#if showAbout}
-    <About onClose={() => (showAbout = false)} />
-  {/if}
   {#if showEditor}
     <AppEditor
       entry={editingEntry}
