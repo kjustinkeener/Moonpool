@@ -138,8 +138,11 @@ to AppData).
       `with_filename` (not the dir), but it does `app_config_dir().join(filename)`, and
       joining an **absolute** path replaces the base - so we hand it the absolute
       `{MP_DATA}\.window-state.json`. Residual: the plugin still `create_dir_all`s the
-      (now empty) `%APPDATA%\com.moonpool.app`; no data lands there, but the empty dir is
-      created. Acceptable for the "no data outside the folder" claim.
+      (now empty) `%APPDATA%\com.moonpool.app` on each save (that dir is resolved via the
+      Windows known-folder API, so no filename/env trick moves it). No data lands there;
+      `portable::cleanup_empty_appdata` deletes it (only while empty) at startup, so it's
+      gone between runs and exists only transiently while running. Fully closing it means
+      dropping the plugin for a hand-rolled save/restore - not worth it for an empty dir.
 - [x] Token + relative-path resolver applied to every path field read from `apps.json`
       (`launch_app` cwd/command, `open_url`, poller auto-open url, `app_icon` cwd/url/icon).
       Raw tokens are preserved on disk / in the editor; resolution happens at point of use.

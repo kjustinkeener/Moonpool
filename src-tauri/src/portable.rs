@@ -131,6 +131,20 @@ pub fn resolve_path(raw: &str, app: &AppHandle) -> String {
     s
 }
 
+/// Best-effort: in portable mode, remove the empty `%APPDATA%\<identifier>` directory
+/// the window-state plugin creates on save (it always `create_dir_all`s that dir even
+/// though our absolute filename redirects the actual state file into the bundle).
+/// `remove_dir` only succeeds on an empty dir, so this never touches real data. The
+/// plugin recreates it on its next save, so this just clears the between-runs leftover.
+pub fn cleanup_empty_appdata(app: &AppHandle) {
+    if !is_portable() {
+        return;
+    }
+    if let Ok(dir) = app.path().app_config_dir() {
+        let _ = std::fs::remove_dir(&dir);
+    }
+}
+
 /// Snapshot of portable state for the frontend (drives the amber warning UI).
 ///
 /// The "is this path portable?" classification itself lives in the frontend

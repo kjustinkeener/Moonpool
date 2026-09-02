@@ -1362,6 +1362,9 @@ pub fn run() {
             let manifest = load_manifest(&handle);
             *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
             seed_ai_readme(&handle);
+            // Portable: clear the empty %APPDATA% dir the window-state plugin leaves
+            // behind (best-effort; only removes it while empty).
+            portable::cleanup_empty_appdata(&handle);
             build_tray(&handle)?;
             // Belt-and-braces: strip the native title bar on the main window even if
             // the config value didn't take (the frontend draws its own title bar).
