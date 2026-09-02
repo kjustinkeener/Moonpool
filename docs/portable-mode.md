@@ -159,6 +159,27 @@ to AppData).
       installed case).
 - [ ] Updater note: in-place self-replace works from a writable volume; no-ops on
       read-only media. Acceptable; document it. (Not yet handled/tested.)
+- [ ] **WebView2 profile leak (found during portable smoke test).** WebView2 always
+      stores its browser profile (cache, cookies, GPU/shader caches) at
+      `%LOCALAPPDATA%\com.moonpool.app\EBWebView`, regardless of mode - so portable is
+      NOT yet fully self-contained. Fix: in portable mode set the WebView2 user-data dir
+      into the bundle, either via Tauri's `app.windows[].additionalBrowserArgs` /
+      webview data-dir config or the `WEBVIEW2_USER_DATA_FOLDER` env var before window
+      creation, pointing at `{MP_DATA}\webview`. Until then the "nothing outside the
+      folder" claim has this one asterisk. (The window-state file itself is clean - it
+      lives in `moonpool_dir`; verified.)
+
+## Verified (2026-09-02)
+
+Local smoke test (release `--no-bundle` exe run from a hand-made bundle):
+- Window geometry round-trips (resize/move -> quit -> relaunch restores) in installed
+  mode; a corrupt `window-state.json` falls back to the config default (1200x780,
+  centered) without crashing.
+- Portable run boots the hub directly (no install card), seeds `moonpool-config` beside
+  the exe (apps.json, state.json, AI-README.md), and does NOT write to `%APPDATA%\Moonpool`.
+- Only residual write outside the folder is the WebView2 profile above.
+- Not yet exercised: the installer's "Portable" button end-to-end, token/`./` path
+  resolution at launch from a real bundle, and the amber editor warning in portable mode.
 
 ## Website
 
