@@ -110,6 +110,12 @@ export const launchInstalledAndExit = (exe: string) =>
   invoke<void>("launch_installed_and_exit", { exe });
 // Portable install: drop the flag file beside the exe and relaunch in portable mode.
 export const establishPortable = () => invoke<void>("establish_portable");
+// From an installed Moonpool: stamp a self-contained portable copy into a folder.
+// clone=true copies current apps/icons/settings; false leaves it fresh. Returns exe path.
+export const exportPortable = (targetDir: string, clone: boolean) =>
+  invoke<string>("export_portable", { targetDir, clone });
+// Open a folder in the OS file manager.
+export const revealPath = (path: string) => invoke<void>("reveal_path", { path });
 
 export interface PortableState {
   portable: boolean;
