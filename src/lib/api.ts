@@ -59,6 +59,29 @@ export async function openSettingsWindow(): Promise<void> {
   w.once("tauri://error", (e) => console.error("settings window", e));
 }
 
+// Open (or focus) the detached About window. Frameless (no native title bar) so
+// the whole surface drags via data-tauri-drag-region; loads the app at #about.
+export async function openAboutWindow(): Promise<void> {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const existing = await WebviewWindow.getByLabel("about");
+  if (existing) {
+    await existing.show().catch(() => {});
+    await existing.setFocus().catch(() => {});
+    return;
+  }
+  const w = new WebviewWindow("about", {
+    url: "index.html#about",
+    title: "About Moonpool",
+    width: 380,
+    height: 520,
+    resizable: false,
+    center: true,
+    decorations: false,
+    transparent: true,
+  });
+  w.once("tauri://error", (e) => console.error("about window", e));
+}
+
 // --- Custom installer + updater -------------------------------------------
 
 export interface SetupState {
