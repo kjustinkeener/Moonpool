@@ -1,6 +1,6 @@
 [package]
 name = "moonpool"
-version = "0.1.9"
+version = "0.2.0"
 description = "A system-tray launcher hub for local apps and dev servers, with an embedded terminal per app."
 authors = ["Justin Keener"]
 license = "MIT"
