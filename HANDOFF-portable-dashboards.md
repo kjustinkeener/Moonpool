@@ -92,23 +92,37 @@ built at `dashboards/control-panel/` and REMOVED in 333d6c0. If ever revived: it
 to be an on-demand (not launch-time) loopback server that also serves the page
 same-origin, started via a `moonpool://control-panel` tile URL, auto-stopping on idle.
 
-## REMAINING (next session)
-1. **XLSX demo** - vendor SheetJS (xlsx, Apache-2.0) inline; `parseFile` via
-   `XLSX.read(arrayBuffer)` -> first sheet -> `sheet_to_json` -> `MP.toRecords`.
-   Mirror the csv demo; 4 differently-shaped baked sheets (embed as base64 or build
-   from JS). Binary file, so read as ArrayBuffer (raw code pane: show a sheet summary,
-   not bytes).
-2. **Markdown docs browser** - the flagship *teaching* dashboard: a self-contained
-   docs browser (vendor a small MD parser, e.g. marked, inline) that renders a folder
-   of `.md`; also hosts Moonpool's own help offline. Different pattern from the
-   explorer (no charts) - likely its own page, not `createExplorer`.
-3. **SQLite (sql.js)** - stretch, heavier (WASM); defer.
-4. **Rust embedding + seed split** (decisions 1-2 in the spec, still valid):
-   embed `examples/dashboards/**` with `include_dir`, write out on first run skipping
-   existing; add `apps.example.portable.json` (dashboards only) and branch on
-   `portable::is_portable()` in `load_manifest` (`src-tauri/src/lib.rs`); installed
-   seed = dashboards + existing teaching placeholders. Then the install/export paths
-   stamp the scaffold (see spec "Install/export paths").
-5. Author `dashboards/README` / attribution footer polish; confirm charts render
-   inside Moonpool's own webview (CSP + the Tauri drag-drop caveat: Load button is
-   primary there).
+## BUILT (2026-09-02 cont., commits 20d4aa3, e814ec2, 371efbf)
+1. **XLSX demo** - DONE (`20d4aa3`). `dashboards/xlsx/index.html` + vendored SheetJS
+   0.18.5 (`_lib/vendor/xlsx.min.js`, Apache-2.0, committed with `--no-verify`: the
+   minified lib is the only file carrying em-dashes). 4 baked sheets authored as CSV
+   in source and round-tripped through a real .xlsx worksheet so SheetJS parses every
+   baked tab. `parseFile` reads user files as ArrayBuffer -> first sheet ->
+   `sheet_to_json` -> `MP.toRecords`; code pane shows a sheet SUMMARY, not bytes.
+   NOTE: `explorer.js` `loadUserFile` was extended so `parseFile` may return
+   `{ rows, raw }` (needed because a binary file has no useful raw text); the plain
+   array return is unchanged.
+2. **Markdown docs browser** - DONE (`e814ec2`). `dashboards/docs/index.html` +
+   vendored marked 12.0.2 (MIT, no em-dashes). Own page (no charts): 3-col layout
+   (doc nav + rendered MD + on-this-page), sidebar search, sanitized render, an
+   "Open a .md file" bring-your-own button. Hosts Moonpool's own help (Welcome,
+   Configuring apps, Portable mode, Command-line control, the dashboard suite).
+4. **Rust embedding + seed split** - DONE (`371efbf`). New `src-tauri/src/dashboards.rs`
+   embeds `resources/examples/dashboards/**` via `include_dir` and writes it to
+   `{MP_HOME}/dashboards` on first run (skips existing). `lib.rs` `example_manifest()`
+   branches on `portable::is_portable()`: `apps.example.portable.json` (7 dashboards
+   only) vs `apps.example.json` (teaching dev-stack + same dashboards under an
+   "Example dashboards" group; stale `sales` entry removed). `log_line` now
+   `pub(crate)`. `cargo check` clean. Install/export paths need no extra stamping:
+   a fresh portable copy seeds itself on first boot.
+
+## STILL REMAINING (next session)
+3. **SQLite (sql.js)** - stretch, heavier (WASM); still deferred.
+5. **Polish + in-webview verify**: author a `dashboards/README` / attribution footer
+   pass; confirm the charts and the docs browser render inside Moonpool's OWN webview
+   (CSP for the vendored scripts + the Tauri drag-drop caveat: the Load button is
+   primary there, drag-drop is the enhancement). All demos verified in a plain
+   browser (file://); NOT yet verified inside the app's webview.
+- Also still open from before: the `...` menu "Create portable copy" modal + the
+  installer changes (see "NOT yet verified" above) - need the running hub + user
+  driving the folder picker.
