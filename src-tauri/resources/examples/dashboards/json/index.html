@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Explorer &#8211; Moonpool</title>
+<link rel="stylesheet" href="../_lib/theme.css">
+</head>
+<body>
+<div id="app"></div>
+
+<!-- vendored, offline, no CDN -->
+<script src="../_lib/vendor/echarts.min.js"></script>
+<script src="../_lib/echarts-theme.js"></script>
+<script src="../_lib/profile.js"></script>
+<script src="../_lib/records.js"></script>
+<script src="../_lib/explorer.js"></script>
+
+<!-- baked sample datasets: each a DIFFERENTLY shaped JSON (analyzer torture test) -->
+
+<!-- (c) map / object-of-objects: normalized into records keyed by channel -->
+<script type="text/plain" id="s-map">{
+  "Organic search": { "revenue": 412800, "orders": 5140, "conversion": 3.9, "refund_rate": 1.2 },
+  "Paid search":    { "revenue": 268400, "orders": 3020, "conversion": 2.7, "refund_rate": 1.8 },
+  "Email":          { "revenue": 154200, "orders": 2610, "conversion": 5.1, "refund_rate": 0.9 },
+  "Social":         { "revenue": 121900, "orders": 1880, "conversion": 2.1, "refund_rate": 2.4 },
+  "Affiliates":     { "revenue": 88600,  "orders": 1240, "conversion": 3.3, "refund_rate": 1.5 },
+  "Direct":         { "revenue": 203500, "orders": 2740, "conversion": 4.4, "refund_rate": 1.1 },
+  "Referral":       { "revenue": 61200,  "orders": 940,  "conversion": 3.7, "refund_rate": 1.3 }
+}</script>
+
+<!-- (a) flat array of objects -->
+<script type="text/plain" id="s-flat">[
+  { "month": "2025-01", "mrr": 184000, "new_customers": 142, "churned": 31, "expansion": 22000 },
+  { "month": "2025-02", "mrr": 197500, "new_customers": 158, "churned": 28, "expansion": 24800 },
+  { "month": "2025-03", "mrr": 213200, "new_customers": 171, "churned": 34, "expansion": 26100 },
+  { "month": "2025-04", "mrr": 226800, "new_customers": 165, "churned": 40, "expansion": 23900 },
+  { "month": "2025-05", "mrr": 244100, "new_customers": 189, "churned": 37, "expansion": 28700 },
+  { "month": "2025-06", "mrr": 263400, "new_customers": 204, "churned": 45, "expansion": 31200 },
+  { "month": "2025-07", "mrr": 281900, "new_customers": 198, "churned": 42, "expansion": 30400 },
+  { "month": "2025-08", "mrr": 304600, "new_customers": 221, "churned": 49, "expansion": 34600 },
+  { "month": "2025-09", "mrr": 329800, "new_customers": 236, "churned": 51, "expansion": 37100 },
+  { "month": "2025-10", "mrr": 351200, "new_customers": 244, "churned": 55, "expansion": 39800 },
+  { "month": "2025-11", "mrr": 378500, "new_customers": 269, "churned": 58, "expansion": 43200 },
+  { "month": "2025-12", "mrr": 409700, "new_customers": 291, "churned": 62, "expansion": 47500 }
+]</script>
+
+<!-- (b) object with a nested array under a key -->
+<script type="text/plain" id="s-nested">{
+  "report": "Q4 acquisition funnel",
+  "generated_at": "2026-01-05",
+  "stages": [
+    { "stage": "Visited site",     "users": 148200, "avg_seconds": 42 },
+    { "stage": "Viewed pricing",   "users": 61400,  "avg_seconds": 88 },
+    { "stage": "Started trial",    "users": 24800,  "avg_seconds": 210 },
+    { "stage": "Activated",        "users": 15600,  "avg_seconds": 640 },
+    { "stage": "Added payment",    "users": 8900,   "avg_seconds": 155 },
+    { "stage": "Converted",        "users": 6120,   "avg_seconds": 96 }
+  ]
+}</script>
+
+<!-- (d) array with one level of nested objects to flatten (dot-joined keys) -->
+<script type="text/plain" id="s-deep">[
+  { "cohort": "2025-06", "size": 1240, "retention": { "d1": 0.64, "d7": 0.42, "d30": 0.27 } },
+  { "cohort": "2025-07", "size": 1355, "retention": { "d1": 0.66, "d7": 0.44, "d30": 0.29 } },
+  { "cohort": "2025-08", "size": 1487, "retention": { "d1": 0.63, "d7": 0.41, "d30": 0.26 } },
+  { "cohort": "2025-09", "size": 1622, "retention": { "d1": 0.68, "d7": 0.47, "d30": 0.31 } },
+  { "cohort": "2025-10", "size": 1790, "retention": { "d1": 0.70, "d7": 0.49, "d30": 0.33 } },
+  { "cohort": "2025-11", "size": 2015, "retention": { "d1": 0.71, "d7": 0.51, "d30": 0.35 } },
+  { "cohort": "2025-12", "size": 2260, "retention": { "d1": 0.73, "d7": 0.53, "d30": 0.37 } }
+]</script>
+
+<script>
+  function parseJSON(text) { return MP.toRecords(JSON.parse(text)); }
+  function raw(id) { return document.getElementById(id).textContent.trim(); }
+  function baked(id) { return parseJSON(raw(id)); }
+
+  MP.createExplorer(document.getElementById("app"), {
+    id: "json",
+    formatName: "JSON",
+    title: "JSON Explorer",
+    subtitle: "Drop any JSON file (array of records, a nested object, or a map) and get an instant, auto-profiled dashboard. Nested objects are flattened automatically. One analyzer, any shape.",
+    accept: ".json,.txt",
+    parseFile: function (file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () {
+          try { resolve(MP.toRecords(JSON.parse(String(r.result)))); }
+          catch (e) { reject(e); }
+        };
+        r.onerror = function () { reject(r.error); };
+        r.readAsText(file);
+      });
+    },
+    tabs: [
+      { name: "Monthly MRR", rows: baked("s-flat"), raw: raw("s-flat"), file: "monthly-mrr.json",
+        mapping: { x: "month", y: ["mrr", "expansion"], group: "", chart: "line" } },
+      { name: "Revenue by channel", rows: baked("s-map"), raw: raw("s-map"), file: "revenue-by-channel.json",
+        mapping: { x: "key", y: ["revenue"], group: "", chart: "pie" } },
+      { name: "Acquisition funnel", rows: baked("s-nested"), raw: raw("s-nested"), file: "acquisition-funnel.json",
+        mapping: { x: "stage", y: ["users"], group: "", chart: "bar" } },
+      { name: "Cohort retention", rows: baked("s-deep"), raw: raw("s-deep"), file: "cohort-retention.json",
+        mapping: { x: "cohort", y: ["retention.d1", "retention.d7", "retention.d30"], group: "", chart: "line" } }
+    ]
+  });
+</script>
+</body>
+</html>
