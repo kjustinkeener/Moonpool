@@ -14,9 +14,6 @@ and working templates you can copy and point at your own data or docs.
 | ------- | ---------- | ------------- |
 | `csv/`  | Drop-your-data explorer | CSV / TSV |
 | `json/` | Drop-your-data explorer | JSON (arrays, nested objects, maps) |
-| `jsonl/`| Drop-your-data explorer | JSONL / NDJSON |
-| `yaml/` | Drop-your-data explorer | YAML |
-| `toml/` | Drop-your-data explorer | TOML |
 | `xlsx/` | Drop-your-data explorer | Excel `.xlsx` / `.xls` |
 | `docs/` | Offline Markdown docs browser (hosts Moonpool's own help) | Markdown |
 | `_lib/` | Shared design system, analyzer, and vendored libraries | (support code) |
@@ -69,8 +66,6 @@ All are vendored under `_lib/vendor/`, unmodified, and used under their own lice
 | ------- | ------- | ------- | ------- |
 | Apache ECharts | 5.6.0 | Apache-2.0 | all explorers (charts) |
 | PapaParse | 5.4.1 | MIT | `csv/` |
-| js-yaml | 4.1.0 | MIT | `yaml/` |
-| j-toml | 1.38.0 | MIT | `toml/` |
 | SheetJS (xlsx) | 0.18.5 | Apache-2.0 | `xlsx/` |
 | marked | 12.0.2 | MIT | `docs/` |
 
