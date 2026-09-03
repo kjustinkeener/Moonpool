@@ -150,11 +150,11 @@ pub fn run_uninstall() {
         // ("syntax is incorrect"), so the delete silently never ran. PowerShell takes
         // the path as a single-quoted literal and retries until the lock clears, and
         // -Recurse -Force clears the seeded dashboards tree too.
-        let dir_s = dir.display().to_string().replace('\'', "''"); // ' -> '' for PS
         // Stop any OTHER running Moonpool first (a hub left open holds moonpool.exe
         // locked, which is what made the delete fail and left the folder behind - and
         // a leftover folder is exactly what makes Windows' Program Compatibility
         // Assistant claim the uninstall failed). Then retry for ~30s.
+        let dir_s = dir.display().to_string().replace('\'', "''"); // ' -> '' for PS
         let script = format!(
             "Get-Process moonpool -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue;\
              Start-Sleep -Milliseconds 400;\

@@ -38,7 +38,10 @@ pub fn seed(app: &AppHandle) {
 /// Recursively write one embedded directory to `dest`, skipping existing files.
 fn write_dir(app: &AppHandle, dir: &Dir<'_>, dest: &Path, written: &mut usize) {
     if let Err(e) = std::fs::create_dir_all(dest) {
-        crate::log_line(app, &format!("dashboards: mkdir {} failed: {e}", dest.display()));
+        crate::log_line(
+            app,
+            &format!("dashboards: mkdir {} failed: {e}", dest.display()),
+        );
         return;
     }
     for file in dir.files() {
@@ -52,7 +55,10 @@ fn write_dir(app: &AppHandle, dir: &Dir<'_>, dest: &Path, written: &mut usize) {
         }
         match std::fs::write(&out, file.contents()) {
             Ok(_) => *written += 1,
-            Err(e) => crate::log_line(app, &format!("dashboards: write {} failed: {e}", out.display())),
+            Err(e) => crate::log_line(
+                app,
+                &format!("dashboards: write {} failed: {e}", out.display()),
+            ),
         }
     }
     for sub in dir.dirs() {
