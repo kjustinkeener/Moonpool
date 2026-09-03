@@ -25,7 +25,6 @@
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
   import AppEditor from "./lib/AppEditor.svelte";
-  import PortableExport from "./lib/PortableExport.svelte";
   import Titlebar from "./lib/Titlebar.svelte";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -59,7 +58,6 @@
 
   // Modals + AI quickstart.
   let showEditor = $state(false);
-  let showExport = $state(false);
   let editingEntry = $state<AppEntry | null>(null);
   let cfgDir = $state("");
   // Join filenames onto the OS-native config dir with the right separator
@@ -505,6 +503,14 @@
     iconSrc = {};
     loadAllIcons(true);
   }
+  // F5 or Ctrl/Cmd+R reloads the manifest from disk (same as the menu Reload),
+  // instead of the webview's default page refresh.
+  function handleGlobalKey(e: KeyboardEvent) {
+    if (e.key === "F5" || ((e.ctrlKey || e.metaKey) && (e.key === "r" || e.key === "R"))) {
+      e.preventDefault();
+      handleReload();
+    }
+  }
   async function handleEdit() {
     await openManifest();
   }
@@ -549,6 +555,8 @@
   });
 </script>
 
+<svelte:window onkeydown={handleGlobalKey} />
+
 <div class="app" class:resizing>
   <Titlebar />
   <div class="body">
@@ -575,7 +583,6 @@
       onReload={handleReload}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
-      onExportPortable={() => (showExport = true)}
       cliHidden={!cliVisible}
       onExpandCli={expandCli}
       updateWaiting={!!update && !updateDone}
@@ -670,9 +677,6 @@
   </main>
   </div>
 
-  {#if showExport}
-    <PortableExport onClose={() => (showExport = false)} />
-  {/if}
   {#if showEditor}
     <AppEditor
       entry={editingEntry}

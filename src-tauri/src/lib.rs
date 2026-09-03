@@ -27,6 +27,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
+mod dashboards;
 mod install;
 mod platform;
 mod portable;
@@ -173,8 +174,21 @@ const MAX_TICKETS: usize = 50;
 // Commands
 // ---------------------------------------------------------------------------
 
-/// Generic example manifest, seeded into the user's config dir on first run.
+/// Generic example manifest (installed mode): the example dashboards plus the
+/// teaching placeholder entries. Seeded into the config dir on first run.
 const EXAMPLE_MANIFEST: &str = include_str!("../resources/apps.example.json");
+/// Portable-mode example manifest: only the launch-immediately example dashboards,
+/// all referenced by `{MP_HOME}` so every tile works from a moved bundle.
+const EXAMPLE_MANIFEST_PORTABLE: &str = include_str!("../resources/apps.example.portable.json");
+
+/// The example manifest to seed for the current mode (portable = dashboards only).
+fn example_manifest() -> &'static str {
+    if portable::is_portable() {
+        EXAMPLE_MANIFEST_PORTABLE
+    } else {
+        EXAMPLE_MANIFEST
+    }
+}
 /// AI configuration guide, seeded next to the manifest so agents can read it.
 const AI_README: &str = include_str!("../../AI-README.md");
 
@@ -413,7 +427,7 @@ fn save_settings(app: &AppHandle, s: &Settings) -> Result<(), String> {
 }
 
 /// Append a line to moonpool.log when debug logging is enabled.
-fn log_line(app: &AppHandle, msg: &str) {
+pub(crate) fn log_line(app: &AppHandle, msg: &str) {
     let enabled = app
         .try_state::<HubState>()
         .map(|s| s.settings.lock().unwrap().debug_logging)
@@ -440,7 +454,7 @@ fn log_line(app: &AppHandle, msg: &str) {
 }
 
 fn parse_example() -> Vec<AppEntry> {
-    serde_json::from_str(EXAMPLE_MANIFEST).unwrap_or_default()
+    serde_json::from_str(example_manifest()).unwrap_or_default()
 }
 
 /// Read the manifest from disk, seeding the example on first run and falling back
@@ -453,7 +467,7 @@ fn load_manifest(app: &AppHandle) -> Vec<AppEntry> {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let _ = std::fs::write(&path, EXAMPLE_MANIFEST);
+        let _ = std::fs::write(&path, example_manifest());
         log_line(
             app,
             &format!("seeded example manifest at {}", path.display()),
@@ -519,7 +533,7 @@ fn open_manifest(app: AppHandle) -> Result<(), String> {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let _ = std::fs::write(&path, EXAMPLE_MANIFEST);
+        let _ = std::fs::write(&path, example_manifest());
     }
     // On Linux the manifest's application/json MIME often has no handler and
     // xdg-open lands in a browser; open the text editor explicitly there.
@@ -1080,6 +1094,21 @@ struct ControlCommand {
 
 /// Handle a second-instance invocation. `argv[0]` is the exe path; the rest is
 /// the command, e.g. `moonpool.exe launch my-app`.
+/// Block until the process `pid` has exited (or a ~10s safety timeout). Used by the
+/// `--wait-pid` relaunch handshake so a freshly-spawned copy doesn't collide with the
+/// single-instance lock still held by the process that spawned it.
+fn wait_for_pid_exit(pid: u32) {
+    use sysinfo::{Pid, System};
+    let target = Pid::from_u32(pid);
+    let mut sys = System::new();
+    for _ in 0..200 {
+        if !sys.refresh_process(target) {
+            return; // process is gone
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
 fn dispatch_control(app: &AppHandle, argv: &[String]) {
     // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
     // are positional (action + app id) exactly as before.
@@ -1309,6 +1338,21 @@ pub fn run() {
         install::run_uninstall();
         return;
     }
+
+    // A relaunch we spawned (install / portable) passes `--wait-pid <pid>`: wait for
+    // that parent (the installer or previous instance) to fully exit BEFORE we build
+    // anything. Otherwise the single-instance plugin below routes us straight back
+    // into the still-alive parent - which, for a bare relaunch, just re-surfaces the
+    // parent's window (the installer) instead of letting this fresh copy boot the hub.
+    {
+        let args: Vec<String> = std::env::args().collect();
+        if let Some(i) = args.iter().position(|a| a == "--wait-pid") {
+            if let Some(pid) = args.get(i + 1).and_then(|s| s.parse::<u32>().ok()) {
+                wait_for_pid_exit(pid);
+            }
+        }
+    }
+
     // Remove a leftover `moonpool.old` from a prior self-update.
     update::cleanup_old();
 
@@ -1370,6 +1414,9 @@ pub fn run() {
             let manifest = load_manifest(&handle);
             *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
             seed_ai_readme(&handle);
+            // Write the embedded example dashboards to {MP_HOME}/dashboards on first
+            // run (skips files that already exist, so user edits are preserved).
+            dashboards::seed(&handle);
             build_tray(&handle)?;
             // Belt-and-braces: strip the native title bar on the main window even if
             // the config value didn't take (the frontend draws its own title bar).
@@ -1537,8 +1584,10 @@ pub fn run() {
             install::setup_state,
             install::perform_install,
             install::launch_installed_and_exit,
+            install::quit_app,
             portable::portable_state,
             portable::establish_portable,
+            portable::establish_portable_at,
             portable::export_portable,
             portable::reveal_path,
             update::update_check,
