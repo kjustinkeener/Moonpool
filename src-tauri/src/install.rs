@@ -144,11 +144,18 @@ pub fn run_uninstall() {
     remove_uninstall_key();
 
     if let Some(dir) = install_dir() {
-        // Detached: wait for us to exit, then remove the whole dir.
-        let dir_s = dir.display().to_string();
-        let script = format!("ping 127.0.0.1 -n 3 >nul & rmdir /s /q \"{dir_s}\"",);
-        let mut c = Command::new("cmd");
-        c.args(["/c", &script]);
+        // Detached: wait for THIS exe to exit (so its dir isn't locked), then remove
+        // the whole install dir. Done in PowerShell, not `cmd /c "... & rmdir ..."`:
+        // `cmd /c` strips the outer quotes it's handed and unbalances the quoted path
+        // ("syntax is incorrect"), so the delete silently never ran. PowerShell takes
+        // the path as a single-quoted literal and retries until the lock clears, and
+        // -Recurse -Force clears the seeded dashboards tree too.
+        let dir_s = dir.display().to_string().replace('\'', "''"); // ' -> '' for PS
+        let script = format!(
+            "for($i=0;$i -lt 40;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 250}}}}"
+        );
+        let mut c = Command::new("powershell");
+        c.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
         platform::hidden(&mut c);
         let _ = c.spawn();
     }
