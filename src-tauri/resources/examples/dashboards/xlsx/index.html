@@ -90,7 +90,9 @@ G&A,Q2,-149000,Cost</script>
   // Author baked data as CSV, but round-trip it through a real .xlsx worksheet
   // so SheetJS parses every tab exactly as it would a dropped Excel file.
   function csvToSheet(csv) {
-    var wb = XLSX.read(csv, { type: "string" });          // CSV -> workbook
+    // cellDates so date-like cells ("2025-07") parse as real dates, not Excel
+    // serial numbers (which would break the date axis and look sparse).
+    var wb = XLSX.read(csv, { type: "string", cellDates: true });   // CSV -> workbook
     var ws = wb.Sheets[wb.SheetNames[0]];
     return { ws: ws, name: "Sheet1" };
   }
@@ -157,7 +159,7 @@ G&A,Q2,-149000,Cost</script>
       { name: "Revenue by region", rows: wide.rows, raw: wide.raw, file: "revenue-by-region.xlsx",
         mapping: { x: "Month", y: ["North America", "EMEA", "APAC", "LATAM"], group: "", chart: "line" } },
       { name: "Signups by channel", rows: long.rows, raw: long.raw, file: "signups-by-channel.xlsx",
-        mapping: { x: "Date", y: ["Signups"], group: "Channel", chart: "area" } },
+        mapping: { x: "Channel", y: ["Signups"], group: "", chart: "pie" } },
       { name: "Departments", rows: cat.rows, raw: cat.raw, file: "departments.xlsx",
         mapping: { x: "Department", y: ["Headcount"], group: "", chart: "bar" } },
       { name: "P&L by quarter", rows: fin.rows, raw: fin.raw, file: "pnl-by-quarter.xlsx",
