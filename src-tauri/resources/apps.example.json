@@ -36,6 +36,60 @@
     "note": "A small Python web app. Run a foreground command so its logs stream into the terminal; 'env' injects variables like PORT."
   },
   {
+    "id": "csv-explorer",
+    "name": "CSV Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/csv/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for CSV/TSV that auto-profiles any file and renders it. Runs offline, no server, no CDN."
+  },
+  {
+    "id": "json-explorer",
+    "name": "JSON Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/json/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for JSON (arrays, nested objects, or maps)."
+  },
+  {
+    "id": "jsonl-explorer",
+    "name": "JSONL Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/jsonl/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for JSONL / NDJSON (one JSON record per line)."
+  },
+  {
+    "id": "yaml-explorer",
+    "name": "YAML Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/yaml/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for YAML, parsed offline with a vendored js-yaml."
+  },
+  {
+    "id": "toml-explorer",
+    "name": "TOML Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/toml/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for TOML, parsed offline with a vendored j-toml."
+  },
+  {
+    "id": "xlsx-explorer",
+    "name": "Excel Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for Excel .xlsx / .xls, parsed offline with a vendored SheetJS."
+  },
+  {
     "id": "cli-script",
     "name": "CLI Script",
     "group": "CLI tools",
@@ -54,63 +108,9 @@
     "note": "A self-contained HTML dashboard. 'static' apps with only a 'url' just open it in the browser (no terminal)."
   },
   {
-    "id": "csv-explorer",
-    "name": "CSV Explorer",
-    "group": "Example dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/csv/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for CSV/TSV that auto-profiles any file and renders it. Runs offline, no server, no CDN."
-  },
-  {
-    "id": "json-explorer",
-    "name": "JSON Explorer",
-    "group": "Example dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/json/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for JSON (arrays, nested objects, or maps)."
-  },
-  {
-    "id": "jsonl-explorer",
-    "name": "JSONL Explorer",
-    "group": "Example dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/jsonl/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for JSONL / NDJSON (one JSON record per line)."
-  },
-  {
-    "id": "yaml-explorer",
-    "name": "YAML Explorer",
-    "group": "Example dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/yaml/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for YAML, parsed offline with a vendored js-yaml."
-  },
-  {
-    "id": "toml-explorer",
-    "name": "TOML Explorer",
-    "group": "Example dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/toml/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for TOML, parsed offline with a vendored j-toml."
-  },
-  {
-    "id": "xlsx-explorer",
-    "name": "Excel Explorer",
-    "group": "Example dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for Excel .xlsx / .xls, parsed offline with a vendored SheetJS."
-  },
-  {
     "id": "docs-browser",
     "name": "Moonpool Docs",
-    "group": "Example dashboards",
+    "group": "Docs",
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/docs/index.html",
     "openBrowser": true,
