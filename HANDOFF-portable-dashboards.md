@@ -220,9 +220,8 @@ Written up in `C:\claude-local\App-Patterns\Self-Installer\README.md` and global
   1. Installed mode: `...` -> "Install Moonpool…" shows "Already installed"
      DISABLED, with "Install portable" still enabled.
   2. Portable mode: same item, install button ENABLED.
-  3. **F5 / Ctrl-R** manifest reload (built in `07adf4e`, never eyeballed): edit
-     `apps.json` externally, press it, tiles re-read with NO webview page refresh.
-     THIS IS THE ONLY UNVERIFIED ITEM LEFT from all of the above work.
+  3. ~~**F5 / Ctrl-R** manifest reload~~ - DONE, verified in the running hub.
+     ALL GUI CHECKS FROM THIS WORK ARE NOW VERIFIED. Next up is a release.
   4. ~~Uninstall end to end~~ - DONE, verified on the real machine (see above).
 - ~~Merge to main~~ - DONE (`8407379`). Not pushed; push is owner-initiated.
 - Optional: reorder is settled; if the installed seed framing ("Bundled example"
