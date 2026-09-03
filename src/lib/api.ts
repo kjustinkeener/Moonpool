@@ -22,6 +22,7 @@ export interface Settings {
   minimizeToTray: boolean;
   checkOnStartup: boolean;
   transparency: number;
+  alwaysOnTop: boolean;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
 export const setDebugLogging = (enabled: boolean) =>
@@ -34,6 +35,15 @@ export const setCheckOnStartup = (enabled: boolean) =>
   invoke<void>("set_check_on_startup", { enabled });
 export const setTransparency = (value: number) =>
   invoke<void>("set_transparency", { value });
+export const setAlwaysOnTop = (enabled: boolean) =>
+  invoke<void>("set_always_on_top", { enabled });
+
+// Detached windows are created with the hub's current always-on-top state so
+// they open in the same z-band (the Rust setter keeps them in sync afterwards).
+const alwaysOnTopNow = () =>
+  getSettings()
+    .then((s) => !!s.alwaysOnTop)
+    .catch(() => false);
 export const openLog = () => invoke<void>("open_log");
 
 // Open (or focus, if already open) the detached Settings window. It's a real OS
@@ -55,6 +65,7 @@ export async function openSettingsWindow(): Promise<void> {
     resizable: true,
     center: true,
     transparent: true,
+    alwaysOnTop: await alwaysOnTopNow(),
   });
   w.once("tauri://error", (e) => console.error("settings window", e));
 }
@@ -78,6 +89,7 @@ export async function openAboutWindow(): Promise<void> {
     center: true,
     decorations: false,
     transparent: true,
+    alwaysOnTop: await alwaysOnTopNow(),
   });
   w.once("tauri://error", (e) => console.error("about window", e));
 }
@@ -103,6 +115,7 @@ export async function openInstallerWindow(): Promise<void> {
     center: true,
     decorations: false,
     transparent: true,
+    alwaysOnTop: await alwaysOnTopNow(),
   });
   w.once("tauri://error", (e) => console.error("installer window", e));
 }

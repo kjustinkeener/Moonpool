@@ -7,6 +7,7 @@
     setMinimizeToTray,
     setCheckOnStartup,
     setTransparency,
+    setAlwaysOnTop,
     openLog,
     manifestDir,
   } from "./api";
@@ -20,6 +21,7 @@
   let minimizeToTray = $state(true);
   let checkOnStartup = $state(true);
   let transparency = $state(0);
+  let alwaysOnTop = $state(false);
   let dir = $state("");
 
   let theme = $state<Theme>(getTheme());
@@ -56,6 +58,7 @@
       minimizeToTray = s.minimizeToTray;
       checkOnStartup = s.checkOnStartup;
       transparency = s.transparency ?? 0;
+      alwaysOnTop = !!s.alwaysOnTop;
       applyTransparency(transparency);
     } catch {
       /* defaults */
@@ -80,6 +83,10 @@
   async function toggleCheckOnStartup() {
     checkOnStartup = !checkOnStartup;
     await setCheckOnStartup(checkOnStartup).catch(() => {});
+  }
+  async function toggleAlwaysOnTop() {
+    alwaysOnTop = !alwaysOnTop;
+    await setAlwaysOnTop(alwaysOnTop).catch(() => {});
   }
 </script>
 
@@ -116,6 +123,14 @@
     <div class="sub">
       Minimizing hides Moonpool to the tray (leaves the taskbar). Off: minimizes to the taskbar.
     </div>
+  </div>
+</label>
+
+<label class="row">
+  <input type="checkbox" checked={alwaysOnTop} onchange={toggleAlwaysOnTop} />
+  <div class="text">
+    <div class="title">Always on top</div>
+    <div class="sub">Keep Moonpool and its Settings/About windows above other windows.</div>
   </div>
 </label>
 
