@@ -3,6 +3,7 @@
   import { flip } from "svelte/animate";
   import { scrollFade } from "./scrollfade";
   import { openInstallerWindow } from "./api";
+  import { t, formatList } from "./i18n.svelte";
 
   let {
     apps,
@@ -180,34 +181,40 @@
 <aside class="sidebar">
   <div class="search">
     <div class="menu-wrap">
-      <button class="menu-btn" title="Menu" onclick={() => (menuOpen = !menuOpen)}>⋯</button>
+      <button class="menu-btn" title={t("sidebar.menu")} onclick={() => (menuOpen = !menuOpen)}>⋯</button>
       {#if menuOpen}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="menu-backdrop" role="presentation" onclick={() => (menuOpen = false)}></div>
         <div class="menu">
-          <button onclick={() => pick(onAdd)}><span class="mi">＋</span>Add app</button>
-          <button onclick={() => pick(onEditFile)}><span class="mi">✎</span>Edit apps.json</button>
-          <button onclick={() => pick(onReload)}><span class="mi">↻</span>Reload</button>
-          <button onclick={() => pick(onSettings)}><span class="mi">⚙</span>Settings</button>
-          <button onclick={() => pick(onAbout)}><span class="mi">ⓘ</span>About</button>
+          <button onclick={() => pick(onAdd)}><span class="mi">＋</span>{t("sidebar.addApp")}</button>
+          <button onclick={() => pick(onEditFile)}><span class="mi">✎</span>{t("sidebar.editJson")}</button>
+          <button onclick={() => pick(onReload)}><span class="mi">↻</span>{t("common.reload")}</button>
+          <button onclick={() => pick(onSettings)}><span class="mi">⚙</span>{t("common.settings")}</button>
+          <button onclick={() => pick(onAbout)}><span class="mi">ⓘ</span>{t("common.about")}</button>
           <button onclick={() => pick(openInstallerWindow)}>
-            <span class="mi">🖥</span>Install Moonpool…
+            <span class="mi">🖥</span>{t("sidebar.installMoonpool")}
           </button>
           {#each clashes as c (c.port)}
-            <div class="menu-warn" title={c.names.join(" and ") + " are both on port " + c.port}>
-              ⚠ port {c.port}: {c.names.join(" / ")}
+            <!-- formatList, not a hard-coded " and ": the separator and the
+                 final conjunction differ per language. -->
+            <div class="menu-warn" title={t("sidebar.portConflict", { names: formatList(c.names), port: c.port })}>
+              ⚠ {t("sidebar.portConflictBadge", { port: c.port, names: c.names.join(" / ") })}
             </div>
           {/each}
         </div>
       {/if}
     </div>
-    <input placeholder="Filter apps..." aria-label="Filter apps" bind:value={filter} />
+    <input
+      placeholder={t("sidebar.filterPlaceholder")}
+      aria-label={t("sidebar.filterLabel")}
+      bind:value={filter}
+    />
     {#if cliHidden}
       <button
         class="cli-expand"
         class:attention={updateWaiting}
-        title={updateWaiting ? "Update available, open to install" : "Show CLI pane"}
-        aria-label={updateWaiting ? "Update available, show CLI pane" : "Show CLI pane"}
+        title={updateWaiting ? t("sidebar.updateOpenToInstall") : t("sidebar.showCli")}
+        aria-label={updateWaiting ? t("sidebar.updateShowCli") : t("sidebar.showCli")}
         onclick={() => onExpandCli?.()}
       >
         <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
@@ -243,7 +250,11 @@
             class="dot"
             class:on={isRunning(a)}
             class:starting={isStarting(a)}
-            title={isRunning(a) ? "running" : isStarting(a) ? "starting..." : "stopped"}
+            title={isRunning(a)
+              ? t("sidebar.statusRunning")
+              : isStarting(a)
+                ? t("sidebar.statusStarting")
+                : t("sidebar.statusStopped")}
           ></span>
           {#if iconSrc[a.id] && !iconFailed.has(a.id)}
             <img
@@ -274,21 +285,21 @@
               {#if a.port}<span class="port">:{a.port}</span>{/if}
             </button>
           {/if}
-          <button class="action edit" title="Edit" onclick={() => onEdit(a)}>&#9998;</button>
+          <button class="action edit" title={t("common.edit")} onclick={() => onEdit(a)}>&#9998;</button>
           {#if pending.has(a.id)}
-            <span class="action spinner" title="Working..."></span>
+            <span class="action spinner" title={t("sidebar.working")}></span>
           {:else if isActive(a)}
-            <button class="action restart" title="Restart" onclick={() => onRestart(a)}>&#8635;</button>
-            <button class="action stop" title="Stop" onclick={() => onStop(a)}>&#9632;</button>
+            <button class="action restart" title={t("sidebar.restart")} onclick={() => onRestart(a)}>&#8635;</button>
+            <button class="action stop" title={t("sidebar.stop")} onclick={() => onStop(a)}>&#9632;</button>
           {:else}
-            <button class="action go" title="Launch" onclick={() => onLaunch(a)}>&#9654;</button>
+            <button class="action go" title={t("sidebar.launch")} onclick={() => onLaunch(a)}>&#9654;</button>
           {/if}
         </div>
         {/each}
       {/if}
     {/each}
     {#if groups.length === 0}
-      <div class="empty">No apps match "{filter}".</div>
+      <div class="empty">{t("sidebar.noMatch", { filter })}</div>
     {/if}
   </div>
 
@@ -304,10 +315,10 @@
       }}
     ></div>
     <div class="ctx-menu" style="left: {ctx.x}px; top: {ctx.y}px;">
-      <button onclick={ctxEdit}>Edit</button>
-      <button onclick={ctxRename}>Rename</button>
-      <button onclick={ctxSetIcon}>Set icon...</button>
-      <button class="danger" onclick={ctxDelete}>Delete</button>
+      <button onclick={ctxEdit}>{t("common.edit")}</button>
+      <button onclick={ctxRename}>{t("common.rename")}</button>
+      <button onclick={ctxSetIcon}>{t("sidebar.setIcon")}</button>
+      <button class="danger" onclick={ctxDelete}>{t("common.delete")}</button>
     </div>
   {/if}
 </aside>

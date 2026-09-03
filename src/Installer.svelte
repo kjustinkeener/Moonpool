@@ -8,6 +8,7 @@
   import { open } from "@tauri-apps/plugin-dialog";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import wordmark from "./assets/moonpool-wordmark.png";
+  import { t } from "./lib/i18n.svelte";
 
   // On first run the installer IS the main window, so closing means quit the app.
   // Opened on demand from the hub it's a detached window - just close that window
@@ -167,7 +168,7 @@
     try {
       const picked = await open({
         directory: true,
-        title: "Choose a folder for portable Moonpool",
+        title: t("installer.pickFolder"),
       });
       if (typeof picked !== "string") return; // cancelled
       folder = picked;
@@ -194,14 +195,14 @@
     style={cardStyle}
     data-tauri-drag-region
   >
-    <button class="close" onclick={close} title="Close" aria-label="Close">✕</button>
+    <button class="close" onclick={close} title={t("common.close")} aria-label={t("common.close")}>✕</button>
     <div class="top">
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
       <div
         class="art"
         onclick={pokeOrb}
         oncontextmenu={resetOrb}
-        title="left-click to poke, right-click to reset"
+        title={t("installer.poke")}
       >
         <div class="orb" style={orbStyle}></div>
         <div class="ripple r1" style={ringStyle}></div>
@@ -213,33 +214,35 @@
       </div>
 
       <img class="word" src={wordmark} alt="moonpool" />
-      <p class="tag">A tray launcher for your local apps &amp; dev servers.</p>
+      <p class="tag">{t("installer.tagline")}</p>
     </div>
 
     {#if phase === "done"}
       <div class="state ok">
-        <span class="check">✓</span> Installed, starting moonpool…
+        <span class="check">✓</span>
+        {t("installer.installed")}
       </div>
     {:else if phase === "portable"}
       <div class="state ok">
-        <span class="check">✓</span> Portable mode, starting moonpool…
+        <span class="check">✓</span>
+        {t("installer.portableDone")}
       </div>
     {:else if phase === "error"}
-      <div class="state err">Install failed: {error}</div>
-      <button class="cta" onclick={install}>Try again</button>
+      <div class="state err">{t("installer.failed", { error })}</div>
+      <button class="cta" onclick={install}>{t("common.tryAgain")}</button>
     {:else}
       <button
         class="cta"
         style={ctaStyle}
         onclick={install}
         disabled={phase === "working" || installed}
-        title={installed ? "This copy is already installed on this PC." : ""}
+        title={installed ? t("installer.alreadyInstalledTitle") : ""}
       >
         {installed
-          ? "Already installed"
+          ? t("installer.alreadyInstalled")
           : phase === "working"
-            ? "Installing…"
-            : "Install moonpool"}
+            ? t("installer.installing")
+            : t("installer.install")}
       </button>
       <label class="opt">
         <input
@@ -248,21 +251,21 @@
           bind:checked={desktop}
           disabled={phase === "working" || installed}
         />
-        <span>Add a desktop shortcut</span>
+        <span>{t("installer.desktopShortcut")}</span>
       </label>
       <button
         class="portable"
         onclick={runPortable}
         disabled={phase === "working"}
-        title="Run moonpool from a folder you choose (USB stick, zip) - move it anywhere. Data stays beside the exe."
+        title={t("installer.portableHint")}
       >
-        Install portable
+        {t("installer.installPortable")}
       </button>
     {/if}
 
     <div class="foot">
       <div class="fver">v{version} · {buildDate}</div>
-      <div class="path" title={installDir}>Install path: {installDir}</div>
+      <div class="path" title={installDir}>{t("installer.installPath", { dir: installDir })}</div>
     </div>
   </div>
 </div>

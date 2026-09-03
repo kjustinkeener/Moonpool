@@ -23,6 +23,8 @@ export interface Settings {
   checkOnStartup: boolean;
   transparency: number;
   alwaysOnTop: boolean;
+  /** UI language: "auto" or a tag from LOCALES in i18n.svelte.ts. */
+  locale: string;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
 export const setDebugLogging = (enabled: boolean) =>

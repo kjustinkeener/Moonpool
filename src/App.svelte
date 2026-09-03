@@ -21,6 +21,7 @@
   } from "./lib/api";
   import { listen } from "@tauri-apps/api/event";
   import { setTheme, type Theme } from "./lib/theme";
+  import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
   import type { AppEntry, AppStatus } from "./lib/types";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
@@ -43,6 +44,7 @@
   // Live updates pushed from the detached Settings window.
   let unlistenTransparency: UnlistenFn | null = null;
   let unlistenTheme: UnlistenFn | null = null;
+  let unlistenLocale: UnlistenFn | null = null;
 
   // Resolved app icons (data URI or url), fetched from the backend.
   let iconSrc = $state<Record<string, string>>({});
@@ -76,14 +78,14 @@
   async function installUpdate() {
     if (!update || updating || updateDone) return;
     updating = true;
-    updateStatus = `Downloading ${update.version}…`;
+    updateStatus = t("app.downloading", { version: update.version });
     try {
       // On success the backend relaunches and exits, so this call never returns.
       await updateApply(update);
-      updateStatus = "Update installed. Restarting…";
+      updateStatus = t("app.updateInstalled");
       updateDone = true;
     } catch (e) {
-      updateStatus = `Update failed: ${e}`;
+      updateStatus = t("app.updateFailed", { error: String(e) });
       updating = false;
     }
   }
@@ -150,7 +152,7 @@
 
   // Right-click menu actions from the sidebar.
   async function handleDelete(app: AppEntry) {
-    if (!confirm(`Delete "${app.name}"?`)) return;
+    if (!confirm(t("app.confirmDelete", { name: app.name }))) return;
     const next = apps.filter((a) => a.id !== app.id);
     apps = next;
     await saveManifest(next);
@@ -164,10 +166,10 @@
   }
   async function handleSetIcon(app: AppEntry) {
     const picked = await open({
-      title: `Icon for ${app.name}`,
+      title: t("app.iconDialogTitle", { name: app.name }),
       multiple: false,
       directory: false,
-      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "svg", "webp", "ico"] }],
+      filters: [{ name: t("app.imagesFilter"), extensions: ["png", "jpg", "jpeg", "gif", "svg", "webp", "ico"] }],
     }).catch(() => null);
     if (typeof picked !== "string" || !picked) return;
     const next = apps.map((a) => (a.id === app.id ? { ...a, icon: picked } : a));
@@ -335,6 +337,7 @@
     unlistenTheme = await listen<Theme>("settings:theme", (e) =>
       setTheme(e.payload),
     );
+    unlistenLocale = await watchLocale();
 
     apps = await getApps();
     loadAllIcons(true);
@@ -425,6 +428,7 @@
     unlistenControl?.();
     unlistenTransparency?.();
     unlistenTheme?.();
+    unlistenLocale?.();
     window.removeEventListener("resize", revealCliIfRoom);
     // Clear any outstanding timers so they can't fire and set $state after unmount.
     for (const id of Object.keys(pendingTimers)) clearTimeout(pendingTimers[id]);
@@ -594,7 +598,7 @@
     class="resizer"
     role="separator"
     aria-orientation="vertical"
-    title="Drag to resize"
+    title={t("app.dragToResize")}
     onpointerdown={startResize}
   ></div>
   {/if}
@@ -610,13 +614,13 @@
             <span class="tab-dot" class:on={statuses[id]?.running}></span>
             {a?.name ?? id}
           </button>
-          <button class="tab-x" title="Close tab" onclick={() => closeTab(id)}>&times;</button>
+          <button class="tab-x" title={t("app.closeTab")} onclick={() => closeTab(id)}>&times;</button>
         </div>
       {/each}
       <button
         class="cli-collapse"
-        title="Hide CLI pane"
-        aria-label="Hide CLI pane"
+        title={t("app.hideCli")}
+        aria-label={t("app.hideCli")}
         onclick={collapseCli}>&times;</button
       >
     </div>
@@ -628,7 +632,7 @@
       {#if openTabs.length === 0}
         <div class="placeholder">
           <div class="ph-moon" aria-hidden="true"></div>
-          <p class="ph-title">Pick an app on the left to launch it.</p>
+          <p class="ph-title">{t("app.pickApp")}</p>
 
           {#if update}
             <div class="update-banner" class:done={updateDone}>
@@ -637,15 +641,15 @@
                 {#if updateStatus}
                   {updateStatus}
                 {:else}
-                  Moonpool {update.version} is available (you have {currentVersion}).
+                  {t("app.updateAvailable", { version: update.version, current: currentVersion })}
                 {/if}
               </span>
               {#if !updateDone}
                 <button class="ub-btn" disabled={updating} onclick={installUpdate}>
-                  {updating ? "Installing…" : "Download & install"}
+                  {updating ? t("app.installing") : t("app.downloadInstall")}
                 </button>
                 {#if !updating}
-                  <button class="ub-x" title="Dismiss" aria-label="Dismiss" onclick={() => (update = null)}>&times;</button>
+                  <button class="ub-x" title={t("common.dismiss")} aria-label={t("common.dismiss")} onclick={() => (update = null)}>&times;</button>
                 {/if}
               {/if}
             </div>
@@ -653,22 +657,27 @@
 
           <div class="quickstart">
             <div class="qs-head">
-              <span>New here? Hand this to an AI agent to set up your apps:</span>
+              <span>{t("app.newHere")}</span>
             </div>
             <div class="qs-box">
               <pre class="qs-prompt">{aiPrompt}</pre>
               <button
                 class="qs-copy"
-                title={promptCopied ? "Copied!" : "Copy prompt"}
-                aria-label="Copy prompt"
+                title={promptCopied ? t("common.copied") : t("app.copyPrompt")}
+                aria-label={t("app.copyPrompt")}
                 onclick={copyPrompt}
               >
                 {promptCopied ? "✓" : "⧉"}
               </button>
             </div>
+            <!-- One catalog string, three inline elements. tSplit keeps the
+                 clause order translatable instead of hard-coding English. -->
             <p class="qs-note">
-              Or use <strong>+ Add app</strong> above, or <strong>Edit file</strong> to edit
-              <code>apps.json</code> directly.
+              {#each tSplit("app.orUseHint") as c}{#if "text" in c}{c.text}{:else if c.slot === "add"}<strong
+                    >{t("sidebar.addApp")}</strong
+                  >{:else if c.slot === "edit"}<strong>{t("app.editFile")}</strong>{:else}<code
+                    >apps.json</code
+                  >{/if}{/each}
             </p>
           </div>
         </div>
