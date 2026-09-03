@@ -65,9 +65,20 @@
     border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; color: #b7c0d4;
   }
   .md pre {
+    position: relative;
     background: #0d1017; border: 1px solid var(--line); border-radius: var(--r-sm);
     padding: 14px 16px; overflow: auto; margin: 14px 0;
   }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    appearance: none; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 6px; letter-spacing: .02em;
+    background: var(--elev); color: var(--fg-muted); border: 1px solid var(--line);
+    opacity: 0; transition: opacity .12s, color .12s, border-color .12s;
+  }
+  .md pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
+  .copy-btn:hover { color: var(--fg); border-color: var(--fg-dim); }
+  .copy-btn.ok { color: var(--good); border-color: var(--good); opacity: 1; }
   .md pre code { background: none; border: none; padding: 0; font-size: 12.5px; line-height: 1.6; color: #b7c0d4; }
   .md blockquote {
     margin: 14px 0; padding: 4px 16px; border-left: 3px solid var(--accent);
@@ -421,6 +432,28 @@ offline docs site for any project.
         a.onclick = function (e) { e.preventDefault(); var t = document.getElementById(sid); if (t) t.scrollIntoView({ behavior: "smooth" }); };
         h.appendChild(a);
       }
+    });
+
+    // copy button on each code block
+    box.querySelectorAll("pre").forEach(function (pre) {
+      var btn = mk("button", "copy-btn", "Copy");
+      btn.type = "button";
+      btn.onclick = function () {
+        var code = (pre.querySelector("code") || pre).textContent;
+        var done = function () { btn.textContent = "Copied"; btn.classList.add("ok"); setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1400); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(done, fallback);
+        } else { fallback(); }
+        function fallback() {
+          try {
+            var ta = document.createElement("textarea");
+            ta.value = code; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+            done();
+          } catch (e) { btn.textContent = "Failed"; setTimeout(function () { btn.textContent = "Copy"; }, 1400); }
+        }
+      };
+      pre.appendChild(btn);
     });
 
     contentEl.innerHTML = "";
