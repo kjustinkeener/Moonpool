@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSONL Explorer &#8211; Moonpool</title>
+<link rel="stylesheet" href="../_lib/theme.css">
+</head>
+<body>
+<div id="app"></div>
+
+<!-- vendored, offline, no CDN -->
+<script src="../_lib/vendor/echarts.min.js"></script>
+<script src="../_lib/echarts-theme.js"></script>
+<script src="../_lib/profile.js"></script>
+<script src="../_lib/records.js"></script>
+<script src="../_lib/explorer.js"></script>
+
+<!-- baked sample datasets: NDJSON / JSONL, one JSON object per line -->
+
+<!-- (a) one flat object per line: ad spend by platform -->
+<script type="text/plain" id="s-spend">{"platform": "Google Ads", "spend": 82400, "clicks": 141200, "conversions": 3820}
+{"platform": "Meta", "spend": 61800, "clicks": 198400, "conversions": 2940}
+{"platform": "TikTok", "spend": 34200, "clicks": 128900, "conversions": 1610}
+{"platform": "LinkedIn", "spend": 47600, "clicks": 42100, "conversions": 1180}
+{"platform": "Reddit", "spend": 12900, "clicks": 51300, "conversions": 540}
+{"platform": "YouTube", "spend": 28700, "clicks": 96400, "conversions": 1290}
+{"platform": "Bing", "spend": 15400, "clicks": 33800, "conversions": 720}</script>
+
+<!-- (b) differently-shaped line records: an event stream with varying keys -->
+<script type="text/plain" id="s-events">{"ts": "2026-01-04T09:02", "event": "signup", "plan": "pro", "source": "organic"}
+{"ts": "2026-01-04T09:05", "event": "login"}
+{"ts": "2026-01-04T09:11", "event": "purchase", "amount": 49, "plan": "pro"}
+{"ts": "2026-01-04T09:18", "event": "login", "mfa": true}
+{"ts": "2026-01-04T09:26", "event": "signup", "plan": "free", "source": "paid"}
+{"ts": "2026-01-04T09:33", "event": "purchase", "amount": 129, "plan": "team"}
+{"ts": "2026-01-04T09:41", "event": "login"}
+{"ts": "2026-01-04T09:47", "event": "signup", "plan": "pro", "source": "referral"}
+{"ts": "2026-01-04T09:52", "event": "churn", "reason": "price"}
+{"ts": "2026-01-04T10:03", "event": "purchase", "amount": 49, "plan": "pro"}
+{"ts": "2026-01-04T10:09", "event": "login", "mfa": true}
+{"ts": "2026-01-04T10:15", "event": "signup", "plan": "free", "source": "organic"}
+{"ts": "2026-01-04T10:22", "event": "purchase", "amount": 299, "plan": "enterprise"}
+{"ts": "2026-01-04T10:28", "event": "churn", "reason": "missing_feature"}
+{"ts": "2026-01-04T10:35", "event": "login"}</script>
+
+<!-- (c) one nested object per line: flattened to dot-joined keys -->
+<script type="text/plain" id="s-deploys">{"service": "api-gateway", "env": "prod", "deploy": {"duration_s": 142, "status": "success", "rollbacks": 0}}
+{"service": "billing", "env": "prod", "deploy": {"duration_s": 208, "status": "success", "rollbacks": 0}}
+{"service": "search", "env": "prod", "deploy": {"duration_s": 96, "status": "failed", "rollbacks": 1}}
+{"service": "web", "env": "prod", "deploy": {"duration_s": 174, "status": "success", "rollbacks": 0}}
+{"service": "notifications", "env": "prod", "deploy": {"duration_s": 61, "status": "success", "rollbacks": 0}}
+{"service": "analytics", "env": "prod", "deploy": {"duration_s": 233, "status": "failed", "rollbacks": 2}}
+{"service": "auth", "env": "prod", "deploy": {"duration_s": 118, "status": "success", "rollbacks": 0}}
+{"service": "media", "env": "prod", "deploy": {"duration_s": 287, "status": "success", "rollbacks": 0}}</script>
+
+<!-- (d) flat time-series line records -->
+<script type="text/plain" id="s-dau">{"date": "2026-01-01", "dau": 24100, "sessions": 51200, "avg_minutes": 12.4}
+{"date": "2026-01-02", "dau": 25380, "sessions": 54100, "avg_minutes": 12.9}
+{"date": "2026-01-03", "dau": 23920, "sessions": 49800, "avg_minutes": 11.8}
+{"date": "2026-01-04", "dau": 26740, "sessions": 57300, "avg_minutes": 13.2}
+{"date": "2026-01-05", "dau": 28110, "sessions": 60400, "avg_minutes": 13.6}
+{"date": "2026-01-06", "dau": 29980, "sessions": 64900, "avg_minutes": 14.1}
+{"date": "2026-01-07", "dau": 31240, "sessions": 68200, "avg_minutes": 14.5}
+{"date": "2026-01-08", "dau": 30460, "sessions": 66100, "avg_minutes": 13.9}
+{"date": "2026-01-09", "dau": 32780, "sessions": 71500, "avg_minutes": 14.8}
+{"date": "2026-01-10", "dau": 34210, "sessions": 75300, "avg_minutes": 15.2}
+{"date": "2026-01-11", "dau": 33590, "sessions": 73800, "avg_minutes": 14.6}
+{"date": "2026-01-12", "dau": 35920, "sessions": 79100, "avg_minutes": 15.5}</script>
+
+<script>
+  function parseJSONL(text) {
+    var rows = [];
+    text.split(/\r?\n/).forEach(function (line) {
+      var s = line.trim();
+      if (!s) return;
+      rows.push(JSON.parse(s));
+    });
+    return MP.toRecords(rows);
+  }
+  function raw(id) { return document.getElementById(id).textContent.trim(); }
+  function baked(id) { return parseJSONL(raw(id)); }
+
+  MP.createExplorer(document.getElementById("app"), {
+    id: "jsonl",
+    formatName: "JSONL / NDJSON",
+    title: "JSONL Explorer",
+    subtitle: "Drop a newline-delimited JSON file (one record per line, shapes may vary line to line) and get an instant, auto-profiled dashboard. One analyzer, any shape.",
+    accept: ".jsonl,.ndjson,.json,.txt",
+    parseFile: function (file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () {
+          try { resolve(parseJSONL(String(r.result))); }
+          catch (e) { reject(e); }
+        };
+        r.onerror = function () { reject(r.error); };
+        r.readAsText(file);
+      });
+    },
+    tabs: [
+      { name: "Daily active users", rows: baked("s-dau"), raw: raw("s-dau"), file: "daily-active-users.jsonl",
+        mapping: { x: "date", y: ["dau", "sessions"], group: "", chart: "area" } },
+      { name: "Ad spend by platform", rows: baked("s-spend"), raw: raw("s-spend"), file: "ad-spend.jsonl",
+        mapping: { x: "platform", y: ["spend"], group: "", chart: "pie" } },
+      { name: "Event stream", rows: baked("s-events"), raw: raw("s-events"), file: "event-stream.jsonl",
+        mapping: { x: "event", y: [], group: "", chart: "bar" } },
+      { name: "Deploys", rows: baked("s-deploys"), raw: raw("s-deploys"), file: "deploys.jsonl",
+        mapping: { x: "service", y: ["deploy.duration_s"], group: "deploy.status", chart: "bar" } }
+    ]
+  });
+</script>
+</body>
+</html>

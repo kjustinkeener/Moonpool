@@ -58,12 +58,18 @@
     chartCard.appendChild(chartTitle); chartCard.appendChild(schemaEl); chartCard.appendChild(chartEl);
     wrap.appendChild(chartCard);
 
-    // data preview (the actual loaded file, under the graph)
+    // data preview (under the graph): parsed table (left) + raw source text (right)
+    var previewGrid = el("div", "preview-grid");
     var tableCard = el("div", "card table-card");
     var tableHead = el("div", "chart-title");
     var tableScroll = el("div", "table-scroll");
     tableCard.appendChild(tableHead); tableCard.appendChild(tableScroll);
-    wrap.appendChild(tableCard);
+    var codeCard = el("div", "card code-card");
+    var codeHead = el("div", "chart-title");
+    var codeScroll = el("div", "code-scroll");
+    codeCard.appendChild(codeHead); codeCard.appendChild(codeScroll);
+    previewGrid.appendChild(tableCard); previewGrid.appendChild(codeCard);
+    wrap.appendChild(previewGrid);
 
     var foot = el("div", "foot");
     foot.appendChild(el("span", null, "Moonpool example dashboard · runs offline, no server, no CDN"));
@@ -114,6 +120,21 @@
       renderMapStrip(profile, mapping);
       draw(t.rows, profile, mapping);
       renderTable(t, profile);
+      renderCode(t);
+    }
+
+    function renderCode(t) {
+      codeHead.textContent = "Raw " + (config.formatName || "source") + (t.file || t.source ? " · " + (t.source || t.file) : "");
+      if (t.raw == null) {
+        codeScroll.innerHTML = "<div class='code-empty'>Raw text not available for this dataset.</div>";
+        return;
+      }
+      var text = String(t.raw), CAPB = 20000;
+      var shown = text.length > CAPB ? text.slice(0, CAPB) : text;
+      var pre = el("pre", "code-pre");
+      pre.textContent = shown + (text.length > CAPB ? "\n… (" + (text.length - CAPB).toLocaleString() + " more chars)" : "");
+      codeScroll.innerHTML = "";
+      codeScroll.appendChild(pre);
     }
 
     var CAP = 200;
@@ -357,11 +378,16 @@
     // Load the user's file into the dedicated "Your data" tab (samples preserved).
     function loadUserFile(file) {
       chartTitle.textContent = "Parsing " + file.name + "…";
-      Promise.resolve(config.parseFile(file)).then(function (rows) {
+      // read raw text in parallel for the code pane (best-effort; skip if unreadable)
+      var rawP = (file.text ? file.text() : new Promise(function (res) {
+        var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = function () { res(null); }; fr.readAsText(file);
+      })).catch(function () { return null; });
+      Promise.all([Promise.resolve(config.parseFile(file)), rawP]).then(function (out) {
+        var rows = out[0], rawText = out[1];
         if (!rows || !rows.length) throw new Error("no rows parsed");
         var name = "Your data";
         var existing = tabs.findIndex(function (t) { return t.name === name; });
-        var tab = { name: name, rows: rows, source: file.name };
+        var tab = { name: name, rows: rows, source: file.name, raw: rawText };
         if (existing >= 0) tabs[existing] = tab; else tabs.push(tab);
         try { localStorage.removeItem("mp:" + config.id + ":" + name); } catch (e) {}  // fresh auto-profile
         selectTab(tabs.findIndex(function (t) { return t.name === name; }));
