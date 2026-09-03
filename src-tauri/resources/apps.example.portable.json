@@ -1,5 +1,28 @@
 [
   {
+    "id": "example-desktop-app",
+    "name": "Example Desktop App",
+    "group": "Desktop apps",
+    "type": "desktop",
+    "cwd": "./apps/example-desktop-app",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
+    "processName": "example-desktop-app",
+    "openBrowser": false,
+    "note": "Placeholder that goes nowhere until you point it at a real app. 'desktop' apps show running when a process named 'processName' (its .exe, without extension) is found. Edit or delete this entry."
+  },
+  {
+    "id": "example-web-app",
+    "name": "Example Web App",
+    "group": "Web apps",
+    "type": "web",
+    "cwd": "./apps/example-web-app",
+    "command": "npm run dev",
+    "port": 5173,
+    "url": "http://localhost:5173",
+    "openBrowser": true,
+    "note": "Placeholder that goes nowhere until you point it at a real app. 'web' apps show running when their port answers, and the browser opens when it goes live. A ./ path stays inside the bundle so it travels. Edit or delete this entry."
+  },
+  {
     "id": "csv-explorer",
     "name": "CSV Explorer",
     "group": "Dashboards",
@@ -54,38 +77,6 @@
     "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
   },
   {
-    "id": "docs-browser",
-    "name": "Moonpool Docs",
-    "group": "Docs",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
-    "openBrowser": true,
-    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
-  },
-  {
-    "id": "example-desktop-app",
-    "name": "Example Desktop App",
-    "group": "Desktop apps",
-    "type": "desktop",
-    "cwd": "./apps/example-desktop-app",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
-    "processName": "example-desktop-app",
-    "openBrowser": false,
-    "note": "Placeholder that goes nowhere until you point it at a real app. 'desktop' apps show running when a process named 'processName' (its .exe, without extension) is found. Edit or delete this entry."
-  },
-  {
-    "id": "example-web-app",
-    "name": "Example Web App",
-    "group": "Web apps",
-    "type": "web",
-    "cwd": "./apps/example-web-app",
-    "command": "npm run dev",
-    "port": 5173,
-    "url": "http://localhost:5173",
-    "openBrowser": true,
-    "note": "Placeholder that goes nowhere until you point it at a real app. 'web' apps show running when their port answers, and the browser opens when it goes live. A ./ path stays inside the bundle so it travels. Edit or delete this entry."
-  },
-  {
     "id": "example-cli-tool",
     "name": "Example CLI Tool",
     "group": "CLI tools",
@@ -93,5 +84,14 @@
     "cwd": "./apps/example-cli-tool",
     "command": "pwsh -NoLogo -NoProfile -NoExit",
     "note": "Placeholder that goes nowhere until you point it at a real script. 'cli' apps open an interactive shell in 'cwd'; add '-Command <tokens>' to run something first. Edit or delete this entry."
+  },
+  {
+    "id": "docs-browser",
+    "name": "Moonpool Docs",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
+    "openBrowser": true,
+    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
   }
 ]
