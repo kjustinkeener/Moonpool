@@ -6,13 +6,31 @@
     quitApp,
   } from "./lib/api";
   import { open } from "@tauri-apps/plugin-dialog";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import wordmark from "./assets/moonpool-wordmark.png";
+
+  // On first run the installer IS the main window, so closing means quit the app.
+  // Opened on demand from the hub it's a detached window - just close that window
+  // and leave the running hub alone.
+  const detached = window.location.hash === "#installer";
+  function close() {
+    if (detached) getCurrentWindow().close().catch(() => {});
+    else quitApp();
+  }
 
   let {
     installDir,
     version,
     buildDate,
-  }: { installDir: string; version: string; buildDate: string } = $props();
+    installed = false,
+  }: {
+    installDir: string;
+    version: string;
+    buildDate: string;
+    // True when this copy is already installed (opened from the hub menu). The
+    // "Install moonpool" action is then disabled; "Install portable" stays live.
+    installed?: boolean;
+  } = $props();
 
   import { onMount } from "svelte";
 
@@ -125,7 +143,7 @@
   }
 
   async function install() {
-    if (phase === "working") return;
+    if (phase === "working" || installed) return;
     phase = "working";
     error = "";
     try {
@@ -176,7 +194,7 @@
     style={cardStyle}
     data-tauri-drag-region
   >
-    <button class="close" onclick={quitApp} title="Close" aria-label="Close">✕</button>
+    <button class="close" onclick={close} title="Close" aria-label="Close">✕</button>
     <div class="top">
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
       <div
@@ -214,12 +232,22 @@
         class="cta"
         style={ctaStyle}
         onclick={install}
-        disabled={phase === "working"}
+        disabled={phase === "working" || installed}
+        title={installed ? "This copy is already installed on this PC." : ""}
       >
-        {phase === "working" ? "Installing…" : "Install moonpool"}
+        {installed
+          ? "Already installed"
+          : phase === "working"
+            ? "Installing…"
+            : "Install moonpool"}
       </button>
       <label class="opt">
-        <input type="checkbox" style={boxStyle} bind:checked={desktop} disabled={phase === "working"} />
+        <input
+          type="checkbox"
+          style={boxStyle}
+          bind:checked={desktop}
+          disabled={phase === "working" || installed}
+        />
         <span>Add a desktop shortcut</span>
       </label>
       <button
