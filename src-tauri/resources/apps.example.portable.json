@@ -1,14 +1,5 @@
 [
   {
-    "id": "docs-browser",
-    "name": "Moonpool Docs",
-    "group": "Docs",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
-    "openBrowser": true,
-    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
-  },
-  {
     "id": "csv-explorer",
     "name": "CSV Explorer",
     "group": "Dashboards",
@@ -61,5 +52,14 @@
     "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
     "openBrowser": true,
     "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
+  },
+  {
+    "id": "docs-browser",
+    "name": "Moonpool Docs",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
+    "openBrowser": true,
+    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
   }
 ]
