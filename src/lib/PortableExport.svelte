@@ -69,10 +69,10 @@
 </script>
 
 <Modal {onClose} width="460px">
-  <h2>Create portable copy</h2>
+  <h2>Install portable</h2>
   <p class="sub">
     Stamp a self-contained Moonpool into a folder you can zip, copy to a USB
-    stick, or run on another machine. Your current install stays as-is.
+    stick, or run on another machine. This Moonpool stays as-is.
   </p>
 
   <div class="opts">
