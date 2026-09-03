@@ -150,6 +150,33 @@ One demo per source (parser license in parens - all inline-vendored):
 
 Each is genuinely usable on real files, so the bundle sells both polish and utility.
 
+### Data binding: handle any shape (no hardcoded schema)
+
+A dropped file can be any shape, so each demo is a small self-serve explorer, not a
+fixed view:
+1. **Auto-profile on load** - infer each column/field's type (date / number /
+   category) + cardinality, then pick sensible defaults ("Show Me" heuristic): a
+   date/ordinal -> x-axis, numeric fields -> series, low-cardinality text -> group.
+   Renders a reasonable chart on ANY file with zero input.
+2. **Field-mapping strip** - dropdowns for X / Y(measures) / group-by / chart-type,
+   pre-filled from the profile so the user can re-shape it. Remember in localStorage.
+The baked sample ships pre-mapped so it looks perfect on open; arbitrary files get
+auto-profiled defaults + the strip. This is the more impressive/useful artifact than
+a fixed-shape view.
+
+### Multi-tab torture test (per format)
+
+Each format's demo has **multiple tabs, each loading a differently-shaped baked
+sample** of that format (e.g. Excel: wide sales-by-region, long time-series,
+categorical survey, mixed financials). All rendered by the SAME auto-profiler +
+mapping - so the demo doubles as a live proof that one analyzer handles any shape,
+and as a built-in torture-test corpus for the analyzer.
+
+Drag-drop caveat: if a dashboard is hosted inside Moonpool's own webview, Tauri's
+drag-drop handler can swallow file drops - make the file-input button primary and
+drag-drop the enhancement (disable Tauri dragDrop capture for that view). Non-issue
+in the external browser.
+
 ## Two seed variants (branch on portable flag at first run)
 
 Today: single `EXAMPLE_MANIFEST = include_str!("../resources/apps.example.json")`,
