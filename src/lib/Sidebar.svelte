@@ -226,18 +226,17 @@
             <button onclick={doInstall} disabled={installing}>
               <span class="mi">🖥</span>{installing ? "Installing…" : "Install Moonpool"}
             </button>
-          {:else}
-            <button onclick={() => pick(onExportPortable)}>
-              <span class="mi">
-                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"
-                  fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
-                  <path d="M2.6 2.6h7.6l3.2 3.2v7.6a.6.6 0 0 1-.6.6H2.6a.6.6 0 0 1-.6-.6V3.2a.6.6 0 0 1 .6-.6z" />
-                  <path d="M4.7 2.6v3.6h5.2V2.6" />
-                  <rect x="4.7" y="8.8" width="6.6" height="4.6" rx=".4" />
-                </svg>
-              </span>Create portable copy…
-            </button>
           {/if}
+          <button onclick={() => pick(onExportPortable)}>
+            <span class="mi">
+              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"
+                fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
+                <path d="M2.6 2.6h7.6l3.2 3.2v7.6a.6.6 0 0 1-.6.6H2.6a.6.6 0 0 1-.6-.6V3.2a.6.6 0 0 1 .6-.6z" />
+                <path d="M4.7 2.6v3.6h5.2V2.6" />
+                <rect x="4.7" y="8.8" width="6.6" height="4.6" rx=".4" />
+              </svg>
+            </span>Install portable…
+          </button>
           {#each clashes as c (c.port)}
             <div class="menu-warn" title={c.names.join(" and ") + " are both on port " + c.port}>
               ⚠ port {c.port}: {c.names.join(" / ")}
