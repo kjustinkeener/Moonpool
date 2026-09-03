@@ -32,12 +32,14 @@
     "port": 8000,
     "url": "http://127.0.0.1:8000",
     "openBrowser": true,
-    "env": { "PORT": "8000" },
+    "env": {
+      "PORT": "8000"
+    },
     "note": "A small Python web app. Run a foreground command so its logs stream into the terminal; 'env' injects variables like PORT."
   },
   {
     "id": "csv-explorer",
-    "name": "CSV Explorer",
+    "name": "Sample CSV Explorer",
     "group": "Dashboards",
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/csv/index.html",
@@ -46,7 +48,7 @@
   },
   {
     "id": "json-explorer",
-    "name": "JSON Explorer",
+    "name": "Sample JSON Explorer",
     "group": "Dashboards",
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/json/index.html",
@@ -54,35 +56,8 @@
     "note": "Bundled example: a drop-your-data dashboard for JSON (arrays, nested objects, or maps)."
   },
   {
-    "id": "jsonl-explorer",
-    "name": "JSONL Explorer",
-    "group": "Dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/jsonl/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for JSONL / NDJSON (one JSON record per line)."
-  },
-  {
-    "id": "yaml-explorer",
-    "name": "YAML Explorer",
-    "group": "Dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/yaml/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for YAML, parsed offline with a vendored js-yaml."
-  },
-  {
-    "id": "toml-explorer",
-    "name": "TOML Explorer",
-    "group": "Dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/toml/index.html",
-    "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for TOML, parsed offline with a vendored j-toml."
-  },
-  {
     "id": "xlsx-explorer",
-    "name": "Excel Explorer",
+    "name": "Sample Excel Explorer",
     "group": "Dashboards",
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
