@@ -1,9 +1,8 @@
 <script lang="ts">
   import type { AppEntry, AppStatus, AppType } from "./types";
   import { flip } from "svelte/animate";
-  import { onMount } from "svelte";
   import { scrollFade } from "./scrollfade";
-  import { portableState, performInstall, launchInstalledAndExit } from "./api";
+  import { openInstallerWindow } from "./api";
 
   let {
     apps,
@@ -27,7 +26,6 @@
     onReload,
     onAbout,
     onSettings,
-    onExportPortable,
     cliHidden = false,
     onExpandCli,
     updateWaiting = false,
@@ -54,7 +52,6 @@
     onReload: () => void;
     onAbout: () => void;
     onSettings: () => void;
-    onExportPortable: () => void;
     cliHidden?: boolean;
     onExpandCli?: () => void;
     updateWaiting?: boolean;
@@ -62,35 +59,6 @@
   } = $props();
 
   let menuOpen = $state(false);
-
-  // "Install on this machine" is offered only when running portable: it copies this
-  // exe into %LOCALAPPDATA%\Moonpool (shortcuts + uninstall entry) and relaunches the
-  // installed copy. The portable folder is left untouched.
-  let portable = $state(false);
-  let installing = $state(false);
-  onMount(() => {
-    portableState()
-      .then((s) => (portable = s.portable))
-      .catch(() => {});
-  });
-  async function doInstall() {
-    menuOpen = false;
-    if (installing) return;
-    if (
-      !confirm(
-        "Install Moonpool into this PC's AppData and add Start-menu/desktop shortcuts?\n\nYour portable folder stays as-is; the installed copy runs independently.",
-      )
-    )
-      return;
-    installing = true;
-    try {
-      const exe = await performInstall(true);
-      await launchInstalledAndExit(exe);
-    } catch (e) {
-      installing = false;
-      alert("Install failed: " + e);
-    }
-  }
 
   function pick(fn: () => void) {
     menuOpen = false;
@@ -222,20 +190,8 @@
           <button onclick={() => pick(onReload)}><span class="mi">↻</span>Reload</button>
           <button onclick={() => pick(onSettings)}><span class="mi">⚙</span>Settings</button>
           <button onclick={() => pick(onAbout)}><span class="mi">ⓘ</span>About</button>
-          {#if portable}
-            <button onclick={doInstall} disabled={installing}>
-              <span class="mi">🖥</span>{installing ? "Installing…" : "Install Moonpool"}
-            </button>
-          {/if}
-          <button onclick={() => pick(onExportPortable)}>
-            <span class="mi">
-              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"
-                fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
-                <path d="M2.6 2.6h7.6l3.2 3.2v7.6a.6.6 0 0 1-.6.6H2.6a.6.6 0 0 1-.6-.6V3.2a.6.6 0 0 1 .6-.6z" />
-                <path d="M4.7 2.6v3.6h5.2V2.6" />
-                <rect x="4.7" y="8.8" width="6.6" height="4.6" rx=".4" />
-              </svg>
-            </span>Install portable…
+          <button onclick={() => pick(openInstallerWindow)}>
+            <span class="mi">🖥</span>Install Moonpool…
           </button>
           {#each clashes as c (c.port)}
             <div class="menu-warn" title={c.names.join(" and ") + " are both on port " + c.port}>
