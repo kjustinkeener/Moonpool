@@ -116,13 +116,47 @@ same-origin, started via a `moonpool://control-panel` tile URL, auto-stopping on
    `pub(crate)`. `cargo check` clean. Install/export paths need no extra stamping:
    a fresh portable copy seeds itself on first boot.
 
+## LATER FIXES + POLISH (2026-09-02 cont., commits 3315543..HEAD)
+- XLSX date coercion fix + signups tab -> pie (`3315543`): SheetJS parsed
+  "2025-07" as an Excel serial; baked CSV now read with `cellDates:true` (parseFile
+  already did). Signups-by-channel default is a pie.
+- Docs `./`-relative example added to the Portable mode page; docs code blocks got
+  icon-only copy buttons (clipboard SVG -> green check).
+- `dashboards/README.md` added (overview + vendored-lib license table; ECharts is
+  actually **5.6.0**, not 5.5.1).
+- Seed group order UNIFIED across both manifests: **Desktop apps, Web apps,
+  Dashboards, CLI tools, Docs**. Installed dashboards group renamed to "Dashboards";
+  docs browser folded into the Docs group. Portable seed now also carries placeholder
+  tiles for Desktop apps / Web apps / CLI tools (portable-clean `./apps/...` paths,
+  notes say "goes nowhere, edit or delete") so all four teaching categories show.
+
+## CLARIFICATION: dashboards open in the EXTERNAL browser, not the app webview
+All dashboard entries are `type: static` + `openBrowser: true`, so Moonpool hands
+the `url` to the OS default browser. There is NO in-app webview rendering, so the
+earlier "verify under CSP / Tauri drag-drop" worry is MOOT. file:// browser
+verification IS the real target, and is done.
+
 ## STILL REMAINING (next session)
-3. **SQLite (sql.js)** - stretch, heavier (WASM); still deferred.
-5. **Polish + in-webview verify**: author a `dashboards/README` / attribution footer
-   pass; confirm the charts and the docs browser render inside Moonpool's OWN webview
-   (CSP for the vendored scripts + the Tauri drag-drop caveat: the Load button is
-   primary there, drag-drop is the enhancement). All demos verified in a plain
-   browser (file://); NOT yet verified inside the app's webview.
+3. **SQLite (sql.js)** - DECLINED by user. Do not build.
+- **End-to-end the seed/embed path with a REAL new build**: the Rust embedding +
+  manifest-split is only `cargo check`-verified, never run. Build a release exe
+  (`cd /c/claude-local/MoonPool && npm run tauri build -- --no-bundle`, Git Bash,
+  ~4m) and boot an EMPTY portable bundle (exe + `moonpool.portable` flag only) to
+  confirm first launch writes `dashboards/**` AND seeds the dashboards+placeholder
+  portable manifest. Mock bundle for the non-empty case already exists (see below).
+- **Eyeball the "Create portable copy" modal + installer** in the running hub
+  (`PortableExport.svelte`, `portable.rs`, `Installer.svelte`) - outstanding from
+  the ORIGINAL task, needs the user driving the folder picker.
+- Optional: reorder is settled; if the installed seed framing ("Bundled example"
+  notes) should change, that's cosmetic.
+
+## TEST MOCK (scratchpad, not in git)
+`…/scratchpad/MyMoonpool/` = a mock portable bundle: `moonpool.exe` (the 16:45
+worktree build, PRE-embed-code), `moonpool.portable` flag, `moonpool-config/apps.json`
+(a copy of the portable seed - re-copy after editing the seed), and full
+`dashboards/**`. Because dashboards already exist there, booting it tests tile
+resolution + rendering only (seeding is skipped). Single-instance caveat: QUIT any
+running installed Moonpool first or the launch routes into it.
 - Also still open from before: the `...` menu "Create portable copy" modal + the
   installer changes (see "NOT yet verified" above) - need the running hub + user
   driving the folder picker.
