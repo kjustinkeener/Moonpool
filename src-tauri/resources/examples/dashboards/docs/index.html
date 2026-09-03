@@ -259,8 +259,14 @@ relative path rather than an absolute one:
 ```
 
 `{MP_HOME}` expands to the bundle folder wherever it currently lives, and a `./`
-relative path anchors to the same place. The app editor flags absolute, `%VAR%`, and
-UNC paths so you can spot anything that will not travel.
+relative path anchors to the same place, so this entry is equivalent:
+
+```jsonc
+{ "type": "static", "url": "./dashboards/docs/index.html" }
+```
+
+The app editor flags absolute, `%VAR%`, and UNC paths so you can spot anything that
+will not travel.
 
 ## Making one
 
