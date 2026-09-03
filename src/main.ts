@@ -23,6 +23,22 @@ async function boot() {
     return mount(AboutWindow, { target });
   }
 
+  // The installer opened on demand from the hub menu (both modes). Same card as
+  // first run, but `installed` disables the "Install moonpool" action when this
+  // copy is already installed (the portable option stays enabled).
+  if (window.location.hash === "#installer") {
+    const s = await setupState();
+    return mount(Installer, {
+      target,
+      props: {
+        installDir: s.installDir,
+        version: s.version,
+        buildDate: s.buildDate,
+        installed: s.installed,
+      },
+    });
+  }
+
   // First-run install mode: the portable exe is running from outside its install
   // dir (release builds only). Show the skinned install card instead of the hub.
   try {

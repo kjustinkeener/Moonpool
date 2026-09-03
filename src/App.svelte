@@ -25,7 +25,6 @@
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
   import AppEditor from "./lib/AppEditor.svelte";
-  import PortableExport from "./lib/PortableExport.svelte";
   import Titlebar from "./lib/Titlebar.svelte";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -59,7 +58,6 @@
 
   // Modals + AI quickstart.
   let showEditor = $state(false);
-  let showExport = $state(false);
   let editingEntry = $state<AppEntry | null>(null);
   let cfgDir = $state("");
   // Join filenames onto the OS-native config dir with the right separator
@@ -585,7 +583,6 @@
       onReload={handleReload}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
-      onExportPortable={() => (showExport = true)}
       cliHidden={!cliVisible}
       onExpandCli={expandCli}
       updateWaiting={!!update && !updateDone}
@@ -680,9 +677,6 @@
   </main>
   </div>
 
-  {#if showExport}
-    <PortableExport onClose={() => (showExport = false)} />
-  {/if}
   {#if showEditor}
     <AppEditor
       entry={editingEntry}
