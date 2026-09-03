@@ -186,6 +186,33 @@ label syntax is incorrect", and the whole dir (now including the seeded
 waits for this exe's own lock to clear. Path is single-quote escaped for PowerShell.
 NOT yet verified end to end (needs an install from a post-fix build, then uninstall).
 
+## MERGED + UNINSTALL FIXES (2026-09-03, commits b9e36ed, 8407379)
+Branch `claude/affectionate-nightingale-d670a3` is MERGED to main (`8407379`, no-ff).
+Not pushed. Two late fixes landed after the menu rework:
+- **Uninstall never actually deleted anything.** The old `cmd /c "ping ... & rmdir /s /q
+  "<dir>""` fails because `cmd /c` strips the outer quotes it is handed and unbalances the
+  path; the detached hidden job swallowed the error. Now a detached PowerShell
+  `Remove-Item -LiteralPath` that STOPS running instances first (a running hub locks
+  `moonpool.exe`, which is what defeated the earlier PowerShell attempt) and retries ~30s.
+  The Windows "This program might not have uninstalled correctly" dialog was a SYMPTOM of
+  the leftover folder, not something to suppress - it stopped once the delete worked.
+- **Add/Remove-Programs entry** now also writes `EstimatedSize`, `InstallDate` (yyyyMMdd,
+  computed civil-from-days, no date crate) and `QuietUninstallString`.
+- VERIFIED on the real machine: install -> listed in Installed apps -> uninstall wipes the
+  whole install dir, config in `%APPDATA%\Moonpool` preserved, no dialog.
+
+## SANDBOX TRAP THAT COST THIS SESSION HOURS (read before testing an installer)
+Claude Code's tools run in the desktop app's MSIX sandbox, which virtualizes
+`%LOCALAPPDATA%` AND the registry. An app launched from a sandboxed tool INHERITS it, so
+the install wrote into a per-package overlay: install "succeeded", app ran, but the
+install dir did not exist on the real system and nothing appeared in Installed apps.
+`reg query`/`reg add` from the same sandboxed shell read/write that SAME overlay, so they
+confirm the phantom entry self-consistently. **Launch the installer and verify install
+state ONLY with the PowerShell tool + `dangerouslyDisableSandbox`.** Smell: a real
+neighbour entry (SumatraPDF) shows in the UI while everything you just wrote does not.
+Written up in `C:\claude-local\App-Patterns\Self-Installer\README.md` and global memory
+`claude-msix-appdata-virtualization` / `app-patterns-docs`.
+
 ## STILL REMAINING (next session)
 3. **SQLite (sql.js)** - DECLINED by user. Do not build.
 - **GUI checks, all needing the user driving the running app** (the user drives
@@ -195,9 +222,9 @@ NOT yet verified end to end (needs an install from a post-fix build, then uninst
   2. Portable mode: same item, install button ENABLED.
   3. **F5 / Ctrl-R** manifest reload (built in `07adf4e`, never eyeballed): edit
      `apps.json` externally, press it, tiles re-read with NO webview page refresh.
-  4. Uninstall end to end from a post-fix installed copy - the install dir should
-     vanish completely, dashboards included.
-- Then merge `claude/affectionate-nightingale-d670a3` to main.
+     THIS IS THE ONLY UNVERIFIED ITEM LEFT from all of the above work.
+  4. ~~Uninstall end to end~~ - DONE, verified on the real machine (see above).
+- ~~Merge to main~~ - DONE (`8407379`). Not pushed; push is owner-initiated.
 - Optional: reorder is settled; if the installed seed framing ("Bundled example"
   notes) should change, that's cosmetic.
 
