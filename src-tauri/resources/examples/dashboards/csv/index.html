@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV Explorer – Moonpool</title>
+<link rel="stylesheet" href="../_lib/theme.css">
+</head>
+<body>
+<div id="app"></div>
+
+<!-- vendored, offline, no CDN -->
+<script src="../_lib/vendor/echarts.min.js"></script>
+<script src="../_lib/echarts-theme.js"></script>
+<script src="../_lib/vendor/papaparse.min.js"></script>
+<script src="../_lib/profile.js"></script>
+<script src="../_lib/explorer.js"></script>
+
+<!-- baked sample datasets: each a DIFFERENTLY shaped CSV (analyzer torture test) -->
+<script type="text/plain" id="s-wide">month,North America,EMEA,APAC,LATAM
+2025-01,412000,318000,205000,88000
+2025-02,438000,331000,221000,92000
+2025-03,467000,349000,240000,101000
+2025-04,451000,362000,258000,97000
+2025-05,489000,378000,271000,110000
+2025-06,522000,391000,289000,118000
+2025-07,547000,405000,312000,124000
+2025-08,563000,418000,335000,131000
+2025-09,591000,437000,358000,139000
+2025-10,624000,455000,381000,148000
+2025-11,671000,482000,409000,161000
+2025-12,738000,511000,447000,177000</script>
+
+<script type="text/plain" id="s-long">date,channel,signups
+2025-07,Organic,1240
+2025-07,Paid,860
+2025-07,Referral,410
+2025-08,Organic,1355
+2025-08,Paid,910
+2025-08,Referral,455
+2025-09,Organic,1487
+2025-09,Paid,1005
+2025-09,Referral,502
+2025-10,Organic,1622
+2025-10,Paid,1140
+2025-10,Referral,548
+2025-11,Organic,1790
+2025-11,Paid,1288
+2025-11,Referral,611
+2025-12,Organic,2015
+2025-12,Paid,1402
+2025-12,Referral,689</script>
+
+<script type="text/plain" id="s-cat">source,sessions
+Direct,18420
+Organic search,41230
+Paid search,12880
+Social,9640
+Email,7310
+Referral,5120
+Affiliates,3080</script>
+
+<script type="text/plain" id="s-scatter">campaign,spend,revenue,channel
+Spring Launch,12000,48200,Paid
+Retargeting Q2,8600,39100,Paid
+Brand Awareness,21000,52400,Social
+Influencer A,5400,26800,Social
+Newsletter Blast,1800,14200,Email
+Lifecycle Drip,2600,22100,Email
+Search Generic,9800,31500,Paid
+Search Brand,3200,28900,Paid
+Partner Promo,6100,19400,Referral
+Webinar Series,4400,20300,Referral
+Holiday Push,17500,61200,Social
+Flash Sale,7300,33800,Email</script>
+
+<script>
+  function parseCSV(text) {
+    var out = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, dynamicTyping: false });
+    return out.data;
+  }
+  function raw(id) { return document.getElementById(id).textContent.trim(); }
+  function baked(id) { return parseCSV(raw(id)); }
+
+  MP.createExplorer(document.getElementById("app"), {
+    id: "csv",
+    formatName: "CSV / TSV",
+    title: "CSV Explorer",
+    subtitle: "Drop any CSV or TSV file and get an instant, auto-profiled dashboard – or explore the differently-shaped sample tabs below. One analyzer, any shape.",
+    accept: ".csv,.tsv,.txt",
+    parseFile: function (file) {
+      return new Promise(function (resolve, reject) {
+        Papa.parse(file, {
+          header: true, skipEmptyLines: true, dynamicTyping: false,
+          complete: function (res) { resolve(res.data); },
+          error: function (err) { reject(err); }
+        });
+      });
+    },
+    tabs: [
+      { name: "Traffic sources", rows: baked("s-cat"), raw: raw("s-cat"), file: "traffic-sources.csv",
+        mapping: { x: "source", y: ["sessions"], group: "", chart: "pie" } },
+      { name: "Revenue by region", rows: baked("s-wide"), raw: raw("s-wide"), file: "revenue-by-region.csv",
+        mapping: { x: "month", y: ["North America", "EMEA", "APAC", "LATAM"], group: "", chart: "line" } },
+      { name: "Signups by channel", rows: baked("s-long"), raw: raw("s-long"), file: "signups-by-channel.csv",
+        mapping: { x: "date", y: ["signups"], group: "channel", chart: "area" } },
+      { name: "Spend vs revenue", rows: baked("s-scatter"), raw: raw("s-scatter"), file: "spend-vs-revenue.csv",
+        mapping: { x: "spend", y: ["revenue"], group: "channel", chart: "scatter" } }
+    ]
+  });
+</script>
+</body>
+</html>

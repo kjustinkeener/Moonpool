@@ -32,8 +32,37 @@
     "port": 8000,
     "url": "http://127.0.0.1:8000",
     "openBrowser": true,
-    "env": { "PORT": "8000" },
+    "env": {
+      "PORT": "8000"
+    },
     "note": "A small Python web app. Run a foreground command so its logs stream into the terminal; 'env' injects variables like PORT."
+  },
+  {
+    "id": "csv-explorer",
+    "name": "Sample CSV Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/csv/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for CSV/TSV that auto-profiles any file and renders it. Runs offline, no server, no CDN."
+  },
+  {
+    "id": "json-explorer",
+    "name": "Sample JSON Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/json/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for JSON (arrays, nested objects, or maps)."
+  },
+  {
+    "id": "xlsx-explorer",
+    "name": "Sample Excel Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
+    "openBrowser": true,
+    "note": "Bundled example: a drop-your-data dashboard for Excel .xlsx / .xls, parsed offline with a vendored SheetJS."
   },
   {
     "id": "cli-script",
@@ -54,12 +83,12 @@
     "note": "A self-contained HTML dashboard. 'static' apps with only a 'url' just open it in the browser (no terminal)."
   },
   {
-    "id": "portable-dashboard",
-    "name": "Portable Dashboard",
+    "id": "docs-browser",
+    "name": "Moonpool Docs",
     "group": "Docs",
     "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/sales/index.html",
+    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
     "openBrowser": true,
-    "note": "Portable-mode example: {MP_HOME} resolves to Moonpool's folder, so this entry travels with a zip/USB bundle. A ./-relative cwd works too. Tokens work in installed mode as well (there {MP_HOME} is the install dir)."
+    "note": "Bundled example: an offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to Moonpool's folder, so the same entry also works in a portable bundle."
   }
 ]

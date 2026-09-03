@@ -2,15 +2,35 @@
   import {
     performInstall,
     launchInstalledAndExit,
-    establishPortable,
+    establishPortableAt,
+    quitApp,
   } from "./lib/api";
+  import { open } from "@tauri-apps/plugin-dialog";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import wordmark from "./assets/moonpool-wordmark.png";
+
+  // On first run the installer IS the main window, so closing means quit the app.
+  // Opened on demand from the hub it's a detached window - just close that window
+  // and leave the running hub alone.
+  const detached = window.location.hash === "#installer";
+  function close() {
+    if (detached) getCurrentWindow().close().catch(() => {});
+    else quitApp();
+  }
 
   let {
     installDir,
     version,
     buildDate,
-  }: { installDir: string; version: string; buildDate: string } = $props();
+    installed = false,
+  }: {
+    installDir: string;
+    version: string;
+    buildDate: string;
+    // True when this copy is already installed (opened from the hub menu). The
+    // "Install moonpool" action is then disabled; "Install portable" stays live.
+    installed?: boolean;
+  } = $props();
 
   import { onMount } from "svelte";
 
@@ -123,7 +143,7 @@
   }
 
   async function install() {
-    if (phase === "working") return;
+    if (phase === "working" || installed) return;
     phase = "working";
     error = "";
     try {
@@ -137,14 +157,28 @@
     }
   }
 
-  // Portable: keep the exe here, drop the flag file, relaunch in portable mode.
+  // Portable: let the user pick where the portable copy lives, then stamp it there
+  // (or in place if they pick this exe's own folder) and relaunch in portable mode.
   // The backend relaunches and exits this process, so we just show a brief beat.
   async function runPortable() {
     if (phase === "working" || phase === "portable") return;
-    phase = "portable";
     error = "";
+    let folder: string;
     try {
-      await establishPortable();
+      const picked = await open({
+        directory: true,
+        title: "Choose a folder for portable Moonpool",
+      });
+      if (typeof picked !== "string") return; // cancelled
+      folder = picked;
+    } catch (e) {
+      error = String(e);
+      phase = "error";
+      return;
+    }
+    phase = "portable";
+    try {
+      await establishPortableAt(folder);
     } catch (e) {
       error = String(e);
       phase = "error";
@@ -160,6 +194,7 @@
     style={cardStyle}
     data-tauri-drag-region
   >
+    <button class="close" onclick={close} title="Close" aria-label="Close">✕</button>
     <div class="top">
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
       <div
@@ -197,21 +232,31 @@
         class="cta"
         style={ctaStyle}
         onclick={install}
-        disabled={phase === "working"}
+        disabled={phase === "working" || installed}
+        title={installed ? "This copy is already installed on this PC." : ""}
       >
-        {phase === "working" ? "Installing…" : "Install moonpool"}
+        {installed
+          ? "Already installed"
+          : phase === "working"
+            ? "Installing…"
+            : "Install moonpool"}
       </button>
       <label class="opt">
-        <input type="checkbox" style={boxStyle} bind:checked={desktop} disabled={phase === "working"} />
+        <input
+          type="checkbox"
+          style={boxStyle}
+          bind:checked={desktop}
+          disabled={phase === "working" || installed}
+        />
         <span>Add a desktop shortcut</span>
       </label>
       <button
         class="portable"
         onclick={runPortable}
         disabled={phase === "working"}
-        title="Keep moonpool here and run from this folder - move it anywhere (USB stick, zip). Data stays beside the exe."
+        title="Run moonpool from a folder you choose (USB stick, zip) - move it anywhere. Data stays beside the exe."
       >
-        or run portable from this folder
+        Install portable
       </button>
     {/if}
 
@@ -419,4 +464,31 @@
     white-space: nowrap;
   }
   .busy .art .orb { animation-duration: 1.1s; }
+
+  /* Close button: the installer window is frameless, so this is the only in-window
+     way out. Sits above the drag region (top-right) so the click isn't eaten by it. */
+  .close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .close:hover {
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    color: var(--text);
+  }
 </style>
