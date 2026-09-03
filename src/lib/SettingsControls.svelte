@@ -12,6 +12,7 @@
     manifestDir,
   } from "./api";
   import { getTheme, setTheme, THEMES, type Theme } from "./theme";
+  import { t, tSplit, LOCALES, localeChoice, setLocale } from "./i18n.svelte";
   import { emit } from "@tauri-apps/api/event";
 
   let { onClose }: { onClose: () => void } = $props();
@@ -23,6 +24,25 @@
   let transparency = $state(0);
   let alwaysOnTop = $state(false);
   let dir = $state("");
+
+  // Named palettes (Nord, Gruvbox, ...) are proper nouns and stay as written in
+  // theme.ts; only the three generic ids have a translatable name.
+  const themeLabel = (id: string, label: string) =>
+    id === "auto"
+      ? t("common.autoSystem")
+      : id === "dark"
+        ? t("theme.dark")
+        : id === "light"
+          ? t("theme.light")
+          : label;
+
+  let locale = $state(localeChoice());
+  async function pickLocale(id: string) {
+    locale = id;
+    await setLocale(id);
+    // Retranslate the hub live, the same way theme changes are broadcast.
+    emit("settings:locale", id).catch(() => {});
+  }
 
   let theme = $state<Theme>(getTheme());
   function pickTheme(t: Theme) {
@@ -90,18 +110,36 @@
   }
 </script>
 
-<h2>Settings</h2>
+<h2>{t("settings.title")}</h2>
 
 <div class="setting">
-  <div class="title">Theme</div>
+  <div class="title">{t("settings.language")}</div>
+  <div class="sub">{t("settings.languageHint")}</div>
   <select
     class="theme-select"
-    aria-label="Theme"
+    aria-label={t("settings.language")}
+    value={locale}
+    onchange={(e) => pickLocale((e.target as HTMLSelectElement).value)}
+  >
+    <option value="auto">{t("common.autoSystem")}</option>
+    <!-- Language names stay in their own language: someone stuck in the wrong
+         one cannot read "Japanese" but can always find "日本語". -->
+    {#each LOCALES as l (l.id)}
+      <option value={l.id}>{l.label}</option>
+    {/each}
+  </select>
+</div>
+
+<div class="setting">
+  <div class="title">{t("settings.theme")}</div>
+  <select
+    class="theme-select"
+    aria-label={t("settings.theme")}
     value={theme}
     onchange={(e) => pickTheme((e.target as HTMLSelectElement).value)}
   >
-    {#each THEMES as t (t.id)}
-      <option value={t.id}>{t.label}</option>
+    {#each THEMES as th (th.id)}
+      <option value={th.id}>{themeLabel(th.id, th.label)}</option>
     {/each}
   </select>
 </div>
@@ -109,34 +147,30 @@
 <label class="row">
   <input type="checkbox" checked={closeToTray} onchange={toggleCloseToTray} />
   <div class="text">
-    <div class="title">Close to tray</div>
-    <div class="sub">
-      Closing the window hides Moonpool to the tray (leaves the taskbar). Off: closing quits.
-    </div>
+    <div class="title">{t("settings.closeToTray")}</div>
+    <div class="sub">{t("settings.closeToTrayHint")}</div>
   </div>
 </label>
 
 <label class="row">
   <input type="checkbox" checked={minimizeToTray} onchange={toggleMinimizeToTray} />
   <div class="text">
-    <div class="title">Minimize to tray</div>
-    <div class="sub">
-      Minimizing hides Moonpool to the tray (leaves the taskbar). Off: minimizes to the taskbar.
-    </div>
+    <div class="title">{t("settings.minimizeToTray")}</div>
+    <div class="sub">{t("settings.minimizeToTrayHint")}</div>
   </div>
 </label>
 
 <label class="row">
   <input type="checkbox" checked={alwaysOnTop} onchange={toggleAlwaysOnTop} />
   <div class="text">
-    <div class="title">Always on top</div>
-    <div class="sub">Keep Moonpool and its Settings/About windows above other windows.</div>
+    <div class="title">{t("settings.alwaysOnTop")}</div>
+    <div class="sub">{t("settings.alwaysOnTopHint")}</div>
   </div>
 </label>
 
 <div class="setting">
-  <div class="title">Background transparency</div>
-  <div class="sub">See-through window background. 0% is solid.</div>
+  <div class="title">{t("settings.transparency")}</div>
+  <div class="sub">{t("settings.transparencyHint")}</div>
   <div class="slider-row">
     <input
       type="range"
@@ -145,7 +179,7 @@
       step="5"
       value={transparency}
       oninput={onTransparencyInput}
-      aria-label="Background transparency"
+      aria-label={t("settings.transparency")}
     />
     <span class="pct">{transparency}%</span>
   </div>
@@ -154,19 +188,19 @@
 <label class="row">
   <input type="checkbox" checked={checkOnStartup} onchange={toggleCheckOnStartup} />
   <div class="text">
-    <div class="title">Check for updates on startup</div>
-    <div class="sub">
-      On launch, quietly checks GitHub for a newer version and shows a banner if one is found.
-    </div>
+    <div class="title">{t("settings.checkOnStartup")}</div>
+    <div class="sub">{t("settings.checkOnStartupHint")}</div>
   </div>
 </label>
 
 <label class="row">
   <input type="checkbox" checked={debugLogging} onchange={toggle} />
   <div class="text">
-    <div class="title">Log debug info to a file</div>
+    <div class="title">{t("settings.debugLogging")}</div>
     <div class="sub">
-      Records manifest loads, launches, and errors to <code>moonpool.log</code>.
+      {#each tSplit("settings.debugLoggingHint") as c}{#if "text" in c}{c.text}{:else}<code
+            >moonpool.log</code
+          >{/if}{/each}
     </div>
   </div>
 </label>
@@ -176,9 +210,9 @@
 {/if}
 
 <div class="actions">
-  <button class="btn" onclick={() => openLog()}>Open log</button>
+  <button class="btn" onclick={() => openLog()}>{t("settings.openLog")}</button>
   <div class="spacer"></div>
-  <button class="btn primary" onclick={onClose}>Close</button>
+  <button class="btn primary" onclick={onClose}>{t("common.close")}</button>
 </div>
 
 <style>

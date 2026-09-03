@@ -2,6 +2,7 @@
   import type { AppEntry, AppType } from "./types";
   import Modal from "./Modal.svelte";
   import { onMount } from "svelte";
+  import { t } from "./i18n.svelte";
   import { portableState, isNonPortablePath } from "./api";
 
   let {
@@ -54,8 +55,6 @@
   });
   let cwdWarn = $derived(portable && isNonPortablePath(f.cwd));
   let urlWarn = $derived(portable && isNonPortablePath(f.url));
-  const PORTABLE_HINT =
-    "Absolute path - won't move with this folder. Use {MP_HOME}\\... or a ./ path to keep it portable.";
 
   // id is internal (app key + terminal-tab id + icon filename) and never shown,
   // so it's derived from the name rather than entered. App.svelte de-duplicates.
@@ -68,6 +67,9 @@
   }
 
   // Group suggestions: the conventional groups plus any already in use.
+  // NOT translated on purpose: a chosen group is written into apps.json and
+  // becomes the user's own data. Localizing the seeds would leave headings in
+  // whatever language happened to be active when each app was added.
   const DEFAULT_GROUPS = ["Desktop apps", "Web apps", "Docs", "CLI tools"];
   let groupOptions = $derived([...new Set([...DEFAULT_GROUPS, ...groups])]);
 
@@ -95,28 +97,32 @@
     fields: string[];
     ph: Partial<Record<"cwd" | "command" | "port" | "url" | "processName", string>>;
   };
-  const TYPE_INFO: Record<AppType, TypeInfo> = {
+  // $derived, not a plain const: a const captures the strings at component
+  // creation and would keep showing the old language if the user switched while
+  // this modal is open. Sample commands ("npm run dev", "5173") stay as written -
+  // they are literals to copy, not prose to read.
+  const TYPE_INFO: Record<AppType, TypeInfo> = $derived({
     web: {
-      hint: "Runs a dev server in a terminal; shows Running when its port answers, and opens the browser once it's live.",
+      hint: t("editor.hintWeb"),
       fields: ["cwd", "command", "port", "url", "openBrowser"],
-      ph: { cwd: "path to the app folder", command: "npm run dev", port: "5173", url: "http://localhost:5173" },
+      ph: { cwd: t("editor.phFolder"), command: "npm run dev", port: "5173", url: "http://localhost:5173" },
     },
     desktop: {
-      hint: "Launches a native app; shows Running when a process named processName is found.",
+      hint: t("editor.hintDesktop"),
       fields: ["cwd", "command", "processName"],
-      ph: { cwd: "path to the app folder", command: "the app's launch command", processName: "my-app" },
+      ph: { cwd: t("editor.phFolder"), command: t("editor.phLaunchCommand"), processName: "my-app" },
     },
     static: {
-      hint: "Just opens url in the browser, no terminal or command.",
+      hint: t("editor.hintStatic"),
       fields: ["url", "openBrowser"],
       ph: { url: "file:///path/to/index.html" },
     },
     cli: {
-      hint: "Runs a command and keeps an interactive shell open in cwd.",
+      hint: t("editor.hintCli"),
       fields: ["cwd", "command"],
-      ph: { cwd: "path to the folder", command: "python script.py" },
+      ph: { cwd: t("editor.phFolder"), command: "python script.py" },
     },
-  };
+  });
   let ti = $derived(TYPE_INFO[f.type]);
 
   // Dirty tracking + safe close: a modified form asks before discarding. Routed
@@ -124,20 +130,20 @@
   const initialJson = JSON.stringify(f);
   let dirty = $derived(JSON.stringify(f) !== initialJson);
   function maybeClose() {
-    if (dirty && !confirm("Discard your changes?")) return;
+    if (dirty && !confirm(t("editor.discardChanges"))) return;
     onClose();
   }
 
   function save() {
     if (!f.name.trim()) {
-      error = "name is required.";
+      error = t("editor.nameRequired");
       return;
     }
     const env: Record<string, string> = {};
     for (const line of f.env.split("\n")) {
-      const t = line.trim();
-      const i = t.indexOf("=");
-      if (i > 0) env[t.slice(0, i).trim()] = t.slice(i + 1).trim();
+      const kv = line.trim();
+      const i = kv.indexOf("=");
+      if (i > 0) env[kv.slice(0, i).trim()] = kv.slice(i + 1).trim();
     }
     const e: AppEntry = {
       id: isNew ? slugify(f.name) || "app" : originalId!,
@@ -158,25 +164,27 @@
 </script>
 
 <Modal onClose={maybeClose} width="560px">
-    <h2>{isNew ? "Add app" : "Edit app"}</h2>
+    <h2>{isNew ? t("editor.addApp") : t("editor.editApp")}</h2>
 
     <div class="grid">
-      <label title="The display name shown in the sidebar. Required.">name<input bind:value={f.name} placeholder="My App" /></label>
-      <label title="The sidebar heading this app is listed under. Pick an existing group or choose '+ New group' to add one.">
+      <!-- Field labels (name, group, cwd, ...) are the literal apps.json keys the
+           user edits by hand, so they stay English. The hints beside them do not. -->
+      <label title={t("editor.nameHint")}>name<input bind:value={f.name} placeholder={t("editor.namePlaceholder")} /></label>
+      <label title={t("editor.groupHint")}>
         group
         {#if customGroup}
           <div class="new-group">
-            <input bind:value={f.group} placeholder="New group name" />
-            <button type="button" class="back-link" title="Pick an existing group" onclick={backToGroupList}>back to list</button>
+            <input bind:value={f.group} placeholder={t("editor.newGroupPlaceholder")} />
+            <button type="button" class="back-link" title={t("editor.pickExistingGroup")} onclick={backToGroupList}>{t("editor.backToList")}</button>
           </div>
         {:else}
           <select bind:value={f.group} onchange={onGroupSelect}>
             {#each groupOptions as g (g)}<option value={g}>{g}</option>{/each}
-            <option value="__new__">+ New group...</option>
+            <option value="__new__">{t("editor.newGroupOption")}</option>
           </select>
         {/if}
       </label>
-      <label title="How Moonpool runs and tracks the app. web = dev server on a port. desktop = native app tracked by process name. static = just opens a URL. cli = runs a command in a terminal.">
+      <label title={t("editor.typeHint")}>
         type
         <select bind:value={f.type}>
           <option value="web">web</option>
@@ -186,31 +194,31 @@
         </select>
       </label>
       <div class="type-hint">{ti.hint}</div>
-      <label class="wide" class:dim={!ti.fields.includes("cwd")} title={"The working directory the command runs in - usually the app's project folder. Use an absolute path, or {MP_HOME}\\... / ./ to stay portable."}>
-        <span class="lbl">cwd{#if cwdWarn}<span class="warn" title={PORTABLE_HINT}>not portable</span>{/if}</span>
+      <label class="wide" class:dim={!ti.fields.includes("cwd")} title={t("editor.cwdHint")}>
+        <span class="lbl">cwd{#if cwdWarn}<span class="warn" title={t("editor.portableWarn")}>{t("editor.notPortable")}</span>{/if}</span>
         <input bind:value={f.cwd} class:warned={cwdWarn} placeholder={ti.ph.cwd ?? "path to the app folder"} />
       </label>
-      <label class="wide" class:dim={!ti.fields.includes("command")} title="The command run in the embedded terminal to start the app, e.g. 'npm run dev' or 'python app.py'. Leave blank for a static URL-only entry.">command<input bind:value={f.command} placeholder={ti.ph.command ?? "command to run"} /></label>
-      <label class:dim={!ti.fields.includes("port")} title="The local TCP port the app listens on. Moonpool shows Running when this port answers, and frees it on Stop. Used by web apps.">port<input bind:value={f.port} placeholder={ti.ph.port ?? "3000"} /></label>
-      <label class:dim={!ti.fields.includes("processName")} title="For desktop apps: the process/executable name (without .exe) used to detect Running and to stop it. On Linux it must be 15 characters or fewer.">processName<input bind:value={f.processName} placeholder={ti.ph.processName ?? "my-app"} /></label>
-      <label class="wide" class:dim={!ti.fields.includes("url")} title={"The URL to open: http://localhost:<port> for a web app, or file:///path/to/index.html for a static page. Use file:///{MP_HOME}/... to stay portable."}>
-        <span class="lbl">url{#if urlWarn}<span class="warn" title={PORTABLE_HINT}>not portable</span>{/if}</span>
+      <label class="wide" class:dim={!ti.fields.includes("command")} title={t("editor.commandHint")}>command<input bind:value={f.command} placeholder={ti.ph.command ?? t("editor.phCommand")} /></label>
+      <label class:dim={!ti.fields.includes("port")} title={t("editor.portHint")}>port<input bind:value={f.port} placeholder={ti.ph.port ?? "3000"} /></label>
+      <label class:dim={!ti.fields.includes("processName")} title={t("editor.processNameHint")}>processName<input bind:value={f.processName} placeholder={ti.ph.processName ?? "my-app"} /></label>
+      <label class="wide" class:dim={!ti.fields.includes("url")} title={t("editor.urlHint")}>
+        <span class="lbl">url{#if urlWarn}<span class="warn" title={t("editor.portableWarn")}>{t("editor.notPortable")}</span>{/if}</span>
         <input bind:value={f.url} class:warned={urlWarn} placeholder={ti.ph.url ?? "http://localhost:3000"} />
       </label>
-      <label class="check" class:dim={!ti.fields.includes("openBrowser")} title="Automatically open the URL in your default browser when the app becomes reachable."><input type="checkbox" bind:checked={f.openBrowser} /> open browser</label>
-      <label class="wide" title="Environment variables passed to the command, one KEY=VALUE per line (e.g. PORT=3000).">env (KEY=VALUE per line)<textarea bind:value={f.env} rows="2" placeholder="PORT=3000"></textarea></label>
-      <label class="wide" title="Optional text shown as a tooltip when you hover this app in the sidebar.">note<input bind:value={f.note} placeholder="optional tooltip" /></label>
+      <label class="check" class:dim={!ti.fields.includes("openBrowser")} title={t("editor.openBrowserHint")}><input type="checkbox" bind:checked={f.openBrowser} /> {t("editor.openBrowser")}</label>
+      <label class="wide" title={t("editor.envHint")}>{t("editor.envLabel")}<textarea bind:value={f.env} rows="2" placeholder="PORT=3000"></textarea></label>
+      <label class="wide" title={t("editor.noteHint")}>note<input bind:value={f.note} placeholder={t("editor.notePlaceholder")} /></label>
     </div>
 
     {#if error}<div class="err">{error}</div>{/if}
 
     <div class="actions">
       {#if !isNew}
-        <button class="btn del" onclick={() => onDelete(originalId!)}>Delete</button>
+        <button class="btn del" onclick={() => onDelete(originalId!)}>{t("common.delete")}</button>
       {/if}
       <div class="spacer"></div>
-      <button class="btn" onclick={maybeClose}>Cancel</button>
-      <button class="btn primary" onclick={save}>Save</button>
+      <button class="btn" onclick={maybeClose}>{t("common.cancel")}</button>
+      <button class="btn primary" onclick={save}>{t("common.save")}</button>
     </div>
 </Modal>
 

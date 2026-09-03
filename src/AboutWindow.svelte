@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { openUrl, updateCheck, updateApply } from "./lib/api";
+  import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
 
   const credits = [
     { name: "Tauri", url: "https://tauri.app" },
@@ -15,6 +16,7 @@
   let version = $state("");
   let status = $state("");
   let checking = $state(false);
+  let unlistenLocale: (() => void) | null = null;
 
   function close() {
     getCurrentWindow()
@@ -35,24 +37,29 @@
     } catch {
       version = "?";
     }
+    // Follow a language change made in the Settings window while About is open.
+    // Assigned rather than returned: an async onMount callback cannot return a
+    // cleanup function in Svelte 5 (the return value is a promise, not the fn).
+    unlistenLocale = await watchLocale();
   });
+  onDestroy(() => unlistenLocale?.());
 
   async function checkUpdates() {
     checking = true;
-    status = "Checking for updates...";
+    status = t("about.checking");
     try {
       const r = await updateCheck();
       if (r.available) {
-        status = `Update ${r.available.version} available - downloading...`;
+        status = t("about.updateDownloading", { version: r.available.version });
         // On success the backend relaunches and exits; this won't return.
         await updateApply(r.available);
-        status = "Update installed. Restarting...";
+        status = t("about.updateInstalled");
       } else {
-        status = "You're on the latest version.";
+        status = t("about.upToDate");
         checking = false;
       }
     } catch (e) {
-      status = `Update check failed: ${e}`;
+      status = t("about.checkFailed", { error: String(e) });
       checking = false;
     }
   }
@@ -68,11 +75,8 @@
     <div class="head">
       <div class="moon">🌙</div>
       <h1>Moonpool</h1>
-      <div class="ver">version {version}</div>
-      <p class="desc">
-        A system-tray launcher hub for local apps and dev servers, with an
-        embedded terminal per app.
-      </p>
+      <div class="ver">{t("about.version", { version })}</div>
+      <p class="desc">{t("about.tagline")}</p>
     </div>
 
     <div class="links">
@@ -83,20 +87,23 @@
 
     <div class="row">
       <button class="btn primary" disabled={checking} onclick={checkUpdates}>
-        Check for updates
+        {t("about.checkUpdates")}
       </button>
-      <button class="btn" onclick={close}>Close</button>
+      <button class="btn" onclick={close}>{t("common.close")}</button>
     </div>
     {#if status}<div class="status">{status}</div>{/if}
 
     <div class="credits">
-      <span class="txt">Built with</span>
+      <span class="txt">{t("about.builtWith")}</span>
       {#each credits as c, i (c.name)}<button class="link" onclick={() => openUrl(c.url)}
           >{c.name}</button
         >{#if i < credits.length - 1}<span class="dot">·</span>{/if}{/each}
     </div>
     <div class="foot">
-      <span class="txt">MIT License · by </span><button class="link" onclick={() => openUrl("https://fasterdb.com")}>Justin Keener</button>
+      {#each tSplit("about.byLine") as c}{#if "text" in c}<span class="txt">{c.text}</span
+        >{:else}<button class="link" onclick={() => openUrl("https://fasterdb.com")}
+          >Justin Keener</button
+        >{/if}{/each}
     </div>
   </div>
 </div>

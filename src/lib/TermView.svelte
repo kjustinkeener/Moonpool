@@ -7,6 +7,7 @@
   import { onThemeChange } from "./theme";
   import { scrollFade } from "./scrollfade";
   import { ansiFor } from "./ansi";
+  import { t } from "./i18n.svelte";
   import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
   import { type UnlistenFn } from "@tauri-apps/api/event";
 
@@ -116,7 +117,7 @@
       term.write(arr);
     });
     unlistenExit = await onTermExit((exitId) => {
-      if (exitId === id) term.write("\r\n\x1b[90m[process exited]\x1b[0m\r\n");
+      if (exitId === id) term.write(`\r\n\x1b[90m${t("term.processExited")}\x1b[0m\r\n`);
     });
 
     // Launch the app sized to the terminal we just laid out.

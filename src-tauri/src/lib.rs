@@ -28,6 +28,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 mod dashboards;
+mod i18n;
 mod install;
 mod platform;
 mod portable;
@@ -113,6 +114,15 @@ struct Settings {
     /// Keep the hub (and its detached windows) above other windows.
     #[serde(default, rename = "alwaysOnTop")]
     always_on_top: bool,
+    /// UI language. The user's *choice*: "auto" follows the OS, otherwise a tag
+    /// from `LOCALES` in `src/lib/i18n.svelte.ts` ("en", "pt-BR", ...).
+    #[serde(default = "default_locale", rename = "locale")]
+    locale: String,
+    /// What "auto" last resolved to. The webview resolves the OS language and
+    /// writes it back; Rust needs a concrete tag to label the tray at startup,
+    /// before any window exists to ask. See `i18n::tray_strings`.
+    #[serde(default = "default_locale_resolved", rename = "localeResolved")]
+    locale_resolved: String,
 }
 
 fn default_true() -> bool {
@@ -120,6 +130,12 @@ fn default_true() -> bool {
 }
 fn default_transparency() -> u8 {
     0
+}
+fn default_locale() -> String {
+    "auto".into()
+}
+fn default_locale_resolved() -> String {
+    "en".into()
 }
 
 impl Default for Settings {
@@ -131,6 +147,8 @@ impl Default for Settings {
             check_on_startup: true,
             transparency: default_transparency(),
             always_on_top: false,
+            locale: default_locale(),
+            locale_resolved: default_locale_resolved(),
         }
     }
 }
@@ -628,6 +646,29 @@ fn set_always_on_top(enabled: bool, app: AppHandle, state: State<HubState>) -> R
         g.clone()
     };
     apply_always_on_top(&app, enabled);
+    save_settings(&app, &s)
+}
+
+/// Change the UI language.
+///
+/// `locale` is the user's choice and may be "auto"; `resolved` is the concrete
+/// tag the frontend picked for it. Both are persisted: the choice so the picker
+/// still reads "Auto", the resolved tag so `setup()` can label the tray in the
+/// right language on the next launch, before a webview exists to ask.
+#[tauri::command]
+fn set_locale(
+    locale: String,
+    resolved: String,
+    app: AppHandle,
+    state: State<HubState>,
+) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.locale = locale;
+        g.locale_resolved = resolved.clone();
+        g.clone()
+    };
+    retranslate_tray(&app, &resolved);
     save_settings(&app, &s)
 }
 
@@ -1323,12 +1364,29 @@ fn show_main(app: &AppHandle) {
     }
 }
 
-fn build_tray(app: &AppHandle) -> tauri::Result<()> {
-    let show = MenuItem::with_id(app, "show", "Show Moonpool", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show, &quit])?;
+/// Build the tray menu in the given locale. Split out from `build_tray` because
+/// a language change has to rebuild the menu in place - the tray outlives every
+/// window, so it cannot just re-render.
+fn tray_menu(app: &AppHandle, locale: &str) -> tauri::Result<Menu<tauri::Wry>> {
+    let s = i18n::tray_strings(locale);
+    let show = MenuItem::with_id(app, "show", s.show, true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", s.quit, true, None::<&str>)?;
+    Menu::with_items(app, &[&show, &quit])
+}
 
-    let mut builder = TrayIconBuilder::with_id("moonpool-tray")
+/// Swap the tray menu to a new language. No-op before the tray exists.
+fn retranslate_tray(app: &AppHandle, locale: &str) {
+    if let (Some(tray), Ok(menu)) = (app.tray_by_id(TRAY_ID), tray_menu(app, locale)) {
+        let _ = tray.set_menu(Some(menu));
+    }
+}
+
+const TRAY_ID: &str = "moonpool-tray";
+
+fn build_tray(app: &AppHandle, locale: &str) -> tauri::Result<()> {
+    let menu = tray_menu(app, locale)?;
+
+    let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("Moonpool")
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -1438,6 +1496,7 @@ pub fn run() {
             // Load settings first so logging (if enabled) captures the manifest load.
             let settings = load_settings(&handle);
             let always_on_top = settings.always_on_top;
+            let locale = settings.locale_resolved.clone();
             *handle.state::<HubState>().settings.lock().unwrap() = settings;
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
@@ -1447,7 +1506,7 @@ pub fn run() {
             // Write the embedded example dashboards to {MP_HOME}/dashboards on first
             // run (skips files that already exist, so user edits are preserved).
             dashboards::seed(&handle);
-            build_tray(&handle)?;
+            build_tray(&handle, &locale)?;
             // Belt-and-braces: strip the native title bar on the main window even if
             // the config value didn't take (the frontend draws its own title bar).
             if let Some(win) = handle.get_webview_window("main") {
@@ -1605,6 +1664,7 @@ pub fn run() {
             set_minimize_to_tray,
             set_check_on_startup,
             set_always_on_top,
+            set_locale,
             set_transparency,
             open_log,
             launch_app,

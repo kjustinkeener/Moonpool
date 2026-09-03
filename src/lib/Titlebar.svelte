@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import wordmark from "../assets/moonpool-wordmark.png";
+  import { t } from "./i18n.svelte";
 
   const win = getCurrentWindow();
   let maximized = $state(false);
@@ -25,15 +26,15 @@
 <div class="titlebar" data-tauri-drag-region>
   <img class="wordmark" src={wordmark} alt="moonpool" draggable="false" />
   <div class="controls">
-    <button class="ctl" title="Minimize" aria-label="Minimize" onclick={minimize}>
+    <button class="ctl" title={t("titlebar.minimize")} aria-label={t("titlebar.minimize")} onclick={minimize}>
       <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
         <path d="M2 6h8" stroke="currentColor" stroke-width="1.2" />
       </svg>
     </button>
     <button
       class="ctl"
-      title={maximized ? "Restore" : "Maximize"}
-      aria-label={maximized ? "Restore" : "Maximize"}
+      title={maximized ? t("titlebar.restore") : t("titlebar.maximize")}
+      aria-label={maximized ? t("titlebar.restore") : t("titlebar.maximize")}
       onclick={toggleMax}
     >
       {#if maximized}
@@ -59,7 +60,7 @@
         </svg>
       {/if}
     </button>
-    <button class="ctl close" title="Close" aria-label="Close" onclick={close}>
+    <button class="ctl close" title={t("common.close")} aria-label={t("common.close")} onclick={close}>
       <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
         <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.2" />
       </svg>

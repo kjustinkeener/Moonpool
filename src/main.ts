@@ -1,6 +1,7 @@
 import { mount } from "svelte";
 import "./app.css";
 import { initTheme } from "./lib/theme";
+import { initI18n } from "./lib/i18n.svelte";
 import App from "./App.svelte";
 import SettingsWindow from "./SettingsWindow.svelte";
 import AboutWindow from "./AboutWindow.svelte";
@@ -13,6 +14,12 @@ initTheme();
 const target = document.getElementById("app")!;
 
 async function boot() {
+  // Resolve the language BEFORE mounting anything. Every route below renders
+  // translated text on its first paint; loading the catalog afterwards would
+  // show a frame of English on every launch, which is the one bug a user in
+  // another language sees every single time they open the app.
+  await initI18n();
+
   // The detached Settings window loads the same bundle at #settings.
   if (window.location.hash === "#settings") {
     return mount(SettingsWindow, { target });
