@@ -29,6 +29,8 @@ serde_json = "1"
 portable-pty = "0.8"
 sysinfo = "=0.30.13"
 base64 = "0.22"
+# Embed the example dashboards in the binary; written out to the bundle on first run.
+include_dir = "0.7"
 # Custom installer/updater: tiny blocking HTTP, minisign verify, semver compare.
 ureq = "2"
 minisign-verify = "0.2"
