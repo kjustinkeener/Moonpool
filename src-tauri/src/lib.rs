@@ -110,6 +110,9 @@ struct Settings {
     /// Background transparency, 0 (opaque) to 90 (percent see-through).
     #[serde(default = "default_transparency", rename = "transparency")]
     transparency: u8,
+    /// Keep the hub (and its detached windows) above other windows.
+    #[serde(default, rename = "alwaysOnTop")]
+    always_on_top: bool,
 }
 
 fn default_true() -> bool {
@@ -127,6 +130,7 @@ impl Default for Settings {
             minimize_to_tray: true,
             check_on_startup: true,
             transparency: default_transparency(),
+            always_on_top: false,
         }
     }
 }
@@ -599,6 +603,31 @@ fn set_check_on_startup(
         g.check_on_startup = enabled;
         g.clone()
     };
+    save_settings(&app, &s)
+}
+
+/// Every window this app opens. Always-on-top is applied to all of them so the
+/// detached Settings/About windows stay in the same z-band as the hub; otherwise
+/// turning the setting on sinks the Settings window (the one you're using) behind
+/// the hub, where it's hard to move or close.
+const ALL_WINDOWS: [&str; 4] = ["main", "settings", "about", "installer"];
+
+fn apply_always_on_top(app: &AppHandle, on: bool) {
+    for label in ALL_WINDOWS {
+        if let Some(w) = app.get_webview_window(label) {
+            let _ = w.set_always_on_top(on);
+        }
+    }
+}
+
+#[tauri::command]
+fn set_always_on_top(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.always_on_top = enabled;
+        g.clone()
+    };
+    apply_always_on_top(&app, enabled);
     save_settings(&app, &s)
 }
 
@@ -1408,6 +1437,7 @@ pub fn run() {
             }
             // Load settings first so logging (if enabled) captures the manifest load.
             let settings = load_settings(&handle);
+            let always_on_top = settings.always_on_top;
             *handle.state::<HubState>().settings.lock().unwrap() = settings;
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
@@ -1422,6 +1452,7 @@ pub fn run() {
             // the config value didn't take (the frontend draws its own title bar).
             if let Some(win) = handle.get_webview_window("main") {
                 let _ = win.set_decorations(false);
+                let _ = win.set_always_on_top(always_on_top);
                 // Restore the saved geometry (no-op -> config default on a missing or
                 // corrupt file). Do this before seeding last-good size below.
                 winstate::restore(&win);
@@ -1573,6 +1604,7 @@ pub fn run() {
             set_close_to_tray,
             set_minimize_to_tray,
             set_check_on_startup,
+            set_always_on_top,
             set_transparency,
             open_log,
             launch_app,
