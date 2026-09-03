@@ -130,6 +130,17 @@ same-origin, started via a `moonpool://control-panel` tile URL, auto-stopping on
   tiles for Desktop apps / Web apps / CLI tools (portable-clean `./apps/...` paths,
   notes say "goes nowhere, edit or delete") so all four teaching categories show.
 
+## LATE CHANGES (2026-09-02, after the seed-order work)
+- Removed the JSONL, YAML, and TOML explorers entirely: folders under
+  `dashboards/`, their unused vendored parsers (`js-yaml.min.js`, `j-toml.min.js`;
+  jsonl was native), their entries in both seeds, and their rows in `README.md` +
+  the docs reference table. Remaining explorers: CSV, JSON, Excel.
+- Renamed the three remaining explorer tiles to **Sample CSV Explorer / Sample JSON
+  Explorer / Sample Excel Explorer** in both seeds.
+- Added a global keydown in `src/App.svelte`: **F5** and **Ctrl/Cmd+R** now call
+  `handleReload()` (re-reads apps.json from disk), preventing the webview page
+  refresh. `svelte-check` clean. NEEDS A REBUILD to see live.
+
 ## CLARIFICATION: dashboards open in the EXTERNAL browser, not the app webview
 All dashboard entries are `type: static` + `openBrowser: true`, so Moonpool hands
 the `url` to the OS default browser. There is NO in-app webview rendering, so the
