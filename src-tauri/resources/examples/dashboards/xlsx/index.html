@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excel Explorer &#8211; Moonpool</title>
+<link rel="stylesheet" href="../_lib/theme.css">
+</head>
+<body>
+<div id="app"></div>
+
+<!-- vendored, offline, no CDN -->
+<script src="../_lib/vendor/echarts.min.js"></script>
+<script src="../_lib/echarts-theme.js"></script>
+<script src="../_lib/vendor/xlsx.min.js"></script>
+<script src="../_lib/profile.js"></script>
+<script src="../_lib/records.js"></script>
+<script src="../_lib/explorer.js"></script>
+
+<!--
+  Baked samples are authored as CSV text (readable in source) and turned into a
+  real .xlsx worksheet at load, so the demo genuinely exercises SheetJS on every
+  baked tab and not just on your own file. Each is a DIFFERENTLY shaped sheet
+  (analyzer torture test). A binary .xlsx has no meaningful "raw text", so the
+  code pane shows a sheet SUMMARY (dimensions, columns, a few rows) instead.
+-->
+
+<!-- (a) wide: one column per region, one row per month -->
+<script type="text/plain" id="s-wide">Month,North America,EMEA,APAC,LATAM
+2025-01,412000,318000,205000,88000
+2025-02,438000,331000,221000,92000
+2025-03,467000,349000,240000,101000
+2025-04,451000,362000,258000,97000
+2025-05,489000,378000,271000,110000
+2025-06,522000,391000,289000,118000
+2025-07,547000,405000,312000,124000
+2025-08,563000,418000,335000,131000
+2025-09,591000,437000,358000,139000
+2025-10,624000,455000,381000,148000
+2025-11,671000,482000,409000,161000
+2025-12,738000,511000,447000,177000</script>
+
+<!-- (b) long / tidy: date x channel measured over time -->
+<script type="text/plain" id="s-long">Date,Channel,Signups
+2025-07,Organic,1240
+2025-07,Paid,860
+2025-07,Referral,410
+2025-08,Organic,1355
+2025-08,Paid,910
+2025-08,Referral,455
+2025-09,Organic,1487
+2025-09,Paid,1005
+2025-09,Referral,502
+2025-10,Organic,1622
+2025-10,Paid,1140
+2025-10,Referral,548
+2025-11,Organic,1790
+2025-11,Paid,1288
+2025-11,Referral,611
+2025-12,Organic,2015
+2025-12,Paid,1402
+2025-12,Referral,689</script>
+
+<!-- (c) categorical survey: one row per category -->
+<script type="text/plain" id="s-cat">Department,Headcount,Avg tenure (yrs),Attrition %,Satisfaction
+Engineering,84,3.4,7.2,4.3
+Sales,52,2.1,14.8,3.7
+Marketing,29,2.8,11.1,4.0
+Support,41,1.9,18.4,3.5
+Operations,33,4.6,6.0,4.1
+Finance,18,5.2,4.5,4.4
+Design,22,3.0,9.3,4.6</script>
+
+<!-- (d) mixed financials: numeric measures across line items, positive + negative -->
+<script type="text/plain" id="s-fin">Line item,Quarter,Amount,Category
+Product revenue,Q1,1240000,Revenue
+Services revenue,Q1,388000,Revenue
+COGS,Q1,-512000,Cost
+Sales & marketing,Q1,-284000,Cost
+R&D,Q1,-196000,Cost
+G&A,Q1,-142000,Cost
+Product revenue,Q2,1358000,Revenue
+Services revenue,Q2,421000,Revenue
+COGS,Q2,-548000,Cost
+Sales & marketing,Q2,-301000,Cost
+R&D,Q2,-208000,Cost
+G&A,Q2,-149000,Cost</script>
+
+<script>
+  // Author baked data as CSV, but round-trip it through a real .xlsx worksheet
+  // so SheetJS parses every tab exactly as it would a dropped Excel file.
+  function csvToSheet(csv) {
+    var wb = XLSX.read(csv, { type: "string" });          // CSV -> workbook
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    return { ws: ws, name: "Sheet1" };
+  }
+  function sheetToRows(ws) {
+    return MP.toRecords(XLSX.utils.sheet_to_json(ws, { defval: null }));
+  }
+  // A short, human-readable summary of a worksheet for the code pane (binary
+  // .xlsx has no useful raw text, so we describe the sheet instead of dumping bytes).
+  function sheetSummary(name, ws, rows) {
+    var ref = ws["!ref"] || "A1";
+    var range = XLSX.utils.decode_range(ref);
+    var nCols = range.e.c - range.s.c + 1;
+    var nRows = range.e.r - range.s.r + 1;
+    var cols = rows.length ? Object.keys(rows[0]) : [];
+    var lines = [];
+    lines.push("Sheet:      " + name);
+    lines.push("Range:      " + ref + "  (" + nRows + " rows x " + nCols + " cols)");
+    lines.push("Data rows:  " + rows.length);
+    lines.push("Columns:    " + cols.join(", "));
+    lines.push("");
+    lines.push("First rows (as parsed):");
+    rows.slice(0, 6).forEach(function (r) {
+      lines.push("  " + cols.map(function (c) { return r[c]; }).join("  |  "));
+    });
+    if (rows.length > 6) lines.push("  ... (" + (rows.length - 6) + " more rows)");
+    return lines.join("\n");
+  }
+  function raw(id) { return document.getElementById(id).textContent.trim(); }
+  // Build one baked tab from a CSV script element.
+  function baked(id, sheetName) {
+    var s = csvToSheet(raw(id));
+    var rows = sheetToRows(s.ws);
+    return { rows: rows, raw: sheetSummary(sheetName || s.name, s.ws, rows) };
+  }
+  var wide = baked("s-wide", "Revenue"),
+      long = baked("s-long", "Signups"),
+      cat  = baked("s-cat",  "Departments"),
+      fin  = baked("s-fin",  "Financials");
+
+  MP.createExplorer(document.getElementById("app"), {
+    id: "xlsx",
+    formatName: "Excel",
+    title: "Excel Explorer",
+    subtitle: "Drop any .xlsx or .xls workbook and get an instant, auto-profiled dashboard from its first sheet – or explore the differently-shaped sample tabs below. One analyzer, any shape.",
+    accept: ".xlsx,.xls,.xlsm,.xlsb,.ods",
+    parseFile: function (file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () {
+          try {
+            var wb = XLSX.read(r.result, { type: "array", cellDates: true });
+            var name = wb.SheetNames[0];
+            var ws = wb.Sheets[name];
+            var rows = sheetToRows(ws);
+            if (!rows.length) throw new Error("first sheet has no rows");
+            resolve({ rows: rows, raw: sheetSummary(name, ws, rows) });
+          } catch (e) { reject(e); }
+        };
+        r.onerror = function () { reject(r.error); };
+        r.readAsArrayBuffer(file);          // binary: read as ArrayBuffer, not text
+      });
+    },
+    tabs: [
+      { name: "Revenue by region", rows: wide.rows, raw: wide.raw, file: "revenue-by-region.xlsx",
+        mapping: { x: "Month", y: ["North America", "EMEA", "APAC", "LATAM"], group: "", chart: "line" } },
+      { name: "Signups by channel", rows: long.rows, raw: long.raw, file: "signups-by-channel.xlsx",
+        mapping: { x: "Date", y: ["Signups"], group: "Channel", chart: "area" } },
+      { name: "Departments", rows: cat.rows, raw: cat.raw, file: "departments.xlsx",
+        mapping: { x: "Department", y: ["Headcount"], group: "", chart: "bar" } },
+      { name: "P&L by quarter", rows: fin.rows, raw: fin.raw, file: "pnl-by-quarter.xlsx",
+        mapping: { x: "Line item", y: ["Amount"], group: "Quarter", chart: "bar" } }
+    ]
+  });
+</script>
+</body>
+</html>
