@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YAML Explorer &#8211; Moonpool</title>
+<link rel="stylesheet" href="../_lib/theme.css">
+</head>
+<body>
+<div id="app"></div>
+
+<!-- vendored, offline, no CDN -->
+<script src="../_lib/vendor/echarts.min.js"></script>
+<script src="../_lib/echarts-theme.js"></script>
+<script src="../_lib/vendor/js-yaml.min.js"></script>
+<script src="../_lib/profile.js"></script>
+<script src="../_lib/records.js"></script>
+<script src="../_lib/explorer.js"></script>
+
+<!-- baked sample datasets: each a DIFFERENTLY shaped YAML document -->
+
+<!-- (c) a mapping of mappings (map/object-of-objects): tickets by priority -->
+<script type="text/plain" id="s-map">Critical:
+  count: 128
+  avg_resolution_h: 3.2
+  breached_sla: 11
+High:
+  count: 342
+  avg_resolution_h: 9.6
+  breached_sla: 28
+Medium:
+  count: 861
+  avg_resolution_h: 26.4
+  breached_sla: 47
+Low:
+  count: 1240
+  avg_resolution_h: 71.8
+  breached_sla: 12
+Feature request:
+  count: 596
+  avg_resolution_h: 188.5
+  breached_sla: 0</script>
+
+<!-- (a) a list of mappings (top-level sequence) -->
+<script type="text/plain" id="s-list">- rep: Amara Osei
+  region: EMEA
+  closed_won: 412000
+  deals: 24
+  quota_attainment: 1.14
+- rep: Diego Ramirez
+  region: LATAM
+  closed_won: 298000
+  deals: 19
+  quota_attainment: 0.92
+- rep: Mei Tanaka
+  region: APAC
+  closed_won: 507000
+  deals: 31
+  quota_attainment: 1.28
+- rep: Liam Walsh
+  region: EMEA
+  closed_won: 361000
+  deals: 22
+  quota_attainment: 1.03
+- rep: Priya Nair
+  region: APAC
+  closed_won: 445000
+  deals: 27
+  quota_attainment: 1.19
+- rep: Sofia Rossi
+  region: EMEA
+  closed_won: 274000
+  deals: 17
+  quota_attainment: 0.86
+- rep: Noah Kim
+  region: NA
+  closed_won: 533000
+  deals: 29
+  quota_attainment: 1.31
+- rep: Grace Bello
+  region: NA
+  closed_won: 389000
+  deals: 23
+  quota_attainment: 1.07</script>
+
+<!-- (b) a top-level mapping containing a list under a key -->
+<script type="text/plain" id="s-nested">quarter: 2025-Q4
+currency: USD
+owner: Revenue Ops
+pipeline:
+  - stage: Prospecting
+    deals: 184
+    value: 2480000
+  - stage: Qualification
+    deals: 121
+    value: 1930000
+  - stage: Proposal
+    deals: 74
+    value: 1420000
+  - stage: Negotiation
+    deals: 48
+    value: 1110000
+  - stage: Closed Won
+    deals: 33
+    value: 812000
+  - stage: Closed Lost
+    deals: 39
+    value: 640000</script>
+
+<!-- (d) a list with one level of nested mappings to flatten -->
+<script type="text/plain" id="s-deep">- team: Platform
+  headcount: 14
+  metrics:
+    velocity: 62
+    open_bugs: 23
+    coverage: 0.81
+- team: Growth
+  headcount: 9
+  metrics:
+    velocity: 48
+    open_bugs: 15
+    coverage: 0.74
+- team: Payments
+  headcount: 11
+  metrics:
+    velocity: 55
+    open_bugs: 31
+    coverage: 0.88
+- team: Mobile
+  headcount: 8
+  metrics:
+    velocity: 41
+    open_bugs: 19
+    coverage: 0.69
+- team: Data
+  headcount: 7
+  metrics:
+    velocity: 37
+    open_bugs: 12
+    coverage: 0.77</script>
+
+<script>
+  function parseYAML(text) { return MP.toRecords(jsyaml.load(text)); }
+  function raw(id) { return document.getElementById(id).textContent.trim(); }
+  function baked(id) { return parseYAML(raw(id)); }
+
+  MP.createExplorer(document.getElementById("app"), {
+    id: "yaml",
+    formatName: "YAML",
+    title: "YAML Explorer",
+    subtitle: "Drop any YAML file (a list of mappings, a mapping containing a list, or a map of maps) and get an instant, auto-profiled dashboard. Nested mappings are flattened automatically. One analyzer, any shape.",
+    accept: ".yaml,.yml,.txt",
+    parseFile: function (file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () {
+          try { resolve(MP.toRecords(jsyaml.load(String(r.result)))); }
+          catch (e) { reject(e); }
+        };
+        r.onerror = function () { reject(r.error); };
+        r.readAsText(file);
+      });
+    },
+    tabs: [
+      { name: "Sales by rep", rows: baked("s-list"), raw: raw("s-list"), file: "sales-by-rep.yaml",
+        mapping: { x: "rep", y: ["closed_won"], group: "region", chart: "bar" } },
+      { name: "Tickets by priority", rows: baked("s-map"), raw: raw("s-map"), file: "tickets-by-priority.yaml",
+        mapping: { x: "key", y: ["count"], group: "", chart: "pie" } },
+      { name: "Pipeline by stage", rows: baked("s-nested"), raw: raw("s-nested"), file: "pipeline.yaml",
+        mapping: { x: "stage", y: ["value"], group: "", chart: "bar" } },
+      { name: "Team metrics", rows: baked("s-deep"), raw: raw("s-deep"), file: "team-metrics.yaml",
+        mapping: { x: "team", y: ["metrics.velocity", "metrics.open_bugs"], group: "", chart: "bar" } }
+    ]
+  });
+</script>
+</body>
+</html>
