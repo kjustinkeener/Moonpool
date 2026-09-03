@@ -71,11 +71,12 @@
   }
   .copy-btn {
     position: absolute; top: 8px; right: 8px;
-    appearance: none; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600;
-    padding: 4px 9px; border-radius: 6px; letter-spacing: .02em;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; padding: 0; border-radius: 6px; cursor: pointer;
     background: var(--elev); color: var(--fg-muted); border: 1px solid var(--line);
     opacity: 0; transition: opacity .12s, color .12s, border-color .12s;
   }
+  .copy-btn svg { display: block; }
   .md pre:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
   .copy-btn:hover { color: var(--fg); border-color: var(--fg-dim); }
   .copy-btn.ok { color: var(--good); border-color: var(--good); opacity: 1; }
@@ -435,12 +436,14 @@ offline docs site for any project.
     });
 
     // copy button on each code block
+    var ICON_COPY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg>';
+    var ICON_OK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
     box.querySelectorAll("pre").forEach(function (pre) {
-      var btn = mk("button", "copy-btn", "Copy");
-      btn.type = "button";
+      var btn = mk("button", "copy-btn");
+      btn.type = "button"; btn.title = "Copy"; btn.setAttribute("aria-label", "Copy"); btn.innerHTML = ICON_COPY;
       btn.onclick = function () {
         var code = (pre.querySelector("code") || pre).textContent;
-        var done = function () { btn.textContent = "Copied"; btn.classList.add("ok"); setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1400); };
+        var done = function () { btn.innerHTML = ICON_OK; btn.classList.add("ok"); btn.title = "Copied"; setTimeout(function () { btn.innerHTML = ICON_COPY; btn.classList.remove("ok"); btn.title = "Copy"; }, 1400); };
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(code).then(done, fallback);
         } else { fallback(); }
@@ -450,7 +453,7 @@ offline docs site for any project.
             ta.value = code; ta.style.position = "fixed"; ta.style.opacity = "0";
             document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
             done();
-          } catch (e) { btn.textContent = "Failed"; setTimeout(function () { btn.textContent = "Copy"; }, 1400); }
+          } catch (e) { btn.title = "Copy failed"; }
         }
       };
       pre.appendChild(btn);
