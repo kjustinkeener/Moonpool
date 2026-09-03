@@ -54,6 +54,15 @@
     "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
   },
   {
+    "id": "docs-browser",
+    "name": "Moonpool Docs",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
+    "openBrowser": true,
+    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
+  },
+  {
     "id": "example-desktop-app",
     "name": "Example Desktop App",
     "group": "Desktop apps",
@@ -84,14 +93,5 @@
     "cwd": "./apps/example-cli-tool",
     "command": "pwsh -NoLogo -NoProfile -NoExit",
     "note": "Placeholder that goes nowhere until you point it at a real script. 'cli' apps open an interactive shell in 'cwd'; add '-Command <tokens>' to run something first. Edit or delete this entry."
-  },
-  {
-    "id": "docs-browser",
-    "name": "Moonpool Docs",
-    "group": "Docs",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
-    "openBrowser": true,
-    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
   }
 ]
