@@ -160,9 +160,16 @@ body {
 .foot a { color: var(--fg-muted); text-decoration: none; }
 .foot a:hover { color: var(--accent); }
 
-/* ---- data preview table ---- */
-.table-card { margin-top: var(--gap); }
+/* ---- data preview: parsed table + raw source, side by side ---- */
+.preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-top: var(--gap); align-items: start; }
+@media (max-width: 860px) { .preview-grid { grid-template-columns: 1fr; } }
+.table-card, .code-card { min-width: 0; }
 .table-scroll { max-height: 340px; overflow: auto; margin: 4px 14px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); }
+
+/* raw source code pane */
+.code-scroll { max-height: 340px; overflow: auto; margin: 4px 14px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: #0d1017; }
+.code-pre { margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: #b7c0d4; white-space: pre; tab-size: 2; }
+.code-empty { padding: 24px 16px; color: var(--fg-dim); font-size: 13px; }
 .datatable { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .datatable th, .datatable td { padding: 6px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line-soft); }
 .datatable thead th {

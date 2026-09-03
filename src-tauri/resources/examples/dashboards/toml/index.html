@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOML Explorer &#8211; Moonpool</title>
+<link rel="stylesheet" href="../_lib/theme.css">
+</head>
+<body>
+<div id="app"></div>
+
+<!-- vendored, offline, no CDN -->
+<script src="../_lib/vendor/echarts.min.js"></script>
+<script src="../_lib/echarts-theme.js"></script>
+<script src="../_lib/vendor/j-toml.min.js"></script>
+<script src="../_lib/profile.js"></script>
+<script src="../_lib/records.js"></script>
+<script src="../_lib/explorer.js"></script>
+
+<!-- baked sample datasets: each a DIFFERENTLY shaped TOML document -->
+
+<!-- (a) array of tables ([[product]]) -->
+<script type="text/plain" id="s-array">[[product]]
+name = "Starter"
+revenue = 182000
+seats = 1400
+churn = 0.041
+
+[[product]]
+name = "Team"
+revenue = 421000
+seats = 980
+churn = 0.028
+
+[[product]]
+name = "Business"
+revenue = 638000
+seats = 540
+churn = 0.019
+
+[[product]]
+name = "Enterprise"
+revenue = 512000
+seats = 120
+churn = 0.011
+
+[[product]]
+name = "Nonprofit"
+revenue = 74000
+seats = 310
+churn = 0.036</script>
+
+<!-- (b) array of tables with paid-marketing metrics -->
+<script type="text/plain" id="s-campaign">[[campaign]]
+name = "Spring Launch"
+channel = "Paid search"
+spend = 24000
+revenue = 96200
+
+[[campaign]]
+name = "Retargeting"
+channel = "Social"
+spend = 12600
+revenue = 51100
+
+[[campaign]]
+name = "Brand Lift"
+channel = "Social"
+spend = 38000
+revenue = 82400
+
+[[campaign]]
+name = "Newsletter"
+channel = "Email"
+spend = 3800
+revenue = 29200
+
+[[campaign]]
+name = "Lifecycle Drip"
+channel = "Email"
+spend = 5600
+revenue = 42100
+
+[[campaign]]
+name = "Generic Search"
+channel = "Paid search"
+spend = 19800
+revenue = 61500
+
+[[campaign]]
+name = "Partner Promo"
+channel = "Referral"
+spend = 9100
+revenue = 34400
+
+[[campaign]]
+name = "Webinar Series"
+channel = "Referral"
+spend = 7400
+revenue = 40300
+
+[[campaign]]
+name = "Holiday Push"
+channel = "Social"
+spend = 41500
+revenue = 121200</script>
+
+<!-- (c) a map of top-level tables (object-of-objects) -->
+<script type="text/plain" id="s-map">[enterprise]
+mrr = 210000
+logos = 64
+nps = 52
+seats_avg = 340
+
+[business]
+mrr = 178000
+logos = 210
+nps = 44
+seats_avg = 58
+
+[pro]
+mrr = 148000
+logos = 520
+nps = 39
+seats_avg = 12
+
+[free]
+mrr = 0
+logos = 8100
+nps = 21
+seats_avg = 3</script>
+
+<!-- (d) array of tables with inline sub-tables to flatten (dot-joined keys) -->
+<script type="text/plain" id="s-deep">[[warehouse]]
+name = "Berlin"
+region = "EMEA"
+throughput = { inbound = 1200, outbound = 1140 }
+
+[[warehouse]]
+name = "Osaka"
+region = "APAC"
+throughput = { inbound = 980, outbound = 1010 }
+
+[[warehouse]]
+name = "Dallas"
+region = "NA"
+throughput = { inbound = 1560, outbound = 1490 }
+
+[[warehouse]]
+name = "Sao Paulo"
+region = "LATAM"
+throughput = { inbound = 720, outbound = 690 }
+
+[[warehouse]]
+name = "Dublin"
+region = "EMEA"
+throughput = { inbound = 1080, outbound = 1120 }
+
+[[warehouse]]
+name = "Sydney"
+region = "APAC"
+throughput = { inbound = 640, outbound = 610 }</script>
+
+<script>
+  function parseTOML(text) { return MP.toRecords(TOML.parse(text, { bigint: false })); }
+  function raw(id) { return document.getElementById(id).textContent.trim(); }
+  function baked(id) { return parseTOML(raw(id)); }
+
+  MP.createExplorer(document.getElementById("app"), {
+    id: "toml",
+    formatName: "TOML",
+    title: "TOML Explorer",
+    subtitle: "Drop any TOML file (arrays of tables, a table of tables, or inline sub-tables) and get an instant, auto-profiled dashboard. Nested tables are flattened automatically. One analyzer, any shape.",
+    accept: ".toml,.txt",
+    parseFile: function (file) {
+      return new Promise(function (resolve, reject) {
+        var r = new FileReader();
+        r.onload = function () {
+          try { resolve(MP.toRecords(TOML.parse(String(r.result), { bigint: false }))); }
+          catch (e) { reject(e); }
+        };
+        r.onerror = function () { reject(r.error); };
+        r.readAsText(file);
+      });
+    },
+    tabs: [
+      { name: "Spend vs revenue", rows: baked("s-campaign"), raw: raw("s-campaign"), file: "campaigns.toml",
+        mapping: { x: "spend", y: ["revenue"], group: "channel", chart: "scatter" } },
+      { name: "Revenue by product", rows: baked("s-array"), raw: raw("s-array"), file: "products.toml",
+        mapping: { x: "name", y: ["revenue"], group: "", chart: "pie" } },
+      { name: "Plans by tier", rows: baked("s-map"), raw: raw("s-map"), file: "plans.toml",
+        mapping: { x: "key", y: ["mrr"], group: "", chart: "bar" } },
+      { name: "Warehouse throughput", rows: baked("s-deep"), raw: raw("s-deep"), file: "warehouses.toml",
+        mapping: { x: "name", y: ["throughput.inbound", "throughput.outbound"], group: "", chart: "bar" } }
+    ]
+  });
+</script>
+</body>
+</html>
