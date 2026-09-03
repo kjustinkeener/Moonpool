@@ -378,13 +378,21 @@
     // Load the user's file into the dedicated "Your data" tab (samples preserved).
     function loadUserFile(file) {
       chartTitle.textContent = "Parsing " + file.name + "…";
-      // read raw text in parallel for the code pane (best-effort; skip if unreadable)
-      var rawP = (file.text ? file.text() : new Promise(function (res) {
-        var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = function () { res(null); }; fr.readAsText(file);
-      })).catch(function () { return null; });
-      Promise.all([Promise.resolve(config.parseFile(file)), rawP]).then(function (out) {
-        var rows = out[0], rawText = out[1];
+      // parseFile may return a record array, or { rows, raw } when the format
+      // supplies its own code-pane text (e.g. a binary file -> a sheet summary
+      // instead of raw bytes). Only read the file as text when it does not.
+      Promise.resolve(config.parseFile(file)).then(function (parsed) {
+        var isEnvelope = parsed && !Array.isArray(parsed) && Array.isArray(parsed.rows);
+        var rows = isEnvelope ? parsed.rows : parsed;
         if (!rows || !rows.length) throw new Error("no rows parsed");
+        if (isEnvelope) return { rows: rows, raw: parsed.raw };
+        // best-effort raw text for the code pane; skip if unreadable
+        var rawP = (file.text ? file.text() : new Promise(function (res) {
+          var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = function () { res(null); }; fr.readAsText(file);
+        })).catch(function () { return null; });
+        return rawP.then(function (rawText) { return { rows: rows, raw: rawText }; });
+      }).then(function (out) {
+        var rows = out.rows, rawText = out.raw;
         var name = "Your data";
         var existing = tabs.findIndex(function (t) { return t.name === name; });
         var tab = { name: name, rows: rows, source: file.name, raw: rawText };
