@@ -151,8 +151,14 @@ pub fn run_uninstall() {
         // the path as a single-quoted literal and retries until the lock clears, and
         // -Recurse -Force clears the seeded dashboards tree too.
         let dir_s = dir.display().to_string().replace('\'', "''"); // ' -> '' for PS
+        // Stop any OTHER running Moonpool first (a hub left open holds moonpool.exe
+        // locked, which is what made the delete fail and left the folder behind - and
+        // a leftover folder is exactly what makes Windows' Program Compatibility
+        // Assistant claim the uninstall failed). Then retry for ~30s.
         let script = format!(
-            "for($i=0;$i -lt 40;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 250}}}}"
+            "Get-Process moonpool -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue;\
+             Start-Sleep -Milliseconds 400;\
+             for($i=0;$i -lt 60;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 500}}}}"
         );
         let mut c = Command::new("powershell");
         c.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
@@ -215,19 +221,63 @@ fn create_shortcut(lnk: &Path, target: &Path) -> Result<(), String> {
         })
 }
 
+/// Today's date as the `yyyyMMdd` string "Installed apps" expects for `InstallDate`.
+/// Done by hand (civil-from-days) rather than pulling in a date crate for one value.
+fn install_date_stamp() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    // Howard Hinnant's civil_from_days, shifted to an era starting 0000-03-01.
+    let z = (secs / 86_400) as i64 + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = era * 400 + yoe + i64::from(month <= 2);
+    format!("{year:04}{month:02}{day:02}")
+}
+
+/// Total size of a directory tree in bytes (best effort; unreadable entries skipped).
+fn dir_size(dir: &Path) -> u64 {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return 0;
+    };
+    entries
+        .flatten()
+        .map(|e| match e.file_type() {
+            Ok(t) if t.is_dir() => dir_size(&e.path()),
+            Ok(_) => e.metadata().map(|m| m.len()).unwrap_or(0),
+            Err(_) => 0,
+        })
+        .sum()
+}
+
 fn register_uninstall(dir: &Path, exe: &Path) -> Result<(), String> {
     let version = env!("CARGO_PKG_VERSION");
     let exe_s = exe.display().to_string();
     let dir_s = dir.display().to_string();
     let uninstall_cmd = format!("\"{exe_s}\" --uninstall");
 
-    let values: [(&str, &str, &str); 8] = [
+    // "Installed apps" shows size and date from these; without them the row lists
+    // blank and sorts oddly under "Date installed". EstimatedSize is in KB.
+    let size_kb = (dir_size(dir) / 1024).max(1).to_string();
+    let install_date = install_date_stamp();
+
+    let values: [(&str, &str, &str); 11] = [
         ("DisplayName", "REG_SZ", APP_NAME),
         ("DisplayVersion", "REG_SZ", version),
         ("Publisher", "REG_SZ", "Justin Keener"),
         ("DisplayIcon", "REG_SZ", &exe_s),
         ("InstallLocation", "REG_SZ", &dir_s),
         ("UninstallString", "REG_SZ", &uninstall_cmd),
+        // Same command: the uninstall is already non-interactive.
+        ("QuietUninstallString", "REG_SZ", &uninstall_cmd),
+        ("EstimatedSize", "REG_DWORD", &size_kb),
+        ("InstallDate", "REG_SZ", &install_date),
         ("NoModify", "REG_DWORD", "1"),
         ("NoRepair", "REG_DWORD", "1"),
     ];
