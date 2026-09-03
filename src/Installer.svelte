@@ -275,6 +275,11 @@
     height: 100vh;
     width: 100vw;
     background: transparent;
+    /* The card is chrome, not a document: a drag-to-move that starts on text would
+       otherwise highlight the heading/copy and read as a broken UI. Inputs and
+       buttons stay interactive; nothing here needs copying. */
+    user-select: none;
+    cursor: default;
   }
   .card {
     position: absolute;
