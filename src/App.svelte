@@ -505,6 +505,14 @@
     iconSrc = {};
     loadAllIcons(true);
   }
+  // F5 or Ctrl/Cmd+R reloads the manifest from disk (same as the menu Reload),
+  // instead of the webview's default page refresh.
+  function handleGlobalKey(e: KeyboardEvent) {
+    if (e.key === "F5" || ((e.ctrlKey || e.metaKey) && (e.key === "r" || e.key === "R"))) {
+      e.preventDefault();
+      handleReload();
+    }
+  }
   async function handleEdit() {
     await openManifest();
   }
@@ -548,6 +556,8 @@
       .map(([port, names]) => ({ port: Number(port), names }));
   });
 </script>
+
+<svelte:window onkeydown={handleGlobalKey} />
 
 <div class="app" class:resizing>
   <Titlebar />
