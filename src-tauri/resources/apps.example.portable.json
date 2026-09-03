@@ -1,0 +1,65 @@
+[
+  {
+    "id": "docs-browser",
+    "name": "Moonpool Docs",
+    "group": "Docs",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
+    "openBrowser": true,
+    "note": "Offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to this bundle's folder, so the tile travels with a zip/USB copy."
+  },
+  {
+    "id": "csv-explorer",
+    "name": "CSV Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/csv/index.html",
+    "openBrowser": true,
+    "note": "Drop-your-data dashboard for CSV/TSV. Auto-profiles any file and renders it; ships differently-shaped sample tabs. Runs offline, no server."
+  },
+  {
+    "id": "json-explorer",
+    "name": "JSON Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/json/index.html",
+    "openBrowser": true,
+    "note": "Drop-your-data dashboard for JSON (arrays, nested objects, or maps; nested keys flattened automatically)."
+  },
+  {
+    "id": "jsonl-explorer",
+    "name": "JSONL Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/jsonl/index.html",
+    "openBrowser": true,
+    "note": "Drop-your-data dashboard for JSONL / NDJSON (one JSON record per line)."
+  },
+  {
+    "id": "yaml-explorer",
+    "name": "YAML Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/yaml/index.html",
+    "openBrowser": true,
+    "note": "Drop-your-data dashboard for YAML, parsed offline with a vendored js-yaml."
+  },
+  {
+    "id": "toml-explorer",
+    "name": "TOML Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/toml/index.html",
+    "openBrowser": true,
+    "note": "Drop-your-data dashboard for TOML, parsed offline with a vendored j-toml."
+  },
+  {
+    "id": "xlsx-explorer",
+    "name": "Excel Explorer",
+    "group": "Dashboards",
+    "type": "static",
+    "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
+    "openBrowser": true,
+    "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
+  }
+]
