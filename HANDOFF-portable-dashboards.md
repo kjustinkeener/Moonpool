@@ -62,12 +62,53 @@ speccing an example-dashboard bundle.
 - Purpose framing: the dashboards are low-key advertising for the user's consulting,
   so polish matters; they must also show real Moonpool usage.
 
-## Open decisions
-- Build order / first-cut dashboard list.
-- Flagship delivery: loopback-token endpoint vs in-app webview view; history-log
-  schema + rotation.
+## BUILT (2026-09-02, commits 7c315d3, 333d6c0)
 
-## Suggested next step
-Pick the first-cut dashboard list + start the shared `dashboards/_lib/` design
-system and one source demo (CSV or XLSX) as the template, plus the history-logging
-groundwork for the flagship.
+Shared library + five "drop your data" explorers, all under
+`src-tauri/resources/examples/dashboards/`, offline, no CDN, no build step.
+
+- `_lib/theme.css` - dark portfolio-grade design system (tokens, KPI tiles, tabs,
+  mapping strip, data table, code pane). `_lib/echarts-theme.js` - matching "moonpool"
+  ECharts theme. `_lib/profile.js` - auto-profiler (type + cardinality ->
+  `MP.suggestMapping`). `_lib/records.js` - `MP.toRecords()` flattens any
+  JSON/YAML/TOML shape to a flat record array. `_lib/explorer.js` -
+  `MP.createExplorer(root, cfg)`: tabs, field-mapping strip (X / measures / group /
+  chart), aggregation, file-load + drag-drop, parsed-table + raw-source panes.
+- `_lib/vendor/`: echarts 5.5.1, papaparse 5.4.1, js-yaml 4.1.0 (global `jsyaml`),
+  j-toml 1.38.0 (global `TOML`, parse with `{bigint:false}`).
+- Demos: `csv/`, `json/`, `jsonl/`, `yaml/`, `toml/index.html`. Each = 4
+  differently-shaped baked sample tabs (analyzer torture test) + bring-your-own-file
+  landing in a "Your data" tab. Distinct landing chart per demo (csv pie/donut, json
+  line, jsonl area, yaml bar, toml scatter).
+- Style rule: NO U+2014 em-dashes anywhere (pre-commit hook blocks); use en-dash.
+- Verify visually by opening any `index.html` directly in a browser (plain file://).
+
+## FLAGSHIP CONTROL PANEL - DROPPED (do not build)
+Decision reversed after a mockup review. From live state it is redundant with the
+sidebar; the only non-redundant version samples real per-process CPU/RAM/latency
+(needs `sysinfo` + a lazy loopback endpoint) and was judged not worth the backend
+cost. History-logging idea abandoned too (user: needless file writes). Mockup was
+built at `dashboards/control-panel/` and REMOVED in 333d6c0. If ever revived: it was
+to be an on-demand (not launch-time) loopback server that also serves the page
+same-origin, started via a `moonpool://control-panel` tile URL, auto-stopping on idle.
+
+## REMAINING (next session)
+1. **XLSX demo** - vendor SheetJS (xlsx, Apache-2.0) inline; `parseFile` via
+   `XLSX.read(arrayBuffer)` -> first sheet -> `sheet_to_json` -> `MP.toRecords`.
+   Mirror the csv demo; 4 differently-shaped baked sheets (embed as base64 or build
+   from JS). Binary file, so read as ArrayBuffer (raw code pane: show a sheet summary,
+   not bytes).
+2. **Markdown docs browser** - the flagship *teaching* dashboard: a self-contained
+   docs browser (vendor a small MD parser, e.g. marked, inline) that renders a folder
+   of `.md`; also hosts Moonpool's own help offline. Different pattern from the
+   explorer (no charts) - likely its own page, not `createExplorer`.
+3. **SQLite (sql.js)** - stretch, heavier (WASM); defer.
+4. **Rust embedding + seed split** (decisions 1-2 in the spec, still valid):
+   embed `examples/dashboards/**` with `include_dir`, write out on first run skipping
+   existing; add `apps.example.portable.json` (dashboards only) and branch on
+   `portable::is_portable()` in `load_manifest` (`src-tauri/src/lib.rs`); installed
+   seed = dashboards + existing teaching placeholders. Then the install/export paths
+   stamp the scaffold (see spec "Install/export paths").
+5. Author `dashboards/README` / attribution footer polish; confirm charts render
+   inside Moonpool's own webview (CSP + the Tauri drag-drop caveat: Load button is
+   primary there).
