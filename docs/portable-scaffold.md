@@ -119,12 +119,36 @@ uptime timeline, launch frequency, port map. Real data (not faked), presented at
 portfolio quality, and simultaneously the clearest possible demo of what the app is
 for. This is the centerpiece; the other dashboards orbit it.
 
-Data plumbing to resolve: how the dashboard gets `state.json` at portfolio richness.
-Options - (a) live-read `{MP_DATA}/state.json` on an interval (needs Moonpool to
-expose it to the webview, since a static file:// page can't read a sibling file
-cross-origin); (b) seed a realistic snapshot + accumulate a small history file over
-runs; (c) a hybrid: live status now + seeded history for the timelines. Pick in the
-build phase; (c) likely gives the best look with the least fakery.
+RESOLVED: the flagship is fed by **real live data** via new lightweight history
+logging in Moonpool - append status/launch/stop/restart/crash events to a small
+rolling history file (in `{MP_DATA}`). That gives a genuine time dimension (uptime
+timelines, launch/restart frequency, crash history) the sidebar can't show, so the
+dashboard is NOT just a reskin of the app list. Plain live `state.json` alone was
+rejected as redundant with the sidebar. Delivery mechanism (localhost endpoint vs
+in-app webview view) to pick in build; a loopback + random-port + per-launch-token
+GET-only endpoint is the leading option (no firewall prompt, no meaningful surface).
+
+## Real-world "drop your data" dashboards (one per source format)
+
+The other dashboards are real-world and useful, not toys: each takes a common data
+file and turns it into a polished dashboard, **one demo per source format**. All are
+self-contained + cross-platform: a `<input type=file>` / drag-drop reads the file
+with `FileReader` (no server, no CORS, offline), an **inline-vendored** parser
+converts it, and ECharts + the shared design system render it. Each ships a baked
+sample (instant wow on open) AND accepts the viewer's own file to re-render live -
+the "point it at your data -> instant dashboard" consulting moment.
+
+One demo per source (parser license in parens - all inline-vendored):
+- **CSV / TSV** - PapaParse (MIT).
+- **JSON** - native.
+- **JSONL / NDJSON** - native (line-split).
+- **YAML** - js-yaml (MIT).
+- **Excel .xlsx** - SheetJS `xlsx` (Apache-2.0).
+- **TOML** - a small inline parser (MIT).
+- **SQLite .db** - sql.js (MIT, WASM) - stretch; heavier.
+- **Markdown** - the docs browser (reused for any docs folder).
+
+Each is genuinely usable on real files, so the bundle sells both polish and utility.
 
 ## Two seed variants (branch on portable flag at first run)
 
@@ -164,9 +188,14 @@ Content split (same static dashboards, different framing):
 2. **Installed seed**: RESOLVED - dashboards + teaching placeholders. Installed seed
    = the static dashboards plus the dev-server / CLI / desktop teaching entries.
 
+3. **Dashboard set**: RESOLVED - two families: (a) the live **Moonpool control-panel
+   flagship** fed by new history logging; (b) one **"drop your data" dashboard per
+   source format** (CSV/TSV, JSON, JSONL, YAML, XLSX, TOML, SQLite stretch) + the
+   Markdown docs browser. All ECharts + shared dark design system under
+   `dashboards/_lib/`, baked sample + bring-your-own-file.
+
 ## Open decisions
 
-3. **Dashboard set**: RESOLVED in approach - polished, ECharts-backed (inline-
-   vendored, Apache-2.0), shared dark design system under `dashboards/_lib/`, rich
-   seeded datasets; Help/Docs browser is the flagship teaching dashboard. Still to
-   pin: the exact list of dashboards to ship first.
+4. **Build order / first-cut list** of dashboards to implement first.
+5. **Flagship delivery**: loopback-token endpoint vs in-app webview view (lean
+   endpoint), and the exact history-log schema/rotation.
