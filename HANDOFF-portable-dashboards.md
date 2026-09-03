@@ -147,17 +147,57 @@ the `url` to the OS default browser. There is NO in-app webview rendering, so th
 earlier "verify under CSP / Tauri drag-drop" worry is MOOT. file:// browser
 verification IS the real target, and is done.
 
+## VERIFIED 2026-09-03: seed/embed path, end to end with a real build
+Built a release exe from the worktree and booted an EMPTY portable bundle (exe +
+`moonpool.portable` flag ONLY). Confirmed on first launch:
+- `dashboards/**` written to `{MP_HOME}` (14 files: `_lib`, `csv`, `json`, `xlsx`,
+  `docs`, `README.md`; the dropped JSONL/YAML/TOML correctly absent).
+- Seeded `moonpool-config/apps.json` is byte-identical to
+  `apps.example.portable.json` - 5 groups (Desktop apps, Web apps, Dashboards,
+  CLI tools, Docs), 3 Sample explorers + Moonpool Docs + 3 placeholder tiles.
+- `%APPDATA%\Moonpool` untouched; all data beside the exe.
+- Skip-existing holds: tampered a seeded file, rebooted, no clobber.
+So the Rust embedding + manifest split is now RUN-verified, not just `cargo check`.
+
+## MENU REWORK 2026-09-03 (commits f489bd5, 20f9de9)
+The `...` menu no longer has a separate portable-copy item. It now has ONE
+**"Install Moonpool…"** entry, shown in BOTH modes, which opens the installer as a
+detached frameless card window (`index.html#installer`, label `installer`, 452x432,
+matching the first-run card).
+- `Installer.svelte` takes an `installed` prop (from `setup_state.installed`). When
+  this copy is already installed the primary button reads "Already installed" and is
+  disabled (checkbox too); the **Install portable** link stays ENABLED, so an
+  installed Moonpool converts to portable from there.
+- Its close ✕ is now context-aware: closes just the detached window when opened from
+  the hub (`hash === "#installer"`), still quits the app on first run.
+- `installer` was added to `windows` in `src-tauri/capabilities/default.json` -
+  WITHOUT this the new window has no invoke access and the card is dead.
+- REMOVED: `src/lib/PortableExport.svelte` and the `exportPortable` / `revealPath`
+  api helpers (now unused). The Rust `export_portable` / `reveal_path` commands are
+  still registered but unused by the frontend.
+
+## UNINSTALL FIX 2026-09-03 (commit 42c0fff)
+`run_uninstall` never actually deleted the install dir. It shelled
+`cmd /c "ping ... & rmdir /s /q "<dir>""`; `cmd /c` strips the outer quotes it is
+handed, unbalancing the quoted path -> "The filename, directory name, or volume
+label syntax is incorrect", and the whole dir (now including the seeded
+`dashboards/` tree) was left behind. Replaced with a detached PowerShell
+`Remove-Item -LiteralPath '<dir>' -Recurse -Force` in a retry loop (40 x 250ms) that
+waits for this exe's own lock to clear. Path is single-quote escaped for PowerShell.
+NOT yet verified end to end (needs an install from a post-fix build, then uninstall).
+
 ## STILL REMAINING (next session)
 3. **SQLite (sql.js)** - DECLINED by user. Do not build.
-- **End-to-end the seed/embed path with a REAL new build**: the Rust embedding +
-  manifest-split is only `cargo check`-verified, never run. Build a release exe
-  (`cd /c/claude-local/MoonPool && npm run tauri build -- --no-bundle`, Git Bash,
-  ~4m) and boot an EMPTY portable bundle (exe + `moonpool.portable` flag only) to
-  confirm first launch writes `dashboards/**` AND seeds the dashboards+placeholder
-  portable manifest. Mock bundle for the non-empty case already exists (see below).
-- **Eyeball the "Create portable copy" modal + installer** in the running hub
-  (`PortableExport.svelte`, `portable.rs`, `Installer.svelte`) - outstanding from
-  the ORIGINAL task, needs the user driving the folder picker.
+- **GUI checks, all needing the user driving the running app** (the user drives
+  visual tests; do not screenshot or synthesize input without asking):
+  1. Installed mode: `...` -> "Install Moonpool…" shows "Already installed"
+     DISABLED, with "Install portable" still enabled.
+  2. Portable mode: same item, install button ENABLED.
+  3. **F5 / Ctrl-R** manifest reload (built in `07adf4e`, never eyeballed): edit
+     `apps.json` externally, press it, tiles re-read with NO webview page refresh.
+  4. Uninstall end to end from a post-fix installed copy - the install dir should
+     vanish completely, dashboards included.
+- Then merge `claude/affectionate-nightingale-d670a3` to main.
 - Optional: reorder is settled; if the installed seed framing ("Bundled example"
   notes) should change, that's cosmetic.
 
@@ -168,6 +208,15 @@ worktree build, PRE-embed-code), `moonpool.portable` flag, `moonpool-config/apps
 `dashboards/**`. Because dashboards already exist there, booting it tests tile
 resolution + rendering only (seeding is skipped). Single-instance caveat: QUIT any
 running installed Moonpool first or the launch routes into it.
-- Also still open from before: the `...` menu "Create portable copy" modal + the
-  installer changes (see "NOT yet verified" above) - need the running hub + user
-  driving the folder picker.
+`…/scratchpad/EmptyPortable/` = the EMPTY-bundle test from 2026-09-03 (exe + flag
+only at first boot), now seeded by that boot. Re-create it from scratch to re-test
+first-run seeding: delete it, then copy in a fresh `moonpool.exe` + an empty
+`moonpool.portable` file and launch.
+`…/scratchpad/config-backup/` = a safety copy of the user's real `apps.json` +
+`settings.json`, taken before the 2026-09-03 uninstall.
+
+## UNINSTALL NOTE (2026-09-03)
+The user's installed copy was uninstalled that day, config deliberately preserved:
+uninstall only touches `%LOCALAPPDATA%\Moonpool` + shortcuts + the HKCU uninstall
+key, never `%APPDATA%\Moonpool`. The install dir had to be removed by hand because
+of the `cmd /c` quoting bug above (now fixed).
