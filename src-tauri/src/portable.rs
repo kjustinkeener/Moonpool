@@ -186,14 +186,16 @@ pub fn establish_portable_at(app: AppHandle, target_dir: String) -> Result<(), S
     };
 
     let exe_to_launch = if same {
-        std::fs::write(src_dir.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
+        std::fs::write(src_dir.join(FLAG_FILE), FLAG_NOTE)
+            .map_err(|e| format!("write flag: {e}"))?;
         let _ = std::fs::create_dir_all(src_dir.join(DATA_SUBDIR));
         src_exe.clone()
     } else {
         let target = PathBuf::from(&target_dir);
         let exe_target = target.join("moonpool.exe");
         std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
-        std::fs::write(target.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
+        std::fs::write(target.join(FLAG_FILE), FLAG_NOTE)
+            .map_err(|e| format!("write flag: {e}"))?;
         std::fs::create_dir_all(target.join(DATA_SUBDIR))
             .map_err(|e| format!("create config dir: {e}"))?;
         exe_target
