@@ -51,6 +51,12 @@ export const openLog = () => invoke<void>("open_log");
 // Open (or focus, if already open) the detached Settings window. It's a real OS
 // window loading the app at #settings, so it floats free of the main window and
 // drags via its own title bar.
+//
+// The size carries deliberate vertical slack. Every label here is translated,
+// and the longer languages wrap lines that sit on one line in English, so the
+// same controls are taller in German or Polish than the layout we look at. The
+// page scrolls if it still overruns, but the slack is what keeps that from
+// being the normal experience in half the languages we ship.
 export async function openSettingsWindow(): Promise<void> {
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
   const existing = await WebviewWindow.getByLabel("settings");
@@ -62,8 +68,10 @@ export async function openSettingsWindow(): Promise<void> {
   const w = new WebviewWindow("settings", {
     url: "index.html#settings",
     title: "Moonpool Settings",
-    width: 460,
-    height: 620,
+    width: 480,
+    height: 700,
+    minWidth: 420,
+    minHeight: 460,
     resizable: true,
     center: true,
     transparent: true,
