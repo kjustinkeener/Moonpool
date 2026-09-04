@@ -9,6 +9,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import wordmark from "./assets/moonpool-wordmark.png";
   import { t } from "./lib/i18n.svelte";
+  import Icon from "./lib/Icon.svelte";
 
   // On first run the installer IS the main window, so closing means quit the app.
   // Opened on demand from the hub it's a detached window - just close that window
@@ -195,7 +196,7 @@
     style={cardStyle}
     data-tauri-drag-region
   >
-    <button class="close" onclick={close} title={t("common.close")} aria-label={t("common.close")}>✕</button>
+    <button class="close" onclick={close} title={t("common.close")} aria-label={t("common.close")}><Icon name="close" size={14} /></button>
     <div class="top">
       <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
       <div
@@ -219,12 +220,12 @@
 
     {#if phase === "done"}
       <div class="state ok">
-        <span class="check">✓</span>
+        <span class="check"><Icon name="check" size={16} /></span>
         {t("installer.installed")}
       </div>
     {:else if phase === "portable"}
       <div class="state ok">
-        <span class="check">✓</span>
+        <span class="check"><Icon name="check" size={16} /></span>
         {t("installer.portableDone")}
       </div>
     {:else if phase === "error"}
@@ -440,10 +441,12 @@
 
   .state { margin-top: 6px; font-size: 14px; }
   .state.ok { color: var(--text-strong); }
+  /* The tick is a block svg now, so the row has to lay it out rather
+     than leaning on the text baseline it used to sit on. */
+  .state.ok { display: flex; align-items: center; gap: 6px; }
   .state.ok .check {
     color: #35c8ff;
-    font-weight: 700;
-    margin-right: 4px;
+    display: flex;
   }
   .state.err { color: var(--danger, #f06a6a); margin-bottom: 12px; }
 

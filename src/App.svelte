@@ -23,6 +23,7 @@
   import { setTheme, type Theme } from "./lib/theme";
   import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
   import type { AppEntry, AppStatus } from "./lib/types";
+  import Icon from "./lib/Icon.svelte";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
   import AppEditor from "./lib/AppEditor.svelte";
@@ -636,7 +637,7 @@
 
           {#if update}
             <div class="update-banner" class:done={updateDone}>
-              <span class="ub-icon">{updateDone ? "✓" : "↑"}</span>
+              <span class="ub-icon"><Icon name={updateDone ? "check" : "arrow-up"} size={15} /></span>
               <span class="ub-text">
                 {#if updateStatus}
                   {updateStatus}
@@ -667,7 +668,7 @@
                 aria-label={t("app.copyPrompt")}
                 onclick={copyPrompt}
               >
-                {promptCopied ? "✓" : "⧉"}
+                <Icon name={promptCopied ? "check" : "copy"} size={14} />
               </button>
             </div>
             <!-- One catalog string, three inline elements. tSplit keeps the
