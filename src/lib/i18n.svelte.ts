@@ -16,12 +16,19 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { en } from "./locales/en";
+import { de } from "./locales/de";
 import { es } from "./locales/es";
 import { fr } from "./locales/fr";
-import { de } from "./locales/de";
-import { ptBR } from "./locales/pt-BR";
+import { it } from "./locales/it";
 import { ja } from "./locales/ja";
+import { ko } from "./locales/ko";
+import { nl } from "./locales/nl";
+import { pl } from "./locales/pl";
+import { ptBR } from "./locales/pt-BR";
+import { ru } from "./locales/ru";
+import { tr } from "./locales/tr";
 import { zhHans } from "./locales/zh-Hans";
+import { zhHant } from "./locales/zh-Hant";
 
 /** One entry per plural form (CLDR categories) instead of a single string. */
 export type Plural = { one?: string; other: string } & Record<string, string | undefined>;
@@ -48,6 +55,11 @@ export type PartialDict = Partial<Dict>;
  * someone who has landed in the wrong language cannot read "Japanese", but can
  * always find "日本語". Never localize this list.
  *
+ * Order is the picker's order: English first (the source catalog), then by tag.
+ * It is also the tie-break for a bare-language match, which takes the first
+ * entry sharing the language - see `REGION_SCRIPT` for where that is not good
+ * enough.
+ *
  * `dir` drives the `dir` attribute on <html>. Every locale here is `ltr` today;
  * the field exists so adding an RTL language is a catalog change plus a CSS
  * pass, not a re-plumbing. See the RTL section of the App-Patterns doc.
@@ -56,22 +68,36 @@ export type LocaleMeta = { id: string; label: string; dir: "ltr" | "rtl" };
 
 export const LOCALES: LocaleMeta[] = [
   { id: "en", label: "English", dir: "ltr" },
+  { id: "de", label: "Deutsch", dir: "ltr" },
   { id: "es", label: "Español", dir: "ltr" },
   { id: "fr", label: "Français", dir: "ltr" },
-  { id: "de", label: "Deutsch", dir: "ltr" },
-  { id: "pt-BR", label: "Português (Brasil)", dir: "ltr" },
+  { id: "it", label: "Italiano", dir: "ltr" },
   { id: "ja", label: "日本語", dir: "ltr" },
+  { id: "ko", label: "한국어", dir: "ltr" },
+  { id: "nl", label: "Nederlands", dir: "ltr" },
+  { id: "pl", label: "Polski", dir: "ltr" },
+  { id: "pt-BR", label: "Português (Brasil)", dir: "ltr" },
+  { id: "ru", label: "Русский", dir: "ltr" },
+  { id: "tr", label: "Türkçe", dir: "ltr" },
   { id: "zh-Hans", label: "简体中文", dir: "ltr" },
+  { id: "zh-Hant", label: "繁體中文", dir: "ltr" },
 ];
 
 const CATALOGS: Record<string, PartialDict> = {
   en,
+  de,
   es,
   fr,
-  de,
-  "pt-BR": ptBR,
+  it,
   ja,
+  ko,
+  nl,
+  pl,
+  "pt-BR": ptBR,
+  ru,
+  tr,
   "zh-Hans": zhHans,
+  "zh-Hant": zhHant,
 };
 
 // Catalogs are imported statically rather than `import()`ed per locale. The
@@ -92,13 +118,30 @@ export const localeChoice = () => choice;
 export const activeLocale = () => active;
 
 /**
+ * Regions whose language is shipped under a script tag, not a region tag.
+ *
+ * Windows reports Taiwan as `zh-TW`, never `zh-Hant`. Without this, pass 2
+ * strips it to `zh` and hands a Taiwanese user Simplified Chinese - a fallback
+ * that is technically "the right language" and still wrong. Anything not listed
+ * falls through to the ordinary bare-language pass.
+ */
+const REGION_SCRIPT: Record<string, string> = {
+  "zh-tw": "zh-Hant",
+  "zh-hk": "zh-Hant",
+  "zh-mo": "zh-Hant",
+  "zh-cn": "zh-Hans",
+  "zh-sg": "zh-Hans",
+};
+
+/**
  * Best shipped locale for a list of user-preferred tags (most preferred first).
  *
- * Two passes on purpose: an exact regional match wins over a bare-language one,
+ * Three passes on purpose: an exact regional match wins over a bare-language one,
  * so a `pt-BR` user gets `pt-BR` and not whichever `pt-*` catalog happens to sit
- * first in `LOCALES`. Matching is case-insensitive because the OS and the
- * browser disagree about the casing of script and region subtags ("zh-hans"
- * from one, "zh-Hans" from the other).
+ * first in `LOCALES`. Then known region-to-script aliases, then bare language.
+ * Matching is case-insensitive because the OS and the browser disagree about the
+ * casing of script and region subtags ("zh-hans" from one, "zh-Hans" from the
+ * other).
  */
 export function resolveLocale(preferred: readonly string[]): string {
   const ids = LOCALES.map((l) => l.id);
@@ -107,6 +150,10 @@ export function resolveLocale(preferred: readonly string[]): string {
     const w = want.toLowerCase();
     const exact = lower.get(w);
     if (exact) return exact;
+  }
+  for (const want of preferred) {
+    const alias = REGION_SCRIPT[want.toLowerCase()];
+    if (alias && CATALOGS[alias]) return alias;
   }
   for (const want of preferred) {
     const base = want.toLowerCase().split("-")[0];
