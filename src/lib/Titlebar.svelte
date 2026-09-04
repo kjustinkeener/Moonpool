@@ -2,6 +2,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import wordmark from "../assets/moonpool-wordmark.png";
   import { t } from "./i18n.svelte";
+  import Icon from "./Icon.svelte";
 
   const win = getCurrentWindow();
   let maximized = $state(false);
@@ -27,9 +28,7 @@
   <img class="wordmark" src={wordmark} alt="moonpool" draggable="false" />
   <div class="controls">
     <button class="ctl" title={t("titlebar.minimize")} aria-label={t("titlebar.minimize")} onclick={minimize}>
-      <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-        <path d="M2 6h8" stroke="currentColor" stroke-width="1.2" />
-      </svg>
+      <Icon name="minimize" size={11} width={2.4} />
     </button>
     <button
       class="ctl"
@@ -38,32 +37,13 @@
       onclick={toggleMax}
     >
       {#if maximized}
-        <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-          <path
-            d="M3.5 3.5V2.5h6v6h-1M2.5 4.5h6v6h-6z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.1"
-          />
-        </svg>
+        <Icon name="restore" size={11} width={2.2} />
       {:else}
-        <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-          <rect
-            x="2.5"
-            y="2.5"
-            width="7"
-            height="7"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.1"
-          />
-        </svg>
+        <Icon name="maximize" size={11} width={2.2} />
       {/if}
     </button>
     <button class="ctl close" title={t("common.close")} aria-label={t("common.close")} onclick={close}>
-      <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-        <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.2" />
-      </svg>
+      <Icon name="close" size={11} width={2.4} />
     </button>
   </div>
 </div>

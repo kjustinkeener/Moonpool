@@ -182,7 +182,7 @@
 <aside class="sidebar">
   <div class="search">
     <div class="menu-wrap">
-      <button class="menu-btn" title={t("sidebar.menu")} onclick={() => (menuOpen = !menuOpen)}>⋯</button>
+      <button class="menu-btn" title={t("sidebar.menu")} onclick={() => (menuOpen = !menuOpen)}><Icon name="more-horizontal" size={16} /></button>
       {#if menuOpen}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="menu-backdrop" role="presentation" onclick={() => (menuOpen = false)}></div>
@@ -218,16 +218,7 @@
         aria-label={updateWaiting ? t("sidebar.updateShowCli") : t("sidebar.showCli")}
         onclick={() => onExpandCli?.()}
       >
-        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
-          <path
-            d="M9 6l6 6-6 6"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
+        <Icon name="chevron-right" size={15} width={2.5} />
       </button>
     {/if}
   </div>
@@ -410,8 +401,9 @@
     border-radius: 6px;
     width: 30px;
     height: 30px;
-    font-size: 16px;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
   }
   .menu-btn:hover {
