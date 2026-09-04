@@ -20,10 +20,12 @@ export type SharedIconName =
   | "lock"
   | "maximize"
   | "maximize-round"
+  | "minimize"
   | "more-horizontal"
   | "more-vertical"
   | "plus"
   | "refresh"
+  | "restore"
   | "save"
   | "search"
   | "sliders"
@@ -74,6 +76,9 @@ export const SHARED_PATHS: Record<SharedIconName, string> = {
   // MusicPlayer, src/App.svelte
   "maximize-round":
     `<rect x="4.8" y="4.8" width="14.4" height="14.4" rx="2" />`,
+  // MoonPool, src/lib/Titlebar.svelte
+  "minimize":
+    `<path d="M4 12h16" />`,
   // more-vertical, turned
   "more-horizontal":
     `<circle cy="12" cx="5" r="1.6" fill="currentColor" stroke="none" /><circle cy="12" cx="12" r="1.6" fill="currentColor" stroke="none" /><circle cy="12" cx="19" r="1.6" fill="currentColor" stroke="none" />`,
@@ -86,6 +91,9 @@ export const SHARED_PATHS: Record<SharedIconName, string> = {
   // MoonPool, src/lib/Icon.svelte
   "refresh":
     `<path d="M21 12a9 9 0 1 1-2.64-6.36L21 8" /><path d="M21 3v5h-5" />`,
+  // MoonPool, src/lib/Titlebar.svelte
+  "restore":
+    `<path d="M7 7V5h12v12h-2M5 9h12v12h-12z" />`,
   // FasterDB, FasterDBApp/src/App.svelte
   "save":
     `<path d="M4.8 3.75h11.4L20.25 7.8v12.45a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V5.25a1.5 1.5 0 0 1 1.05-1.5z" /><path d="M8.25 3.75v5.25h6.75V3.75" /><path d="M7.5 21v-6.75h9V21" />`,

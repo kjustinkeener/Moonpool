@@ -199,7 +199,8 @@
             <!-- formatList, not a hard-coded " and ": the separator and the
                  final conjunction differ per language. -->
             <div class="menu-warn" title={t("sidebar.portConflict", { names: formatList(c.names), port: c.port })}>
-              ⚠ {t("sidebar.portConflictBadge", { port: c.port, names: c.names.join(" / ") })}
+              <Icon name="info" size={13} />
+              <span>{t("sidebar.portConflictBadge", { port: c.port, names: c.names.join(" / ") })}</span>
             </div>
           {/each}
         </div>
@@ -466,6 +467,11 @@
     color: var(--on-accent);
   }
   .menu-warn {
+    /* The icon carries no severity of its own: no app in the set draws a
+       warning, so this is the advisory glyph and the colour does the work. */
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
     font-size: 11px;
     color: var(--warning);
     padding: 6px 10px 2px;
