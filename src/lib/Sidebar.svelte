@@ -2,6 +2,7 @@
   import type { AppEntry, AppStatus, AppType } from "./types";
   import { flip } from "svelte/animate";
   import { scrollFade } from "./scrollfade";
+  import Icon from "./Icon.svelte";
   import { openInstallerWindow } from "./api";
   import { t, formatList } from "./i18n.svelte";
 
@@ -186,13 +187,13 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div class="menu-backdrop" role="presentation" onclick={() => (menuOpen = false)}></div>
         <div class="menu">
-          <button onclick={() => pick(onAdd)}><span class="mi">＋</span>{t("sidebar.addApp")}</button>
-          <button onclick={() => pick(onEditFile)}><span class="mi">✎</span>{t("sidebar.editJson")}</button>
-          <button onclick={() => pick(onReload)}><span class="mi">↻</span>{t("common.reload")}</button>
-          <button onclick={() => pick(onSettings)}><span class="mi">⚙</span>{t("common.settings")}</button>
-          <button onclick={() => pick(onAbout)}><span class="mi">ⓘ</span>{t("common.about")}</button>
+          <button onclick={() => pick(onAdd)}><span class="mi"><Icon name="plus" /></span>{t("sidebar.addApp")}</button>
+          <button onclick={() => pick(onEditFile)}><span class="mi"><Icon name="pencil" /></span>{t("sidebar.editJson")}</button>
+          <button onclick={() => pick(onReload)}><span class="mi"><Icon name="refresh" /></span>{t("common.reload")}</button>
+          <button onclick={() => pick(onSettings)}><span class="mi"><Icon name="sliders" /></span>{t("common.settings")}</button>
+          <button onclick={() => pick(onAbout)}><span class="mi"><Icon name="info" /></span>{t("common.about")}</button>
           <button onclick={() => pick(openInstallerWindow)}>
-            <span class="mi">🖥</span>{t("sidebar.installMoonpool")}
+            <span class="mi"><Icon name="monitor" /></span>{t("sidebar.installMoonpool")}
           </button>
           {#each clashes as c (c.port)}
             <!-- formatList, not a hard-coded " and ": the separator and the
@@ -422,12 +423,21 @@
     inset: 0;
     z-index: 40;
   }
+  /* The menu is absolutely positioned inside `.menu-wrap`, which is only as wide
+     as the 30px button, so shrink-to-fit would otherwise wrap every label to
+     min-content. `width: max-content` sizes it to the longest row instead and
+     lets it overhang the button, which is what a dropdown should do anyway. It
+     matters more in translation: "Install Moonpool" is two words in English and
+     considerably longer in German and Polish. `max-width` keeps a long label
+     from running off the window, and only then is wrapping allowed. */
   .menu {
     position: absolute;
     top: 34px;
     left: 0;
     z-index: 41;
+    width: max-content;
     min-width: 160px;
+    max-width: min(320px, calc(100vw - 24px));
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -450,10 +460,10 @@
   }
   .menu .mi {
     display: inline-flex;
+    align-items: center;
     justify-content: center;
     width: 16px;
     flex: none;
-    font-size: 13px;
     color: var(--text-muted);
   }
   .menu button:hover .mi {
