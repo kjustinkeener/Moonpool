@@ -31,7 +31,8 @@ export type SharedIconName =
   | "sliders"
   | "target"
   | "trash-empty"
-  | "user-star";
+  | "user-star"
+  | "warning";
 
 export const SHARED_PATHS: Record<SharedIconName, string> = {
   // MogStudio, src/lib/components/Icon.svelte
@@ -112,4 +113,7 @@ export const SHARED_PATHS: Record<SharedIconName, string> = {
   // MusicPlayer, public/icons.svg
   "user-star":
     `<path d="M15 8a5 5 0 1 0-10 0 5 5 0 0 0 10 0" /><path d="M3 20a7 7 0 0 1 10.5-6.06m4.6 0.57 0.62 1.24c0.08 0.17 0.31 0.34 0.5 0.37l1.12 0.19c0.72 0.12 0.88 0.64 0.37 1.16l-0.87 0.88a0.77 0.77 0 0 0-0.18 0.64l0.25 1.08c0.2 0.86-0.26 1.19-1.01 0.74l-1.05-0.62a0.76 0.76 0 0 0-0.69 0l-1.05 0.62c-0.75 0.45-1.2 0.11-1.01-0.74l0.25-1.08a0.77 0.77 0 0 0-0.18-0.64l-0.87-0.87c-0.51-0.52-0.35-1.04 0.37-1.16l1.12-0.19a0.77 0.77 0 0 0 0.49-0.37l0.62-1.24c0.34-0.67 0.88-0.67 1.21 0" />`,
+  // drawn for the set
+  "warning":
+    `<path d="M12 4L21.5 19.5H2.5Z" /><path d="M12 9.5v4.5" /><path d="M12 17.5v0" />`,
 };
