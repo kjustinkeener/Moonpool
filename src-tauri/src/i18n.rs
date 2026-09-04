@@ -25,9 +25,16 @@ pub struct TrayStrings {
 /// OS-language resolution and normalized the casing - see `resolveLocale` in
 /// `src/lib/i18n.svelte.ts`. The bare-language prefix arm catches regional tags
 /// we don't enumerate ("pt-PT" -> the "pt" arm's strings).
+///
+/// Full-tag arms must sit above the bare-language arm that would swallow them:
+/// "zh-Hant" has to be matched before the "zh" arm, or Taiwan gets Simplified.
 pub fn tray_strings(locale: &str) -> TrayStrings {
     let base = locale.split('-').next().unwrap_or("en");
     match (locale, base) {
+        (_, "de") => TrayStrings {
+            show: "Moonpool anzeigen",
+            quit: "Beenden",
+        },
         (_, "es") => TrayStrings {
             show: "Mostrar Moonpool",
             quit: "Salir",
@@ -36,17 +43,41 @@ pub fn tray_strings(locale: &str) -> TrayStrings {
             show: "Afficher Moonpool",
             quit: "Quitter",
         },
-        (_, "de") => TrayStrings {
-            show: "Moonpool anzeigen",
-            quit: "Beenden",
+        (_, "it") => TrayStrings {
+            show: "Mostra Moonpool",
+            quit: "Esci",
+        },
+        (_, "ja") => TrayStrings {
+            show: "Moonpool を表示",
+            quit: "終了",
+        },
+        (_, "ko") => TrayStrings {
+            show: "Moonpool 표시",
+            quit: "종료",
+        },
+        (_, "nl") => TrayStrings {
+            show: "Moonpool tonen",
+            quit: "Afsluiten",
+        },
+        (_, "pl") => TrayStrings {
+            show: "Pokaż Moonpool",
+            quit: "Zakończ",
         },
         (_, "pt") => TrayStrings {
             show: "Mostrar o Moonpool",
             quit: "Sair",
         },
-        (_, "ja") => TrayStrings {
-            show: "Moonpool を表示",
-            quit: "終了",
+        (_, "ru") => TrayStrings {
+            show: "Показать Moonpool",
+            quit: "Выход",
+        },
+        (_, "tr") => TrayStrings {
+            show: "Moonpool'u göster",
+            quit: "Çıkış",
+        },
+        ("zh-Hant", _) => TrayStrings {
+            show: "顯示 Moonpool",
+            quit: "結束",
         },
         (_, "zh") => TrayStrings {
             show: "显示 Moonpool",
