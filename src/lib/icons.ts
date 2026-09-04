@@ -7,6 +7,7 @@
 // error rather than an invisible icon.
 export type SharedIconName =
   | "bullseye"
+  | "chevron-left"
   | "chevron-right"
   | "clock"
   | "close"
@@ -34,6 +35,9 @@ export const SHARED_PATHS: Record<SharedIconName, string> = {
   // MogStudio, src/lib/components/Icon.svelte
   "bullseye":
     `<circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" />`,
+  // chevron-right, mirrored
+  "chevron-left":
+    `<path d="M15 6l-6 6l6 6" />`,
   // MoonPool, src/lib/Sidebar.svelte
   "chevron-right":
     `<path d="M9 6l6 6-6 6" />`,
