@@ -15,11 +15,6 @@
     "arrow-up": `<path d="M12 19V5" /><path d="m5 12 7-7 7 7" />`,
     // MogStudio, src/lib/components/Icon.svelte
     check: `<path d="M20 6 9 17l-5-5" />`,
-    // MoonPool's own titlebar, doubled off its 12 grid onto this one. Only
-    // this app draws its own window controls, so they stay here. `maximize`
-    // and `close` came the other way and live in the shared set.
-    minimize: `<path d="M4 12h16" />`,
-    restore: `<path d="M7 7V5h12v12h-2M5 9h12v12H5z" />`,
     // MoonPool's own, from the set this file replaced.
     monitor: `<path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M8 21h8" /><path d="M12 17v4" />`,
     // MoonPool's own, from the set this file replaced.
