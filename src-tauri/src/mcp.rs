@@ -56,15 +56,11 @@ fn read_state() -> Option<Value> {
 fn hub_running() -> bool {
     use sysinfo::{ProcessRefreshKind, RefreshKind, System};
     let me = std::process::id();
-    let sys = System::new_with_specifics(
-        RefreshKind::new().with_processes(ProcessRefreshKind::new()),
-    );
-    sys.processes().iter().any(|(pid, p)| {
-        pid.as_u32() != me
-            && p.name()
-                .to_ascii_lowercase()
-                .starts_with("moonpool")
-    })
+    let sys =
+        System::new_with_specifics(RefreshKind::new().with_processes(ProcessRefreshKind::new()));
+    sys.processes()
+        .iter()
+        .any(|(pid, p)| pid.as_u32() != me && p.name().to_ascii_lowercase().starts_with("moonpool"))
 }
 
 // ---------------------------------------------------------------------------
@@ -100,7 +96,9 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     cmd.arg("--ticket").arg(&ticket);
     // The forwarding process exits immediately; wait for it so a spawn failure
     // surfaces here rather than as a mysterious timeout.
-    let status = cmd.status().map_err(|e| format!("cannot run Moonpool: {e}"))?;
+    let status = cmd
+        .status()
+        .map_err(|e| format!("cannot run Moonpool: {e}"))?;
     if !status.success() {
         return Err(format!("Moonpool exited with {status}"));
     }
@@ -149,7 +147,10 @@ fn list_apps() -> Result<String, String> {
         "no state.json - Moonpool has not run on this machine (or is too old)".to_string()
     })?;
     let empty = vec![];
-    let apps = state.get("apps").and_then(Value::as_array).unwrap_or(&empty);
+    let apps = state
+        .get("apps")
+        .and_then(Value::as_array)
+        .unwrap_or(&empty);
     let statuses = state
         .get("statuses")
         .and_then(Value::as_array)
@@ -175,7 +176,11 @@ fn list_apps() -> Result<String, String> {
         out.push_str(&format!(
             "{id}  [{}]{}  {name}\n",
             if running { "running" } else { "stopped" },
-            if managed { " (managed by Moonpool)" } else { "" },
+            if managed {
+                " (managed by Moonpool)"
+            } else {
+                ""
+            },
         ));
     }
     out.push_str(&format!(

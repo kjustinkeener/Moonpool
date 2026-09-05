@@ -964,7 +964,11 @@ fn launch_app(
     }
 
     // A fresh run starts a fresh log so `dump` never mixes two runs' output.
-    state.term_logs.lock().unwrap().insert(id.clone(), Vec::new());
+    state
+        .term_logs
+        .lock()
+        .unwrap()
+        .insert(id.clone(), Vec::new());
 
     log_line(&app, &format!("launch {id}: {command} (cwd {cwd})"));
 
