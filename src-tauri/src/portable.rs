@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 /// Flag file that, sitting next to the exe, switches Moonpool into portable mode.
 pub const FLAG_FILE: &str = "moonpool.portable";
@@ -68,14 +68,27 @@ pub fn mp_home() -> Option<PathBuf> {
     }
 }
 
-/// The data/config root (`{MP_DATA}`), mode-aware:
+/// The data/config root (`{MP_DATA}`), mode-aware. Handle-free so both the hub and
+/// the `mcp` subcommand (which never builds a Tauri app) resolve it identically:
 /// - portable:  `{exe dir}\moonpool-config`
-/// - installed: `%APPDATA%\Moonpool` (Roaming), unchanged from before portable mode.
-pub fn data_dir(app: &AppHandle) -> Option<PathBuf> {
+/// - installed: `%APPDATA%\Moonpool` (Roaming) on Windows; `$XDG_CONFIG_HOME/Moonpool`
+///   else `$HOME/.config/Moonpool` elsewhere. This matches what Tauri's
+///   `config_dir()` returns, so it is byte-identical to the prior AppHandle path.
+pub fn data_dir() -> Option<PathBuf> {
     if is_portable() {
-        exe_dir().map(|d| d.join(DATA_SUBDIR))
-    } else {
-        app.path().config_dir().ok().map(|d| d.join("Moonpool"))
+        return exe_dir().map(|d| d.join(DATA_SUBDIR));
+    }
+    #[cfg(windows)]
+    {
+        std::env::var_os("APPDATA").map(|d| PathBuf::from(d).join("Moonpool"))
+    }
+    #[cfg(not(windows))]
+    {
+        let base = std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .filter(|p| !p.as_os_str().is_empty())
+            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
+        Some(base.join("Moonpool"))
     }
 }
 
@@ -93,7 +106,7 @@ pub fn webview_data_dir() -> Option<PathBuf> {
 
 /// Replace `{MP_HOME}` / `{MP_DATA}` tokens in a raw string with their resolved paths.
 /// Tokens work in all modes; unresolved tokens (no home/data dir) are left as-is.
-pub fn resolve_tokens(raw: &str, app: &AppHandle) -> String {
+pub fn resolve_tokens(raw: &str, _app: &AppHandle) -> String {
     let mut out = raw.to_string();
     if out.contains("{MP_HOME}") {
         if let Some(h) = mp_home() {
@@ -101,7 +114,7 @@ pub fn resolve_tokens(raw: &str, app: &AppHandle) -> String {
         }
     }
     if out.contains("{MP_DATA}") {
-        if let Some(d) = data_dir(app) {
+        if let Some(d) = data_dir() {
             out = out.replace("{MP_DATA}", &d.to_string_lossy());
         }
     }
@@ -136,13 +149,13 @@ pub struct PortableState {
 
 /// Report portable mode + the resolved anchors to the frontend.
 #[tauri::command]
-pub fn portable_state(app: AppHandle) -> PortableState {
+pub fn portable_state() -> PortableState {
     PortableState {
         portable: is_portable(),
         mp_home: mp_home()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default(),
-        mp_data: data_dir(&app)
+        mp_data: data_dir()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_default(),
     }
@@ -215,7 +228,7 @@ pub fn establish_portable_at(app: AppHandle, target_dir: String) -> Result<(), S
 /// copy boots fresh (its first launch seeds the example manifest). The current
 /// install is never touched. Returns the new exe's path.
 #[tauri::command]
-pub fn export_portable(app: AppHandle, target_dir: String, clone: bool) -> Result<String, String> {
+pub fn export_portable(_app: AppHandle, target_dir: String, clone: bool) -> Result<String, String> {
     let target = PathBuf::from(&target_dir);
     if !target.is_dir() {
         return Err("target folder does not exist".into());
@@ -235,7 +248,7 @@ pub fn export_portable(app: AppHandle, target_dir: String, clone: bool) -> Resul
     std::fs::create_dir_all(&cfg).map_err(|e| format!("create config dir: {e}"))?;
 
     if clone {
-        if let Some(src_cfg) = data_dir(&app) {
+        if let Some(src_cfg) = data_dir() {
             // Durable config only; skip runtime/cache files (state.json, logs, webview)
             // that shouldn't travel with the bundle.
             for name in ["apps.json", "settings.json", "AI-README.md"] {

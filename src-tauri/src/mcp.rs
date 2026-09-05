@@ -40,25 +40,8 @@ const DEFAULT_TAIL: usize = 200;
 // Paths and the resident instance
 // ---------------------------------------------------------------------------
 
-/// Moonpool's config directory, resolved WITHOUT an `AppHandle` (we never build a
-/// Tauri app in this process). Mirrors `portable::data_dir`: beside the exe in a
-/// portable bundle, `%APPDATA%\Moonpool` when installed.
-fn data_dir() -> Option<PathBuf> {
-    if crate::portable::is_portable() {
-        return crate::portable::exe_dir().map(|d| d.join("moonpool-config"));
-    }
-    #[cfg(windows)]
-    {
-        std::env::var_os("APPDATA").map(|d| PathBuf::from(d).join("Moonpool"))
-    }
-    #[cfg(not(windows))]
-    {
-        std::env::var_os("HOME").map(|d| PathBuf::from(d).join(".config").join("Moonpool"))
-    }
-}
-
 fn state_path() -> Option<PathBuf> {
-    data_dir().map(|d| d.join("state.json"))
+    crate::portable::data_dir().map(|d| d.join("state.json"))
 }
 
 fn read_state() -> Option<Value> {
@@ -229,6 +212,45 @@ fn dump(id: &str, tail: usize) -> Result<String, String> {
     Ok(out)
 }
 
+/// Full paths the MCP process itself resolves. Paired with the hub's own report
+/// (via `control("paths")`) so a divergence - the MCP reading one apps.json while
+/// the resident hub launches from another - is visible at a glance.
+fn mcp_paths_report() -> String {
+    let dir = crate::portable::data_dir();
+    let show = |p: Option<PathBuf>| {
+        p.map(|d| d.display().to_string())
+            .unwrap_or_else(|| "<unresolved>".into())
+    };
+    let sub = |name: &str| show(dir.clone().map(|d| d.join(name)));
+    format!(
+        "mcp config dir: {}\n\
+         mcp apps.json:  {}\n\
+         mcp state.json: {}\n\
+         mcp dumps dir:  {}\n\
+         mcp portable:   {}\n\
+         mcp exe:        {}",
+        show(dir.clone()),
+        sub("apps.json"),
+        sub("state.json"),
+        sub("dumps"),
+        crate::portable::is_portable(),
+        std::env::current_exe()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| "<unknown>".into()),
+    )
+}
+
+/// Report every path both the hub and this MCP process use. The hub's list is the
+/// authoritative one (it owns launching); the MCP's is shown for comparison.
+fn paths_report() -> Result<String, String> {
+    let mcp = mcp_paths_report();
+    let hub = match control("paths", &[]) {
+        Ok(d) => d,
+        Err(e) => format!("hub paths unavailable: {e}"),
+    };
+    Ok(format!("{hub}\n\n{mcp}"))
+}
+
 // ---------------------------------------------------------------------------
 // Tool surface
 // ---------------------------------------------------------------------------
@@ -296,6 +318,11 @@ fn tool_list() -> Value {
             "name": "moonpool_show",
             "description": "Bring the Moonpool window to the front (it lives in the tray).",
             "inputSchema": no_args_schema()
+        },
+        {
+            "name": "moonpool_paths",
+            "description": "Report the full filesystem paths Moonpool is using - config dir, apps.json, state.json, log, dumps - for BOTH the resident hub (the authoritative one that launches apps) and this MCP process. Use it when an edit to apps.json is not taking effect, to confirm which file the hub actually reads.",
+            "inputSchema": no_args_schema()
         }
     ])
 }
@@ -335,6 +362,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
             dump(&id()?, tail)
         }
         "moonpool_reload" => control("reload", &[]).map(|_| "apps.json reloaded".into()),
+        "moonpool_paths" => paths_report(),
         "moonpool_refresh_icons" => control("refresh-icons", &[]).map(|_| "icons refreshed".into()),
         // `show` is answered by the window itself and writes no ticket, so there is
         // nothing to wait for.
