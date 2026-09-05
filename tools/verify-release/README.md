@@ -23,7 +23,7 @@ this one too, or the check proves nothing.
 Git Bash, from the repo root:
 
 ```bash
-cd /c/claude-local/MoonPool/tools/verify-release && gh release download vX.Y.Z -p moonpool.exe -p update.json -D ./rel && cargo run --release -- ./rel
+cd tools/verify-release && gh release download vX.Y.Z -p moonpool.exe -p update.json -D ./rel && cargo run --release -- ./rel
 ```
 
 Expected output:
