@@ -1,8 +1,9 @@
 # Create a Desktop shortcut "Moonpool (dev)" that launches tools\dev-run.ps1.
-# Matches the shortcut convention used by the other local apps.
+# Matches the shortcut convention used by the other local apps. This is for
+# working from a source checkout; installing a release is the app's own job.
 $ErrorActionPreference = 'Stop'
 
-$root = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $devRun = Join-Path $root 'tools\dev-run.ps1'
 $iconPng = Join-Path $root 'src-tauri\icons\icon.ico'
 

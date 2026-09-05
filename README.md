@@ -69,10 +69,6 @@ Prebuilt installers are published on the
 Moonpool ships an auto-updater: once installed, it checks the Releases feed and can update
 itself in place.
 
-> **Note:** `install.ps1` in this repo is **not** an end-user installer. It creates a Desktop
-> shortcut named "Moonpool (dev)" that runs `tools/dev-run.ps1` (the dev server), so it is a
-> convenience for contributors working from a source checkout, not a way to install a release.
-
 ## Configuring your apps
 
 Moonpool reads a user-editable manifest from your config directory:
