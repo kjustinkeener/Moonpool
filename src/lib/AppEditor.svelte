@@ -11,12 +11,19 @@
     onSave,
     onDelete,
     onClose,
+    // When true, render as bare content for a detached OS window (no Modal
+    // overlay); the hosting window supplies the frame, padding and scroll.
+    windowed = false,
+    // Lets a hosting window guard its close button against unsaved changes.
+    onDirty,
   }: {
     entry: AppEntry | null;
     groups: string[];
     onSave: (e: AppEntry, originalId?: string) => void;
     onDelete: (id: string) => void;
     onClose: () => void;
+    windowed?: boolean;
+    onDirty?: (dirty: boolean) => void;
   } = $props();
 
   // Snapshot the prop once; this editor is remounted per open, so capturing the
@@ -129,6 +136,8 @@
   // through Modal's onClose so overlay-click / Escape also get the confirm.
   const initialJson = JSON.stringify(f);
   let dirty = $derived(JSON.stringify(f) !== initialJson);
+  // Report dirty state to a hosting window so its close button can confirm.
+  $effect(() => onDirty?.(dirty));
   function maybeClose() {
     if (dirty && !confirm(t("editor.discardChanges"))) return;
     onClose();
@@ -163,7 +172,7 @@
   }
 </script>
 
-<Modal onClose={maybeClose} width="560px">
+{#snippet body()}
     <h2>{isNew ? t("editor.addApp") : t("editor.editApp")}</h2>
 
     <div class="grid">
@@ -220,7 +229,17 @@
       <button class="btn" onclick={maybeClose}>{t("common.cancel")}</button>
       <button class="btn primary" onclick={save}>{t("common.save")}</button>
     </div>
-</Modal>
+{/snippet}
+
+<svelte:window onkeydown={(e) => windowed && e.key === "Escape" && maybeClose()} />
+
+{#if windowed}
+  {@render body()}
+{:else}
+  <Modal onClose={maybeClose} width="560px">
+    {@render body()}
+  </Modal>
+{/if}
 
 <style>
   h2 {

@@ -108,6 +108,34 @@ export async function openAboutWindow(): Promise<void> {
   w.once("tauri://error", (e) => console.error("about window", e));
 }
 
+// Open the detached app-editor window (loads the app at #editor, or
+// #editor:<id> to edit an existing app). A real OS window so the form has room
+// regardless of how narrow the hub is. Any open editor is replaced, so the
+// window always reflects the app just clicked.
+export async function openEditorWindow(id?: string): Promise<void> {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const existing = await WebviewWindow.getByLabel("editor");
+  if (existing) {
+    await existing.close().catch(() => {});
+    // Give the label a moment to free up before recreating it.
+    await new Promise((r) => setTimeout(r, 60));
+  }
+  const hash = id ? `#editor:${encodeURIComponent(id)}` : "#editor";
+  const w = new WebviewWindow("editor", {
+    url: `index.html${hash}`,
+    title: id ? "Edit app" : "Add app",
+    width: 600,
+    height: 660,
+    minWidth: 480,
+    minHeight: 420,
+    resizable: true,
+    center: true,
+    transparent: true,
+    alwaysOnTop: await alwaysOnTopNow(),
+  });
+  w.once("tauri://error", (e) => console.error("editor window", e));
+}
+
 // Open (or focus) the installer as a detached, frameless card window (loads the
 // app at #installer). Available in both modes: from a portable Moonpool it can
 // install onto this PC; from an installed one that action is disabled but the
