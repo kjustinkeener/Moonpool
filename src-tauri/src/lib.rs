@@ -114,6 +114,11 @@ struct Settings {
     /// Keep the hub (and its detached windows) above other windows.
     #[serde(default, rename = "alwaysOnTop")]
     always_on_top: bool,
+    /// UI zoom factor set by Ctrl+wheel, 0.5 to 3.0. View state rather than a
+    /// settings field: there is no control for it, it just has to survive a
+    /// restart alongside the rest of the config.
+    #[serde(default = "default_ui_scale", rename = "uiScale")]
+    ui_scale: f64,
     /// UI language. The user's *choice*: "auto" follows the OS, otherwise a tag
     /// from `LOCALES` in `src/lib/i18n.svelte.ts` ("en", "pt-BR", ...).
     #[serde(default = "default_locale", rename = "locale")]
@@ -131,6 +136,9 @@ fn default_true() -> bool {
 fn default_transparency() -> u8 {
     0
 }
+fn default_ui_scale() -> f64 {
+    1.0
+}
 fn default_locale() -> String {
     "auto".into()
 }
@@ -147,6 +155,7 @@ impl Default for Settings {
             check_on_startup: true,
             transparency: default_transparency(),
             always_on_top: false,
+            ui_scale: default_ui_scale(),
             locale: default_locale(),
             locale_resolved: default_locale_resolved(),
         }
@@ -677,6 +686,18 @@ fn set_transparency(value: u8, app: AppHandle, state: State<HubState>) -> Result
     let s = {
         let mut g = state.settings.lock().unwrap();
         g.transparency = value.min(90);
+        g.clone()
+    };
+    save_settings(&app, &s)
+}
+
+/// Persist the Ctrl+wheel zoom factor. Clamped here as well as in the webview,
+/// since the value is read back at launch and applied without further checking.
+#[tauri::command]
+fn set_ui_scale(scale: f64, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    let s = {
+        let mut g = state.settings.lock().unwrap();
+        g.ui_scale = scale.clamp(0.5, 3.0);
         g.clone()
     };
     save_settings(&app, &s)
@@ -1666,6 +1687,7 @@ pub fn run() {
             set_always_on_top,
             set_locale,
             set_transparency,
+            set_ui_scale,
             open_log,
             launch_app,
             term_input,

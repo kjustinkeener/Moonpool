@@ -11,6 +11,7 @@
     saveManifest,
     appIcon,
     getSettings,
+    setUiScale,
     onControl,
     reportOutcome,
     openSettingsWindow,
@@ -108,6 +109,48 @@
   function applyTransparency(pct: number) {
     const alpha = Math.max(0.1, 1 - Math.min(90, Math.max(0, pct)) / 100);
     document.documentElement.style.setProperty("--app-alpha", String(alpha));
+  }
+
+  // Ctrl+wheel zooms the UI and grows the window by the same factor, so the
+  // layout stays as tight at 2x as at 1x. Scaling only the CSS would make a
+  // fixed window show less of the app, which is not what "bigger" means here.
+  let uiScale = 1;
+  let saveScaleTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function applyZoom(scale: number) {
+    uiScale = scale;
+    document.documentElement.style.zoom = String(scale);
+  }
+
+  async function zoomBy(factor: number) {
+    // Clamp first: taking the ratio from the clamped value is what stops the
+    // window growing after the CSS scale has hit its limit.
+    const next = Math.min(3, Math.max(0.5, uiScale * factor));
+    const ratio = next / uiScale;
+    if (ratio === 1) return;
+    applyZoom(next);
+    try {
+      const win = getCurrentWindow();
+      const sf = await win.scaleFactor();
+      const cur = (await win.innerSize()).toLogical(sf);
+      await win.setSize(new LogicalSize(cur.width * ratio, cur.height * ratio));
+    } catch {
+      // Resize unavailable; the UI still scales.
+    }
+    // One wheel spin is ~10 events, so coalesce them into a single write.
+    clearTimeout(saveScaleTimer);
+    saveScaleTimer = setTimeout(() => setUiScale(uiScale).catch(() => {}), 400);
+  }
+
+  // Registered non-passively: Chromium makes wheel listeners on window passive
+  // by default, and a passive preventDefault is silently ignored, so the view
+  // would scroll underneath the zoom.
+  function onWheel(e: WheelEvent) {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    // Multiplicative steps, so the same number of notches back lands exactly
+    // where you started and the step feels the same at 0.5 as at 3.
+    zoomBy(e.deltaY < 0 ? 1.1 : 1 / 1.1);
   }
 
   async function copyPrompt() {
@@ -309,6 +352,7 @@
     cliVisible = localStorage.getItem("moonpool.cliVisible") !== "0";
     revealCliIfRoom();
     window.addEventListener("resize", revealCliIfRoom);
+    window.addEventListener("wheel", onWheel, { passive: false });
 
     try {
       lastStarted = JSON.parse(localStorage.getItem("moonpool.lastStarted") ?? "{}");
@@ -320,6 +364,9 @@
     getSettings()
       .then((s) => {
         applyTransparency(s.transparency ?? 0);
+        // Scale only. The saved window size is already the zoomed size, so
+        // re-applying the ratio to the window would compound it every launch.
+        applyZoom(s.uiScale ?? 1);
         if (s.checkOnStartup) return updateCheck();
         return null;
       })
@@ -431,6 +478,8 @@
     unlistenTheme?.();
     unlistenLocale?.();
     window.removeEventListener("resize", revealCliIfRoom);
+    window.removeEventListener("wheel", onWheel);
+    clearTimeout(saveScaleTimer);
     // Clear any outstanding timers so they can't fire and set $state after unmount.
     for (const id of Object.keys(pendingTimers)) clearTimeout(pendingTimers[id]);
     for (const arr of Object.values(highlightTimers)) arr.forEach(clearTimeout);

@@ -23,6 +23,8 @@ export interface Settings {
   checkOnStartup: boolean;
   transparency: number;
   alwaysOnTop: boolean;
+  /** Ctrl+wheel zoom factor, 0.5 to 3.0. No settings control; view state. */
+  uiScale: number;
   /** UI language: "auto" or a tag from LOCALES in i18n.svelte.ts. */
   locale: string;
 }
@@ -37,6 +39,8 @@ export const setCheckOnStartup = (enabled: boolean) =>
   invoke<void>("set_check_on_startup", { enabled });
 export const setTransparency = (value: number) =>
   invoke<void>("set_transparency", { value });
+export const setUiScale = (scale: number) =>
+  invoke<void>("set_ui_scale", { scale });
 export const setAlwaysOnTop = (enabled: boolean) =>
   invoke<void>("set_always_on_top", { enabled });
 
