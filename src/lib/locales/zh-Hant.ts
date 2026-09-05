@@ -153,4 +153,6 @@ export const zhHant: PartialDict = {
   "editor.nameRequired": "name 為必填欄位。",
 
   "term.processExited": "[處理程序已結束]",
+  "term.copyAll": "全部複製",
+  "term.copied": "已複製",
 };

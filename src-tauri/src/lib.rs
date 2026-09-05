@@ -192,6 +192,10 @@ struct HubState {
     /// Last status snapshot the poller computed, so an out-of-band state.json
     /// flush (after a ticket update) still writes accurate running/managed flags.
     last_statuses: Mutex<Vec<AppStatus>>,
+    /// Recent PTY output per app id, capped at MAX_TERM_LOG bytes each. Kept in
+    /// Rust (not just the WebView) so the `dump` control command can write an
+    /// app's console output to a file, including after the app has exited.
+    term_logs: Mutex<HashMap<String, Vec<u8>>>,
     /// Last non-degenerate physical window size (w, h). Used to re-assert a sane
     /// size when a Win+D restore of the borderless window brings it back as the
     /// ~215x26 minimized-placeholder sliver.
@@ -200,6 +204,10 @@ struct HubState {
 
 /// Cap on retained ticket records (oldest dropped first).
 const MAX_TICKETS: usize = 50;
+
+/// Per-app cap on the retained PTY output ring (bytes). Enough for a long build
+/// log without letting a chatty app grow memory without bound.
+const MAX_TERM_LOG: usize = 512 * 1024;
 
 // ---------------------------------------------------------------------------
 // Commands
@@ -953,6 +961,9 @@ fn launch_app(
         }
     }
 
+    // A fresh run starts a fresh log so `dump` never mixes two runs' output.
+    state.term_logs.lock().unwrap().insert(id.clone(), Vec::new());
+
     log_line(&app, &format!("launch {id}: {command} (cwd {cwd})"));
 
     // Reader thread: pump PTY bytes to the frontend until EOF/stop, then clean up.
@@ -968,6 +979,16 @@ fn launch_app(
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
+                    if let Some(state) = app2.try_state::<HubState>() {
+                        let mut logs = state.term_logs.lock().unwrap();
+                        let buf_for_id = logs.entry(id2.clone()).or_default();
+                        buf_for_id.extend_from_slice(&buf[..n]);
+                        // Trim from the front so the ring keeps the newest output.
+                        if buf_for_id.len() > MAX_TERM_LOG {
+                            let cut = buf_for_id.len() - MAX_TERM_LOG;
+                            buf_for_id.drain(0..cut);
+                        }
+                    }
                     let _ = app2.emit(
                         "term://output",
                         TermOutput {
@@ -1233,6 +1254,17 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         show_main(app);
         return;
     }
+    // `dump` is answered entirely here: the output ring lives in Rust, so there is
+    // no need to round-trip through the UI. Writes the app's recent console output
+    // to a file and reports the path back through the ticket detail.
+    if action == "dump" {
+        let (status, detail) = dump_term_log(app, arg.as_deref(), &positional);
+        log_line(app, &format!("control: dump -> {status}: {detail}"));
+        if let Some(t) = &ticket {
+            record_ticket(app, t, &action, arg.clone(), status, Some(detail));
+        }
+        return;
+    }
     if !matches!(
         action.as_str(),
         "launch" | "stop" | "restart" | "reload" | "refresh-icons"
@@ -1273,6 +1305,99 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
             ticket,
         },
     );
+}
+
+/// Strip ANSI/VT escape sequences so a dumped log reads as plain text. Handles
+/// CSI (`ESC [ ... final`), OSC (`ESC ] ... BEL or ST`) and short two-byte
+/// escapes; anything else is passed through.
+fn strip_ansi(bytes: &[u8]) -> String {
+    let text = String::from_utf8_lossy(bytes);
+    let src: Vec<char> = text.chars().collect();
+    let mut out = String::with_capacity(src.len());
+    let mut i = 0;
+    while i < src.len() {
+        if src[i] != '\u{1b}' {
+            // Drop carriage returns: the PTY pairs one with every newline, and
+            // progress redraws would otherwise leave garbled overwritten lines.
+            if src[i] != '\r' {
+                out.push(src[i]);
+            }
+            i += 1;
+            continue;
+        }
+        match src.get(i + 1) {
+            Some('[') => {
+                i += 2;
+                while i < src.len() && !matches!(src[i], '@'..='~') {
+                    i += 1;
+                }
+                i += 1;
+            }
+            Some(']') => {
+                i += 2;
+                while i < src.len() {
+                    if src[i] == '\u{7}' {
+                        i += 1;
+                        break;
+                    }
+                    if src[i] == '\u{1b}' && src.get(i + 1) == Some(&'\\') {
+                        i += 2;
+                        break;
+                    }
+                    i += 1;
+                }
+            }
+            Some(_) => i += 2,
+            None => i += 1,
+        }
+    }
+    out
+}
+
+/// Back the `dump <app-id> [out-path]` control command: write the retained PTY
+/// output for `id` to a file and return (status, detail) for the ticket. Default
+/// destination is `<moonpool_dir>/dumps/<id>.log`.
+fn dump_term_log(app: &AppHandle, id: Option<&str>, positional: &[&str]) -> (&'static str, String) {
+    let Some(id) = id else {
+        return ("error", "dump needs an app id".into());
+    };
+    let Some(bytes) = app
+        .try_state::<HubState>()
+        .and_then(|s| s.term_logs.lock().unwrap().get(id).cloned())
+    else {
+        return (
+            "error",
+            format!("no console output recorded for '{id}' (not launched this session)"),
+        );
+    };
+    let text = strip_ansi(&bytes);
+    let path = match positional.get(2) {
+        Some(p) => PathBuf::from(p),
+        None => {
+            let Some(dir) = moonpool_dir(app).map(|d| d.join("dumps")) else {
+                return ("error", "no config directory".into());
+            };
+            if let Err(e) = std::fs::create_dir_all(&dir) {
+                return ("error", format!("cannot create {}: {e}", dir.display()));
+            }
+            // Keep the file name filesystem-safe whatever the id looks like.
+            let safe: String = id
+                .chars()
+                .map(|c| {
+                    if c.is_alphanumeric() || c == '-' || c == '_' {
+                        c
+                    } else {
+                        '_'
+                    }
+                })
+                .collect();
+            dir.join(format!("{safe}.log"))
+        }
+    };
+    match std::fs::write(&path, &text) {
+        Ok(()) => ("ok", path.display().to_string()),
+        Err(e) => ("error", format!("cannot write {}: {e}", path.display())),
+    }
 }
 
 /// Milliseconds since the Unix epoch (0 if the clock is somehow before it).
@@ -1496,6 +1621,7 @@ pub fn run() {
             settings: Mutex::new(Settings::default()),
             tickets: Mutex::new(Vec::new()),
             last_statuses: Mutex::new(Vec::new()),
+            term_logs: Mutex::new(HashMap::new()),
             last_good_size: Mutex::new(None),
         })
         .setup(|app| {

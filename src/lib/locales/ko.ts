@@ -156,4 +156,6 @@ export const ko: PartialDict = {
   "editor.nameRequired": "name은 필수입니다.",
 
   "term.processExited": "[프로세스가 종료됨]",
+  "term.copyAll": "모두 복사",
+  "term.copied": "복사됨",
 };

@@ -156,4 +156,6 @@ export const ja: PartialDict = {
   "editor.nameRequired": "name は必須です。",
 
   "term.processExited": "[プロセスが終了しました]",
+  "term.copyAll": "すべてコピー",
+  "term.copied": "コピーしました",
 };

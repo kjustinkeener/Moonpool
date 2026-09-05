@@ -153,4 +153,6 @@ export const zhHans: PartialDict = {
   "editor.nameRequired": "name 为必填项。",
 
   "term.processExited": "[进程已退出]",
+  "term.copyAll": "全部复制",
+  "term.copied": "已复制",
 };

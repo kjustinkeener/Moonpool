@@ -8,6 +8,7 @@
   import { scrollFade } from "./scrollfade";
   import { ansiFor } from "./ansi";
   import { t } from "./i18n.svelte";
+  import Icon from "./Icon.svelte";
   import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
   import { type UnlistenFn } from "@tauri-apps/api/event";
 
@@ -24,6 +25,24 @@
   let lastCols = 0;
   let lastRows = 0;
   let unsubTheme: (() => void) | null = null;
+  // Brief tick on the floating copy button so the click has visible feedback.
+  let copied = $state(false);
+  let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Copy the entire scrollback. selectAll() then getSelection() is the only way
+  // to read xterm's buffer as text with its line-wrapping resolved.
+  async function copyAll() {
+    if (!term) return;
+    const had = term.getSelection();
+    term.selectAll();
+    const all = term.getSelection();
+    term.clearSelection();
+    if (!all.trim() && !had) return;
+    await writeText(all.replace(/\s+$/, "") + "\n").catch(() => {});
+    copied = true;
+    if (copiedTimer) clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied = false), 1200);
+  }
 
   // xterm has no access to CSS variables, so read the themed fg from :root.
   // xterm's OWN background is fully transparent; the single translucent tint
@@ -91,23 +110,41 @@
 
     // Linux-style clipboard: copy on select (fires on mouse release), then deselect;
     // middle-click pastes.
-    el.addEventListener("mouseup", onMouseUp);
+    //
+    // The mouseup listener is on `window`, not on `el`: dragging a selection to the
+    // edge (e.g. selecting the whole terminal) usually releases the button outside
+    // the terminal box, and an element-scoped listener never fires then - the
+    // selection stayed uncopied. Window scope catches the release wherever it lands;
+    // we only act when the drag STARTED inside this terminal.
+    let dragging = false;
+    function onMouseDown(e: MouseEvent) {
+      if (e.button === 0) dragging = true;
+    }
+    el.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
 
     async function onMouseUp(e: MouseEvent) {
       if (e.button === 1) {
-        // Middle click -> paste.
+        // Middle click -> paste. Only when it happened over this terminal.
+        if (!el.contains(e.target as Node)) return;
         e.preventDefault();
         const text = await readText().catch(() => "");
         if (text) termInput(id, text);
         return;
       }
+      const startedHere = dragging;
+      dragging = false;
+      if (!startedHere && !el.contains(e.target as Node)) return;
       const sel = term.getSelection();
       if (sel) {
         await writeText(sel).catch(() => {});
         term.clearSelection();
       }
     }
-    cleanupMouse = () => el.removeEventListener("mouseup", onMouseUp);
+    cleanupMouse = () => {
+      el.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
 
     unlistenOut = await onTermOutput((o) => {
       if (o.id !== id) return;
@@ -141,6 +178,7 @@
 
   onDestroy(() => {
     ro?.disconnect();
+    if (copiedTimer) clearTimeout(copiedTimer);
     if (fitTimer) clearTimeout(fitTimer);
     unsubTheme?.();
     cleanupMouse?.();
@@ -150,9 +188,50 @@
   });
 </script>
 
-<div class="term" bind:this={el} use:scrollFade style:display={active ? "block" : "none"}></div>
+<div class="term-wrap" style:display={active ? "block" : "none"}>
+  <div class="term" bind:this={el} use:scrollFade></div>
+  <button class="copy-all" onclick={copyAll} title={copied ? t("term.copied") : t("term.copyAll")} aria-label={t("term.copyAll")}>
+    <Icon name={copied ? "check" : "copy"} size={14} />
+  </button>
+</div>
 
 <style>
+  .term-wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Floating over the terminal's top-right corner, inside the scrollbar gutter's
+     left edge so it never covers the bar. Faint until the terminal is hovered. */
+  .copy-all {
+    position: absolute;
+    top: 6px;
+    right: 16px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    color: var(--text-dim, var(--text));
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+  .term-wrap:hover .copy-all,
+  .copy-all:focus-visible {
+    opacity: 0.75;
+  }
+  .copy-all:hover {
+    opacity: 1;
+    color: var(--text);
+    border-color: var(--border-strong, var(--border));
+  }
+
   .term {
     width: 100%;
     height: 100%;
