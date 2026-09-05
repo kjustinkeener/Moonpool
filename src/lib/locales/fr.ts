@@ -162,4 +162,6 @@ export const fr: PartialDict = {
   "editor.nameRequired": "le nom est obligatoire.",
 
   "term.processExited": "[processus terminé]",
+  "term.copyAll": "Tout copier",
+  "term.copied": "Copié",
 };

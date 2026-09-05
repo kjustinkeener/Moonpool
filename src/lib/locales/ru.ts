@@ -164,4 +164,6 @@ export const ru: PartialDict = {
   "editor.nameRequired": "укажите название.",
 
   "term.processExited": "[процесс завершён]",
+  "term.copyAll": "Копировать всё",
+  "term.copied": "Скопировано",
 };

@@ -205,4 +205,6 @@ export const en = {
 
   // -- terminal -------------------------------------------------------------
   "term.processExited": "[process exited]",
+  "term.copyAll": "Copy all",
+  "term.copied": "Copied",
 } as const;

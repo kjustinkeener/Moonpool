@@ -99,12 +99,19 @@ Then run it with a command word:
 & $mp reload               # re-read apps.json
 & $mp refresh-icons        # re-pull every icon
 & $mp show                 # bring the window to the front
+& $mp dump <app-id>        # write that app's console output to a file
 ```
 
 `<app-id>` is the `id` field from `apps.json`. `restart` is the managed stop-then-relaunch
 (it waits for the port/process to free before relaunching - prefer it over a manual stop +
 launch). These only work while Moonpool is running; if it isn't, start it first (or a bare run
 just opens it).
+
+`dump` writes the app's recent terminal output (ANSI stripped, last ~512 KB, the current
+run only) to `%APPDATA%\Moonpool\dumps\<app-id>.log`, or to a path you pass as a third
+argument: `& $mp dump my-app C:	mp\out.log`. Read that file to see what an app printed
+without opening the window. Tag it with `--ticket` and the ticket's `detail` is the file
+path it wrote (or why it couldn't - e.g. the app hasn't been launched this session).
 
 **This channel needs Moonpool v0.1.4 or newer.** If running a command opens a NEW window
 instead of handing off to the open one, the running build is older - update Moonpool first.

@@ -163,4 +163,6 @@ export const tr: PartialDict = {
   "editor.nameRequired": "ad zorunludur.",
 
   "term.processExited": "[süreç sona erdi]",
+  "term.copyAll": "Tümünü kopyala",
+  "term.copied": "Kopyalandı",
 };
