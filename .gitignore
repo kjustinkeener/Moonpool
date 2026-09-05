@@ -13,3 +13,6 @@ src-tauri/gen/schemas/
 *.log
 .DS_Store
 node_modules/.tmp/
+
+# Release-verify download dir (tools/verify-release, gh release download -D ./rel)
+rel/
