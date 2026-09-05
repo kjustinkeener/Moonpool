@@ -235,7 +235,8 @@ const AI_README: &str = include_str!("../../AI-README.md");
 /// Moonpool's config directory. Installed: `%APPDATA%\Moonpool`. Portable:
 /// `{exe dir}\moonpool-config` (see `portable`), so all data travels with the folder.
 fn moonpool_dir(app: &AppHandle) -> Option<PathBuf> {
-    portable::data_dir(app)
+    let _ = app;
+    portable::data_dir()
 }
 
 /// Location of the user-editable manifest: <config>/Moonpool/apps.json.
@@ -1266,6 +1267,19 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         }
         return;
     }
+    // `paths` is answered entirely here, like `dump`: report every filesystem
+    // location the *hub* process resolves (config dir, apps.json, state.json, log,
+    // dumps, icons) plus whether it is portable and which exe is running. Lets an
+    // agent confirm exactly which apps.json this resident instance reads, instead
+    // of guessing when an edit "doesn't take".
+    if action == "paths" {
+        let detail = hub_paths_report(app);
+        log_line(app, "control: paths");
+        if let Some(t) = &ticket {
+            record_ticket(app, t, &action, None, "ok", Some(detail));
+        }
+        return;
+    }
     if !matches!(
         action.as_str(),
         "launch" | "stop" | "restart" | "reload" | "refresh-icons"
@@ -1436,6 +1450,39 @@ fn write_state(app: &AppHandle) {
 
 /// Insert or update a ticket record, then flush state.json so a poller on the
 /// caller's side sees the change within one read rather than waiting ~2s.
+/// A newline-separated list of every filesystem path the resident (hub) process
+/// resolves. Answered by the `paths` control command so an agent can confirm which
+/// apps.json this instance actually reads/writes - the MCP `moonpool_paths` tool
+/// pairs this with the paths the MCP process resolves so a mismatch is obvious.
+fn hub_paths_report(app: &AppHandle) -> String {
+    let dir = moonpool_dir(app);
+    let show = |p: Option<PathBuf>| {
+        p.map(|d| d.display().to_string())
+            .unwrap_or_else(|| "<unresolved>".into())
+    };
+    let sub = |name: &str| show(dir.clone().map(|d| d.join(name)));
+    format!(
+        "hub config dir: {}\n\
+         hub apps.json:  {}\n\
+         hub state.json: {}\n\
+         hub log:        {}\n\
+         hub dumps dir:  {}\n\
+         hub icons dir:  {}\n\
+         hub portable:   {}\n\
+         hub exe:        {}",
+        show(dir.clone()),
+        sub("apps.json"),
+        sub("state.json"),
+        sub("moonpool.log"),
+        sub("dumps"),
+        sub("icons"),
+        portable::is_portable(),
+        std::env::current_exe()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| "<unknown>".into()),
+    )
+}
+
 fn record_ticket(
     app: &AppHandle,
     ticket: &str,
