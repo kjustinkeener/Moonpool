@@ -16,6 +16,7 @@
     reportOutcome,
     openSettingsWindow,
     openAboutWindow,
+    openEditorWindow,
     updateCheck,
     updateApply,
     type UpdateInfo,
@@ -27,7 +28,6 @@
   import Icon from "./lib/Icon.svelte";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
-  import AppEditor from "./lib/AppEditor.svelte";
   import Titlebar from "./lib/Titlebar.svelte";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -47,6 +47,9 @@
   let unlistenTransparency: UnlistenFn | null = null;
   let unlistenTheme: UnlistenFn | null = null;
   let unlistenLocale: UnlistenFn | null = null;
+  // Save/delete pushed from the detached app-editor window.
+  let unlistenEditorSave: UnlistenFn | null = null;
+  let unlistenEditorDelete: UnlistenFn | null = null;
 
   // Resolved app icons (data URI or url), fetched from the backend.
   let iconSrc = $state<Record<string, string>>({});
@@ -60,9 +63,7 @@
     for (const a of apps) loadIcon(a.id, refresh);
   }
 
-  // Modals + AI quickstart.
-  let showEditor = $state(false);
-  let editingEntry = $state<AppEntry | null>(null);
+  // AI quickstart.
   let cfgDir = $state("");
   // Join filenames onto the OS-native config dir with the right separator
   // (the backend returns a Windows path with `\`, a POSIX path with `/`).
@@ -92,7 +93,6 @@
     }
   }
 
-  let groupNames = $derived([...new Set(apps.map((a) => a.group))]);
   let aiPrompt = $derived(
     `You are setting up Moonpool, a local app launcher. First read the config guide at:\n` +
       `  ${cfgDir}${cfgSep}AI-README.md\n` +
@@ -160,12 +160,10 @@
   }
 
   function openAdd() {
-    editingEntry = null;
-    showEditor = true;
+    openEditorWindow();
   }
   function openEdit(app: AppEntry) {
-    editingEntry = app;
-    showEditor = true;
+    openEditorWindow(app.id);
   }
   async function handleEditorSave(entry: AppEntry, originalId?: string) {
     let next = [...apps];
@@ -185,13 +183,11 @@
     apps = next;
     await saveManifest(next);
     loadIcon(entry.id);
-    showEditor = false;
   }
   async function handleEditorDelete(id: string) {
     const next = apps.filter((a) => a.id !== id);
     apps = next;
     await saveManifest(next);
-    showEditor = false;
   }
 
   // Right-click menu actions from the sidebar.
@@ -387,6 +383,17 @@
     );
     unlistenLocale = await watchLocale();
 
+    // The detached editor window persists nothing itself; it emits the edited
+    // entry back here so the hub keeps ownership of the merge/dedup and refresh.
+    unlistenEditorSave = await listen<{ entry: AppEntry; originalId?: string }>(
+      "editor://save",
+      (e) => handleEditorSave(e.payload.entry, e.payload.originalId),
+    );
+    unlistenEditorDelete = await listen<{ id: string }>(
+      "editor://delete",
+      (e) => handleEditorDelete(e.payload.id),
+    );
+
     apps = await getApps();
     loadAllIcons(true);
     manifestDir()
@@ -477,6 +484,8 @@
     unlistenTransparency?.();
     unlistenTheme?.();
     unlistenLocale?.();
+    unlistenEditorSave?.();
+    unlistenEditorDelete?.();
     window.removeEventListener("resize", revealCliIfRoom);
     window.removeEventListener("wheel", onWheel);
     clearTimeout(saveScaleTimer);
@@ -736,15 +745,6 @@
   </main>
   </div>
 
-  {#if showEditor}
-    <AppEditor
-      entry={editingEntry}
-      groups={groupNames}
-      onSave={handleEditorSave}
-      onDelete={handleEditorDelete}
-      onClose={() => (showEditor = false)}
-    />
-  {/if}
 </div>
 
 <style>

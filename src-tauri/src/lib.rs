@@ -647,7 +647,7 @@ fn set_check_on_startup(
 /// detached Settings/About windows stay in the same z-band as the hub; otherwise
 /// turning the setting on sinks the Settings window (the one you're using) behind
 /// the hub, where it's hard to move or close.
-const ALL_WINDOWS: [&str; 4] = ["main", "settings", "about", "installer"];
+const ALL_WINDOWS: [&str; 5] = ["main", "settings", "about", "installer", "editor"];
 
 fn apply_always_on_top(app: &AppHandle, on: bool) {
     for label in ALL_WINDOWS {
