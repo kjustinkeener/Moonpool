@@ -30,6 +30,7 @@ use tauri_plugin_opener::OpenerExt;
 mod dashboards;
 mod i18n;
 mod install;
+mod mcp;
 mod platform;
 mod portable;
 mod update;
@@ -1565,6 +1566,15 @@ fn build_tray(app: &AppHandle, locale: &str) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // MCP server entry point (`moonpool.exe mcp`, run by an agent client over
+    // stdio). Must come before the Tauri builder: the single-instance plugin would
+    // otherwise forward this argv to the resident window and exit, leaving the
+    // client talking to a process that is gone.
+    if std::env::args().nth(1).as_deref() == Some("mcp") {
+        mcp::serve();
+        return;
+    }
+
     // Uninstall entry point (Add/Remove Programs calls `moonpool.exe --uninstall`).
     // Handled before any window/tray so it's a clean, headless teardown.
     if std::env::args().any(|a| a == "--uninstall") {

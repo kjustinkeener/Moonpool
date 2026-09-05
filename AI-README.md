@@ -117,6 +117,28 @@ path it wrote (or why it couldn't - e.g. the app hasn't been launched this sessi
 instead of handing off to the open one, the running build is older - update Moonpool first.
 A quick check: if `state.json` (below) is MISSING, the running build predates this channel.
 
+### Driving Moonpool over MCP (recommended for agents)
+
+Everything below can be done with tool calls instead of shelling out: Moonpool's own exe
+is an MCP server over stdio.
+
+```json
+{
+  "mcpServers": {
+    "moonpool": { "type": "stdio", "command": "C:\path\to\moonpool.exe", "args": ["mcp"] }
+  }
+}
+```
+
+Tools: `moonpool_list`, `moonpool_launch`, `moonpool_stop`, `moonpool_restart`,
+`moonpool_dump` (returns the terminal output as text, `tail_lines` to bound it),
+`moonpool_reload`, `moonpool_refresh_icons`, `moonpool_show`.
+
+The server is a *client* of the resident tray instance, using the same channel described
+below - it fires the command with a ticket and waits for the outcome, so each tool call
+returns success or the actual error instead of leaving you to poll a file. Moonpool must
+already be running; the server does not start it.
+
 ### Checking what's running
 
 Moonpool continuously writes a status snapshot to:

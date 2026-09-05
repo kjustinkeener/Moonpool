@@ -53,7 +53,7 @@ Linux system tray needs `libayatana-appindicator` installed.
 - **Stays in the tray.** Closing the window hides to the tray; left-click the tray icon to
   reopen, tray menu -> Quit to exit.
 - **Linux-style terminal clipboard**: select to copy (then deselect), middle-click to paste.
-- **Command-line remote control.** With Moonpool running, `Moonpool.exe launch|stop|restart|reload|refresh-icons|show|dump <app-id>` drives the resident window (a script or AI agent can start/stop your apps), and a live `state.json` in the config folder reports what's running. Tag a command with `--ticket <key>` to read its success/failure back from `state.json`, and `dump <app-id>` writes that app's console output to a file. See [`AI-README.md`](AI-README.md).
+- **Command-line remote control.** With Moonpool running, `Moonpool.exe launch|stop|restart|reload|refresh-icons|show|dump <app-id>` drives the resident window (a script or AI agent can start/stop your apps), and a live `state.json` in the config folder reports what's running. Tag a command with `--ticket <key>` to read its success/failure back from `state.json`, and `dump <app-id>` writes that app's console output to a file. Moonpool is also its own MCP server (`moonpool.exe mcp`), so an agent can list, launch, restart and read the console output of your apps as tool calls. See [`AI-README.md`](AI-README.md).
 
 ## Install
 
