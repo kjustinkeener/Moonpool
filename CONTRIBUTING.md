@@ -14,13 +14,6 @@ npm run tauri dev      # run the app in dev mode
 npm run tauri build    # produce release bundles under src-tauri/target/release/bundle/
 ```
 
-On Windows you can also use `tools/dev-run.ps1`, which kills a stale instance, rebuilds the full
-PATH, frees the Vite port, then runs `tauri dev`:
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools\dev-run.ps1
-```
-
 ## What CI checks
 
 Every push and pull request runs the [CI workflow](.github/workflows/ci.yml) on Windows, Ubuntu,

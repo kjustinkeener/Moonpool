@@ -133,12 +133,6 @@ npm install
 npm run tauri dev
 ```
 
-Or use the Windows launcher script (kills a stale instance, rebuilds PATH, then runs dev):
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools\dev-run.ps1
-```
-
 `npm run tauri build` produces the bundled release artifacts under
 `src-tauri/target/release/bundle/` (`.msi`/`.exe` on Windows, `.deb`/`.AppImage` on Linux).
 

@@ -1028,7 +1028,7 @@ fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
 
     // Kill the PTY subtree we own. child.kill() ends cmd.exe, but the launch
     // scripts spawn deep trees (cmd -> pwsh -> npm -> node/cargo -> app), so
-    // tree-kill the whole subtree by PID the way dev-run.ps1 does.
+    // tree-kill the whole subtree by PID.
     if let Some(mut a) = state.apps.lock().unwrap().remove(&id) {
         a.stop.store(true, Ordering::Relaxed);
         let pid = a.child.process_id();
