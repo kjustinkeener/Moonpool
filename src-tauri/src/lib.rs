@@ -1545,7 +1545,9 @@ fn show_main(app: &AppHandle) {
         // sliver (~215x26), showing it would bring back that sliver. Re-assert the
         // last good size so Show always restores a usable window.
         if let Ok(sz) = win.inner_size() {
-            if sz.width < 300 || sz.height < 300 {
+            // Height-only: the sliver is short (~26px). A narrow but full-height
+            // window (CLI pane collapsed to the sidebar) is a valid state to show.
+            if sz.height < 300 {
                 let last = app
                     .try_state::<HubState>()
                     .and_then(|s| *s.last_good_size.lock().unwrap());
@@ -1827,14 +1829,19 @@ pub fn run() {
                                 ),
                             );
                             // Re-assert the last good size so the live window doesn't
-                            // stay collapsed as the sliver (covers minimize-to-tray on
-                            // and off). Harmless if the window is currently hidden.
-                            let last = window
-                                .app_handle()
-                                .try_state::<HubState>()
-                                .and_then(|s| *s.last_good_size.lock().unwrap());
-                            if let Some((w, h)) = last {
-                                let _ = window.set_size(tauri::PhysicalSize::new(w, h));
+                            // stay collapsed as the minimize sliver. Gate this on a
+                            // degenerate HEIGHT only: the sliver is ~215x26 (short),
+                            // whereas collapsing the CLI pane leaves a deliberately
+                            // narrow but full-height window - that one is legitimate
+                            // and must not be snapped back open.
+                            if sz.height < MIN_SAVE_H {
+                                let last = window
+                                    .app_handle()
+                                    .try_state::<HubState>()
+                                    .and_then(|s| *s.last_good_size.lock().unwrap());
+                                if let Some((w, h)) = last {
+                                    let _ = window.set_size(tauri::PhysicalSize::new(w, h));
+                                }
                             }
                         } else {
                             // Remember this as the last good size so the tray "show"
