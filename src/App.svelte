@@ -289,17 +289,24 @@
   // Width the main/CLI pane had before it was collapsed, restored on re-open.
   let savedMainWidth = 700;
 
+  // While a programmatic collapse is shrinking the window, `resize` events fire
+  // carrying intermediate (still-wide) widths. Ignore reveal-on-resize until the
+  // shrink settles, or a transient wide frame re-reveals the pane we just hid.
+  let collapseGuardUntil = 0;
+
   async function collapseCli() {
     if (!cliVisible) return;
     const win = getCurrentWindow();
     const innerH = window.innerHeight;
     savedMainWidth = Math.max(300, window.innerWidth - sidebarWidth - RESIZER_W);
     cliVisible = false;
+    collapseGuardUntil = Date.now() + 500;
     localStorage.setItem("moonpool.cliVisible", "0");
     localStorage.setItem("moonpool.savedMainWidth", String(savedMainWidth));
     try {
       await win.setSize(new LogicalSize(sidebarWidth, innerH));
     } catch {}
+    collapseGuardUntil = Date.now() + 300;
   }
 
   async function expandCli() {
@@ -325,7 +332,7 @@
   // extra space is filled instead of left as a blank hole. No setSize here - the
   // window already has the width; we just fill it.
   function revealCliIfRoom() {
-    if (cliVisible) return;
+    if (cliVisible || Date.now() < collapseGuardUntil) return;
     const room = window.innerWidth - sidebarWidth - RESIZER_W;
     if (room >= MIN_MAIN_SHOW) {
       cliVisible = true;
