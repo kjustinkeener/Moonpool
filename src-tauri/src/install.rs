@@ -293,6 +293,32 @@ fn register_uninstall(dir: &Path, exe: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Rewrite just the `DisplayVersion` value under the uninstall key, so "Installed
+/// apps" tracks the version after a self-update. The updater swaps the exe bytes in
+/// place but never re-runs `register_uninstall`, so without this the row stays stuck
+/// at whatever version first installed. Best-effort and a no-op when not installed
+/// (portable / dev / run-in-place), where the key does not exist and must not be
+/// created. `version` is the plain semver, no leading `v`.
+pub fn update_display_version(version: &str) {
+    if !is_installed() {
+        return;
+    }
+    let mut c = Command::new("reg");
+    c.args([
+        "add",
+        UNINSTALL_KEY,
+        "/v",
+        "DisplayVersion",
+        "/t",
+        "REG_SZ",
+        "/d",
+        version,
+        "/f",
+    ]);
+    platform::hidden(&mut c);
+    let _ = c.status();
+}
+
 fn remove_uninstall_key() {
     let mut c = Command::new("reg");
     c.args(["delete", UNINSTALL_KEY, "/f"]);

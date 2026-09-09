@@ -86,7 +86,7 @@ pub fn update_check() -> Result<CheckResult, String> {
 pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
     let bytes = http_get_bytes(&info.url)?;
     verify_signature(&bytes, &info.signature)?;
-    self_replace_and_relaunch(&app, &bytes)?;
+    self_replace_and_relaunch(&app, &bytes, info.version.trim_start_matches('v'))?;
     Ok(())
 }
 
@@ -115,7 +115,11 @@ fn verify_signature(data: &[u8], sig_text: &str) -> Result<(), String> {
 
 /// The Windows self-replace: rename running exe aside, write the new one in place,
 /// relaunch it, and exit this (old) process.
-fn self_replace_and_relaunch(app: &AppHandle, new_bytes: &[u8]) -> Result<(), String> {
+fn self_replace_and_relaunch(
+    app: &AppHandle,
+    new_bytes: &[u8],
+    new_version: &str,
+) -> Result<(), String> {
     let cur = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
     let old = cur.with_extension("old");
     let _ = std::fs::remove_file(&old);
@@ -128,6 +132,10 @@ fn self_replace_and_relaunch(app: &AppHandle, new_bytes: &[u8]) -> Result<(), St
         let _ = std::fs::rename(&old, &cur);
         return Err(format!("write new exe: {e}"));
     }
+
+    // The exe is swapped but the uninstall key still shows the old version; sync it
+    // so "Installed apps" is right. Best-effort, after the write is committed.
+    crate::install::update_display_version(new_version);
 
     // Launch the freshly written exe, then bow out.
     if let Err(e) = std::process::Command::new(&cur).spawn() {
