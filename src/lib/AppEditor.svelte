@@ -3,6 +3,7 @@
   import Modal from "./Modal.svelte";
   import { onMount } from "svelte";
   import { t } from "./i18n.svelte";
+  import { ask } from "@tauri-apps/plugin-dialog";
   import { portableState, isNonPortablePath } from "./api";
 
   let {
@@ -138,8 +139,10 @@
   let dirty = $derived(JSON.stringify(f) !== initialJson);
   // Report dirty state to a hosting window so its close button can confirm.
   $effect(() => onDirty?.(dirty));
-  function maybeClose() {
-    if (dirty && !confirm(t("editor.discardChanges"))) return;
+  async function maybeClose() {
+    // Async ask(): a Tauri child window suppresses the blocking window.confirm(),
+    // so the modal path uses the dialog plugin too for consistent behavior.
+    if (dirty && !(await ask(t("editor.discardChanges")))) return;
     onClose();
   }
 
