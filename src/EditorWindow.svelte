@@ -2,6 +2,7 @@
   import AppEditor from "./lib/AppEditor.svelte";
   import { getApps } from "./lib/api";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { ask } from "@tauri-apps/plugin-dialog";
   import { emit } from "@tauri-apps/api/event";
   import { t } from "./lib/i18n.svelte";
   import { onMount } from "svelte";
@@ -22,14 +23,25 @@
     entry = editId ? (apps.find((a) => a.id === editId) ?? null) : null;
     ready = true;
 
-    // Native close button (X) respects unsaved-change confirmation.
+    // Native close button (X) respects unsaved-change confirmation. The webview's
+    // blocking window.confirm() is suppressed in a Tauri child window, so use the
+    // async dialog plugin: always preventDefault, then destroy() on confirm
+    // (destroy bypasses this guard, avoiding a second prompt).
     const win = getCurrentWindow();
-    await win.onCloseRequested((e) => {
-      if (dirty && !confirm(t("editor.discardChanges"))) e.preventDefault();
+    await win.onCloseRequested(async (e) => {
+      if (!dirty) return;
+      e.preventDefault();
+      if (await ask(t("editor.discardChanges"), { kind: "warning" })) {
+        dirty = false;
+        win.destroy().catch(() => {});
+      }
     });
   });
 
   function close() {
+    // Clear dirty first so the onCloseRequested guard passes without re-prompting;
+    // callers (Cancel/save/delete) have already handled any confirmation.
+    dirty = false;
     getCurrentWindow()
       .close()
       .catch(() => {});
