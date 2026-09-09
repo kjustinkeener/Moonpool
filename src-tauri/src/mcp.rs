@@ -61,6 +61,7 @@ const NON_HUB_TOKENS: &[&str] = &[
     "reload",
     "refresh-icons",
     "show",
+    "quit",
     "paths",
     "--ticket",
     "--uninstall",
@@ -117,9 +118,7 @@ fn new_ticket() -> String {
 /// reported - for `dump`, the file path it wrote) or `Err(message)`.
 fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if !hub_running() {
-        return Err(
-            "Moonpool is not running - call moonpool_start to boot the tray hub first".into(),
-        );
+        return Err("Moonpool is not running - call moonpool_bootup_launcher first".into());
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let ticket = new_ticket();
@@ -203,6 +202,29 @@ fn start_hub() -> Result<String, String> {
         std::thread::sleep(Duration::from_millis(200));
     }
     Err("started Moonpool but it did not become resident within 20s".into())
+}
+
+/// Shut the resident hub down (same as the tray Quit). Fires the `quit` control
+/// command at the hub and waits until the process is gone, so the caller gets a
+/// definite "stopped" rather than a fire-and-forget.
+fn stop_hub() -> Result<String, String> {
+    if !hub_running() {
+        return Ok("Moonpool is not running".into());
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    std::process::Command::new(exe)
+        .arg("quit")
+        .status()
+        .map_err(|e| format!("cannot signal Moonpool: {e}"))?;
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while Instant::now() < deadline {
+        if !hub_running() {
+            return Ok("Moonpool shut down".into());
+        }
+        std::thread::sleep(Duration::from_millis(150));
+    }
+    Err("sent quit but Moonpool was still running after 10s".into())
 }
 
 /// Registered apps and their live status, flattened into one line per app so an
@@ -330,7 +352,7 @@ fn app_id_schema(verb: &str) -> Value {
     json!({
         "type": "object",
         "properties": {
-            "app_id": { "type": "string", "description": format!("The app's `id` from apps.json. Call moonpool_list first if unsure. This is the app to {verb}.") }
+            "app_id": { "type": "string", "description": format!("The app's `id` from apps.json. Call moonpool_list_apps first if unsure. This is the app to {verb}.") }
         },
         "required": ["app_id"]
     })
@@ -343,32 +365,37 @@ fn no_args_schema() -> Value {
 fn tool_list() -> Value {
     json!([
         {
-            "name": "moonpool_list",
+            "name": "moonpool_list_apps",
             "description": "List every app registered with Moonpool and whether it is currently running. Start here: the other tools need an app id from this list.",
             "inputSchema": no_args_schema()
         },
         {
-            "name": "moonpool_start",
-            "description": "Start Moonpool itself (the tray hub). Use this when another tool reported that Moonpool is not running: it boots the hub so the launch/stop/restart tools work. No-op if it is already running.",
+            "name": "moonpool_bootup_launcher",
+            "description": "Start Moonpool itself (the tray launcher). Use this when another tool reported that Moonpool is not running: it boots the launcher so the app tools work. No-op if it is already running.",
             "inputSchema": no_args_schema()
         },
         {
-            "name": "moonpool_launch",
-            "description": "Start an app and open its terminal tab. Returns once it is actually running, or with the reason it did not start. If Moonpool itself is not running, call moonpool_start first.",
+            "name": "moonpool_shutdown_launcher",
+            "description": "Shut Moonpool itself down (the tray launcher), same as choosing Quit from its tray menu. No-op if it is not running.",
+            "inputSchema": no_args_schema()
+        },
+        {
+            "name": "moonpool_start_app",
+            "description": "Start an app and open its terminal tab. Returns once it is actually running, or with the reason it did not start. If Moonpool itself is not running, call moonpool_bootup_launcher first.",
             "inputSchema": app_id_schema("start")
         },
         {
-            "name": "moonpool_stop",
+            "name": "moonpool_stop_app",
             "description": "Stop a running app (kills the process tree Moonpool owns). Returns once it is actually stopped.",
             "inputSchema": app_id_schema("stop")
         },
         {
-            "name": "moonpool_restart",
-            "description": "Stop an app, wait for its port and process to free, then start it again. Prefer this over a stop followed by a launch - it does the waiting for you. Use it after changing the app's code or config.",
+            "name": "moonpool_restart_app",
+            "description": "Stop an app, wait for its port and process to free, then start it again. Prefer this over a stop followed by a start - it does the waiting for you. Use it after changing the app's code or config.",
             "inputSchema": app_id_schema("restart")
         },
         {
-            "name": "moonpool_dump",
+            "name": "moonpool_app_output",
             "description": "Read an app's terminal output (the current run, ANSI stripped). Use this to see why an app failed to start, or what it logged, without opening the Moonpool window.",
             "inputSchema": json!({
                 "type": "object",
@@ -380,23 +407,23 @@ fn tool_list() -> Value {
             })
         },
         {
-            "name": "moonpool_reload",
+            "name": "moonpool_reload_config",
             "description": "Re-read apps.json. Call this after editing the manifest so Moonpool picks up added or changed apps.",
             "inputSchema": no_args_schema()
         },
         {
-            "name": "moonpool_refresh_icons",
+            "name": "moonpool_refresh_app_icons",
             "description": "Re-fetch every app icon.",
             "inputSchema": no_args_schema()
         },
         {
-            "name": "moonpool_show",
+            "name": "moonpool_raise_launcher",
             "description": "Bring the Moonpool window to the front (it lives in the tray).",
             "inputSchema": no_args_schema()
         },
         {
-            "name": "moonpool_paths",
-            "description": "Report the full filesystem paths Moonpool is using - config dir, apps.json, state.json, log, dumps - for BOTH the resident hub (the authoritative one that launches apps) and this MCP process. Use it when an edit to apps.json is not taking effect, to confirm which file the hub actually reads.",
+            "name": "moonpool_launcher_paths",
+            "description": "Report the full filesystem paths Moonpool is using - config dir, apps.json, state.json, log, dumps - for BOTH the resident launcher (the authoritative one that launches apps) and this MCP process. Use it when an edit to apps.json is not taking effect, to confirm which file the launcher actually reads.",
             "inputSchema": no_args_schema()
         }
     ])
@@ -411,8 +438,8 @@ environment for each of their local apps and dev servers, and runs each one in i
 When a task involves starting, stopping, restarting, or checking one of the user's local apps \
 or dev servers, drive it through these tools instead of reconstructing its command line - \
 Moonpool already knows how to run it, and running it any other way risks a second copy on the \
-same port. The usual loop: moonpool_list to find the id, moonpool_restart after a code change, \
-then moonpool_dump to read what it printed.";
+same port. The usual loop: moonpool_list_apps to find the id, moonpool_restart_app after a \
+code change, then moonpool_app_output to read what it printed.";
 
 /// Dispatch one tool call. Returns the text the agent sees.
 fn call_tool(name: &str, args: &Value) -> Result<String, String> {
@@ -424,12 +451,13 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
             .ok_or_else(|| "app_id is required".to_string())
     };
     match name {
-        "moonpool_list" => list_apps(),
-        "moonpool_start" => start_hub(),
-        "moonpool_launch" => control("launch", &[&id()?]).map(|_| "launched".into()),
-        "moonpool_stop" => control("stop", &[&id()?]).map(|_| "stopped".into()),
-        "moonpool_restart" => control("restart", &[&id()?]).map(|_| "restarted".into()),
-        "moonpool_dump" => {
+        "moonpool_list_apps" => list_apps(),
+        "moonpool_bootup_launcher" => start_hub(),
+        "moonpool_shutdown_launcher" => stop_hub(),
+        "moonpool_start_app" => control("launch", &[&id()?]).map(|_| "launched".into()),
+        "moonpool_stop_app" => control("stop", &[&id()?]).map(|_| "stopped".into()),
+        "moonpool_restart_app" => control("restart", &[&id()?]).map(|_| "restarted".into()),
+        "moonpool_app_output" => {
             let tail = args
                 .get("tail_lines")
                 .and_then(Value::as_u64)
@@ -437,12 +465,14 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
                 .unwrap_or(DEFAULT_TAIL);
             dump(&id()?, tail)
         }
-        "moonpool_reload" => control("reload", &[]).map(|_| "apps.json reloaded".into()),
-        "moonpool_paths" => paths_report(),
-        "moonpool_refresh_icons" => control("refresh-icons", &[]).map(|_| "icons refreshed".into()),
+        "moonpool_reload_config" => control("reload", &[]).map(|_| "apps.json reloaded".into()),
+        "moonpool_launcher_paths" => paths_report(),
+        "moonpool_refresh_app_icons" => {
+            control("refresh-icons", &[]).map(|_| "icons refreshed".into())
+        }
         // `show` is answered by the window itself and writes no ticket, so there is
         // nothing to wait for.
-        "moonpool_show" => {
+        "moonpool_raise_launcher" => {
             if !hub_running() {
                 return Err("Moonpool is not running".into());
             }

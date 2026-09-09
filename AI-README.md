@@ -130,9 +130,11 @@ is an MCP server over stdio.
 }
 ```
 
-Tools: `moonpool_list`, `moonpool_launch`, `moonpool_stop`, `moonpool_restart`,
-`moonpool_dump` (returns the terminal output as text, `tail_lines` to bound it),
-`moonpool_reload`, `moonpool_refresh_icons`, `moonpool_show`.
+Tools: `moonpool_list_apps`, `moonpool_bootup_launcher`, `moonpool_shutdown_launcher`,
+`moonpool_start_app`, `moonpool_stop_app`, `moonpool_restart_app`,
+`moonpool_app_output` (returns the terminal output as text, `tail_lines` to bound it),
+`moonpool_reload_config`, `moonpool_refresh_app_icons`, `moonpool_raise_launcher`,
+`moonpool_launcher_paths`.
 
 The server is a *client* of the resident tray instance, using the same channel described
 below - it fires the command with a ticket and waits for the outcome, so each tool call
