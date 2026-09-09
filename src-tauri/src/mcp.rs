@@ -14,7 +14,7 @@
 //!
 //! The protocol is hand-rolled: MCP over stdio is newline-delimited JSON-RPC 2.0,
 //! serde_json is already a dependency, and a full async SDK (plus tokio) would
-//! outweigh the seven small tools below.
+//! outweigh the small tools below.
 //!
 //! Note the entry point must run BEFORE `tauri::Builder`: the single-instance
 //! plugin would otherwise forward our argv to the resident window and exit.
@@ -49,18 +49,52 @@ fn read_state() -> Option<Value> {
     serde_json::from_str(&text).ok()
 }
 
-/// Whether a Moonpool window is resident to receive commands. Checked before every
-/// action: without it, spawning the exe would start a NEW instance that opens a
-/// window and ignores the argv (the single-instance callback only fires in the
-/// *second* process), which looks like a silent no-op to the caller.
+/// Subcommand tokens that mark a moonpool process as NOT the resident tray hub -
+/// an MCP server (`mcp`), a control-action spawn (`launch`/`--ticket`/...), or the
+/// installer/updater helpers. The hub is a moonpool process carrying none of these.
+const NON_HUB_TOKENS: &[&str] = &[
+    "mcp",
+    "launch",
+    "stop",
+    "restart",
+    "dump",
+    "reload",
+    "refresh-icons",
+    "show",
+    "paths",
+    "--ticket",
+    "--uninstall",
+    "--wait-pid",
+];
+
+/// Whether a real Moonpool tray hub is resident to receive commands. Checked before
+/// every action: without it, spawning the exe would start a NEW instance that opens
+/// a window and ignores the argv (the single-instance callback only fires in the
+/// *second* process), which looks like a silent no-op - or worse, boots the
+/// installer.
+///
+/// Critically this must EXCLUDE the other short-lived moonpool processes: the idle
+/// `moonpool.exe mcp` stdio servers (one per agent session) and transient
+/// control-action spawns. Matching on name alone counted those as a hub, so
+/// `control()` skipped its refusal and fired a command with nothing resident to
+/// answer it - the cold-start installer bug. We identify the hub as the one
+/// moonpool process whose argv carries no subcommand token.
 fn hub_running() -> bool {
     use sysinfo::{ProcessRefreshKind, RefreshKind, System};
     let me = std::process::id();
     let sys =
         System::new_with_specifics(RefreshKind::new().with_processes(ProcessRefreshKind::new()));
-    sys.processes()
-        .iter()
-        .any(|(pid, p)| pid.as_u32() != me && p.name().to_ascii_lowercase().starts_with("moonpool"))
+    sys.processes().iter().any(|(pid, p)| {
+        if pid.as_u32() == me || !p.name().to_ascii_lowercase().starts_with("moonpool") {
+            return false;
+        }
+        // args[0] is the exe path; a subcommand token in args[1..] means this is
+        // an MCP server or a control spawn, not the hub.
+        !p.cmd()
+            .iter()
+            .skip(1)
+            .any(|a| NON_HUB_TOKENS.contains(&a.as_str()))
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +117,9 @@ fn new_ticket() -> String {
 /// reported - for `dump`, the file path it wrote) or `Err(message)`.
 fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if !hub_running() {
-        return Err("Moonpool is not running - start it first (its tray icon must be live)".into());
+        return Err(
+            "Moonpool is not running - call moonpool_start to boot the tray hub first".into(),
+        );
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let ticket = new_ticket();
@@ -138,6 +174,35 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
         }
         std::thread::sleep(Duration::from_millis(150));
     }
+}
+
+/// Boot the resident tray hub, for the cold-start case where no hub is running and
+/// every other tool would (correctly) refuse. Spawns the installed exe with NO
+/// subcommand so it comes up as the normal tray window, then waits until it is
+/// actually resident so the caller can immediately follow with a launch/restart.
+///
+/// A no-arg spawn is the one invocation that boots the hub rather than the
+/// installer (the exe is installed under %LOCALAPPDATA%, so `needs_setup()` is
+/// false) and rather than dropping a control action on the floor.
+fn start_hub() -> Result<String, String> {
+    if hub_running() {
+        return Ok("Moonpool is already running".into());
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    std::process::Command::new(exe)
+        .spawn()
+        .map_err(|e| format!("cannot start Moonpool: {e}"))?;
+
+    // Cold boot (window + tray + first status tick) is slower than a control round
+    // trip; give it room before declaring failure.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while Instant::now() < deadline {
+        if hub_running() {
+            return Ok("Moonpool started".into());
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    Err("started Moonpool but it did not become resident within 20s".into())
 }
 
 /// Registered apps and their live status, flattened into one line per app so an
@@ -283,8 +348,13 @@ fn tool_list() -> Value {
             "inputSchema": no_args_schema()
         },
         {
+            "name": "moonpool_start",
+            "description": "Start Moonpool itself (the tray hub). Use this when another tool reported that Moonpool is not running: it boots the hub so the launch/stop/restart tools work. No-op if it is already running.",
+            "inputSchema": no_args_schema()
+        },
+        {
             "name": "moonpool_launch",
-            "description": "Start an app and open its terminal tab. Returns once it is actually running, or with the reason it did not start.",
+            "description": "Start an app and open its terminal tab. Returns once it is actually running, or with the reason it did not start. If Moonpool itself is not running, call moonpool_start first.",
             "inputSchema": app_id_schema("start")
         },
         {
@@ -355,6 +425,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
     };
     match name {
         "moonpool_list" => list_apps(),
+        "moonpool_start" => start_hub(),
         "moonpool_launch" => control("launch", &[&id()?]).map(|_| "launched".into()),
         "moonpool_stop" => control("stop", &[&id()?]).map(|_| "stopped".into()),
         "moonpool_restart" => control("restart", &[&id()?]).map(|_| "restarted".into()),
