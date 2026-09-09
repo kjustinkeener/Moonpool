@@ -1260,6 +1260,14 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         show_main(app);
         return;
     }
+    // `quit` shuts the hub down, same as the tray Quit item. Answered here so the
+    // MCP `moonpool_shutdown_launcher` tool can boot the hub back down; the caller
+    // confirms by watching the process leave, so no ticket flush is needed first.
+    if action == "quit" {
+        log_line(app, "control: quit");
+        app.exit(0);
+        return;
+    }
     // `dump` is answered entirely here: the output ring lives in Rust, so there is
     // no need to round-trip through the UI. Writes the app's recent console output
     // to a file and reports the path back through the ticket detail.
@@ -1456,7 +1464,7 @@ fn write_state(app: &AppHandle) {
 /// caller's side sees the change within one read rather than waiting ~2s.
 /// A newline-separated list of every filesystem path the resident (hub) process
 /// resolves. Answered by the `paths` control command so an agent can confirm which
-/// apps.json this instance actually reads/writes - the MCP `moonpool_paths` tool
+/// apps.json this instance actually reads/writes - the MCP `moonpool_launcher_paths` tool
 /// pairs this with the paths the MCP process resolves so a mismatch is obvious.
 fn hub_paths_report(app: &AppHandle) -> String {
     let dir = moonpool_dir(app);
