@@ -287,7 +287,18 @@
   const RESIZER_W = 5;
   let cliVisible = $state(true);
   // Width the main/CLI pane had before it was collapsed, restored on re-open.
-  let savedMainWidth = 700;
+  let savedMainWidth = $state(700);
+
+  // Live window width, so the expand button can key off the actual window size
+  // rather than the collapse flag (a cold start can race the flag true while the
+  // window is still launcher-width, leaving no way to widen it back).
+  let winWidth = $state(window.innerWidth);
+
+  // The width the ">" button expands to. Show the button whenever the window is
+  // narrower than that: below it the CLI cannot fit, so offer the one click that
+  // makes room; at or above it there is nothing to expand.
+  const expandTarget = $derived(sidebarWidth + RESIZER_W + savedMainWidth);
+  const showExpand = $derived(winWidth < expandTarget);
 
   // While a programmatic collapse is shrinking the window, `resize` events fire
   // carrying intermediate (still-wide) widths. Ignore reveal-on-resize until the
@@ -310,7 +321,9 @@
   }
 
   async function expandCli() {
-    if (cliVisible) return;
+    // No `cliVisible` early-out: on a cold-start race the flag can already be true
+    // while the window is still launcher-width, and this is the only way to widen
+    // it, so always apply the target size.
     const win = getCurrentWindow();
     const innerH = window.innerHeight;
     cliVisible = true;
@@ -625,7 +638,7 @@
   });
 </script>
 
-<svelte:window onkeydown={handleGlobalKey} />
+<svelte:window onkeydown={handleGlobalKey} bind:innerWidth={winWidth} />
 
 <div class="app" class:resizing>
   <Titlebar />
@@ -653,7 +666,7 @@
       onReload={handleReload}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
-      cliHidden={!cliVisible}
+      cliHidden={showExpand}
       onExpandCli={expandCli}
       updateWaiting={!!update && !updateDone}
       {clashes}
