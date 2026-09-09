@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { openUrl, updateCheck, updateApply } from "./lib/api";
+  import { openUrl, updateCheck, updateApply, setupState } from "./lib/api";
   import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
 
   const credits = [
@@ -14,6 +14,9 @@
   ];
 
   let version = $state("");
+  // Build date (UTC, YYYY-MM-DD) stamped into the exe at compile time. A version
+  // alone doesn't say which build a bug report came from while releases are frequent.
+  let built = $state("");
   let status = $state("");
   let checking = $state(false);
   let unlistenLocale: (() => void) | null = null;
@@ -36,6 +39,11 @@
       version = await getVersion();
     } catch {
       version = "?";
+    }
+    try {
+      built = (await setupState()).buildDate;
+    } catch {
+      // Leave the build date off if setup state isn't reachable.
     }
     // Follow a language change made in the Settings window while About is open.
     // Assigned rather than returned: an async onMount callback cannot return a
@@ -75,7 +83,7 @@
     <div class="head">
       <div class="moon">🌙</div>
       <h1>Moonpool</h1>
-      <div class="ver">{t("about.version", { version })}</div>
+      <div class="ver">{t("about.version", { version })}{#if built}&nbsp;· {built}{/if}</div>
       <p class="desc">{t("about.tagline")}</p>
     </div>
 
@@ -83,6 +91,8 @@
       <button class="link" onclick={() => openUrl("https://fasterdb.com/software/moonpool/")}>fasterdb.com/software/moonpool</button>
       <span class="dot">·</span>
       <button class="link" onclick={() => openUrl("https://github.com/kjustinkeener/Moonpool")}>github.com/kjustinkeener/Moonpool</button>
+      <span class="dot">·</span>
+      <button class="link" onclick={() => openUrl("mailto:gofast@fasterdb.com")}>gofast@fasterdb.com</button>
     </div>
 
     <div class="row">
