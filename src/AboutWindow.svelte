@@ -4,6 +4,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { openUrl, updateCheck, updateApply, setupState } from "./lib/api";
   import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
+  import appIcon from "./assets/app-icon.png";
 
   const credits = [
     { name: "Tauri", url: "https://tauri.app" },
@@ -80,19 +81,20 @@
      mousedown there falls through to the card and drags too. -->
 <div class="page" data-tauri-drag-region>
   <div class="about" data-tauri-drag-region>
+    <button class="xclose" onclick={close} aria-label={t("common.close")}>✕</button>
     <div class="head">
-      <div class="moon">🌙</div>
+      <img class="moon" src={appIcon} alt="" width="56" height="56" />
       <h1>Moonpool</h1>
       <div class="ver">{t("about.version", { version })}{#if built}&nbsp;· {built}{/if}</div>
       <p class="desc">{t("about.tagline")}</p>
     </div>
 
+    <div class="rule"></div>
+
     <div class="links">
       <button class="link" onclick={() => openUrl("https://fasterdb.com/software/moonpool/")}>fasterdb.com/software/moonpool</button>
-      <span class="dot">·</span>
       <button class="link" onclick={() => openUrl("https://github.com/kjustinkeener/Moonpool")}>github.com/kjustinkeener/Moonpool</button>
-      <span class="dot">·</span>
-      <button class="link" onclick={() => openUrl("mailto:gofast@fasterdb.com")}>gofast@fasterdb.com</button>
+      <button class="link email" onclick={() => openUrl("mailto:gofast@fasterdb.com")}>gofast@fasterdb.com</button>
     </div>
 
     <div class="row">
@@ -126,6 +128,7 @@
     display: flex;
   }
   .about {
+    position: relative;
     flex: 1;
     box-sizing: border-box;
     display: flex;
@@ -140,13 +143,42 @@
     border: 1px solid var(--border);
     overflow: hidden;
   }
+  /* Frameless window has no native title bar, so supply a close affordance in the
+     corner (the Close button below can scroll out of view on a short window). */
+  .xclose {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .xclose:hover {
+    background: var(--bg-elevated);
+    color: var(--text);
+  }
   /* Decorative header: non-interactive, so this whole block drags the window. */
   .head {
     pointer-events: none;
     width: 100%;
   }
   .moon {
-    font-size: 48px;
+    display: block;
+    margin: 0 auto;
+    width: 56px;
+    height: 56px;
+    /* Glow in the icon's own center color (#61FCED), matching the intro/titlebar. */
+    filter: drop-shadow(0 0 10px rgba(97, 252, 237, 0.49))
+      drop-shadow(0 0 22px rgba(97, 252, 237, 0.28));
   }
   h1 {
     margin: 6px 0 2px;
@@ -160,7 +192,7 @@
   .desc {
     font-size: 13px;
     color: var(--text-secondary);
-    margin: 14px 4px;
+    margin: 14px 4px 0;
     line-height: 1.45;
   }
   .row {
@@ -221,18 +253,31 @@
     margin: 0 1px;
     pointer-events: none;
   }
+  /* Hairline divider setting the links block off from the description above. */
+  .rule {
+    align-self: center;
+    width: 78%;
+    height: 1px;
+    margin: 16px 0;
+    background: color-mix(in srgb, var(--text) 28%, transparent);
+    flex: none;
+  }
   .links {
-    margin-top: 14px;
+    margin-top: 0;
+    margin-bottom: 16px;
     font-size: 12px;
     color: var(--text-dim);
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
   }
   .links .link {
     white-space: nowrap;
+  }
+  /* A touch of extra space sets the contact address off from the two site links. */
+  .links .email {
+    margin-top: 2px;
   }
   .foot {
     font-size: 11px;

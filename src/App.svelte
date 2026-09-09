@@ -29,6 +29,7 @@
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
   import Titlebar from "./lib/Titlebar.svelte";
+  import brandIcon from "./assets/app-icon.png";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
   import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -710,7 +711,7 @@
       {/each}
       {#if openTabs.length === 0}
         <div class="placeholder">
-          <div class="ph-moon" aria-hidden="true"></div>
+          <img class="ph-moon" src={brandIcon} alt="" aria-hidden="true" width="48" height="48" />
           <p class="ph-title">{t("app.pickApp")}</p>
 
           {#if update}
@@ -919,32 +920,14 @@
     background: color-mix(in srgb, var(--bg) calc(var(--app-alpha) * 100%), transparent);
   }
   .ph-moon {
-    font-size: 42px;
-    opacity: 0.8;
-    margin-bottom: 8px;
-    position: relative;
-    isolation: isolate; /* contain the color blend to the emoji */
-  }
-  /* Base moon on its own layer so its saturation can be dialed independently
-     of the aqua overlay. */
-  .ph-moon::before {
-    content: "🌙";
     display: block;
-    filter: saturate(0.4) brightness(0.95);
-  }
-  /* A second moon glyph, recolored to aqua, blended over the base (glyph-shaped,
-     not a rectangle), so only the moon picks up the tint. */
-  .ph-moon::after {
-    content: "🌙";
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    filter: sepia(1) saturate(6) hue-rotate(140deg);
-    mix-blend-mode: color;
-    opacity: 0.32;
-    pointer-events: none;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 18px;
+    /* Glow in the icon's own center color (#61FCED). drop-shadow follows the
+       rounded-square alpha, so the halo hugs the icon shape. */
+    filter: drop-shadow(0 0 9px rgba(97, 252, 237, 0.49))
+      drop-shadow(0 0 20px rgba(97, 252, 237, 0.28));
   }
   .ph-title {
     font-size: 14px;

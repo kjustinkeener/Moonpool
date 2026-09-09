@@ -98,7 +98,7 @@ export async function openAboutWindow(): Promise<void> {
     url: "index.html#about",
     title: "About Moonpool",
     width: 380,
-    height: 520,
+    height: 444,
     resizable: false,
     center: true,
     decorations: false,
