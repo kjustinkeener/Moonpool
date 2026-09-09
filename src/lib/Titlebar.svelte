@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import wordmark from "../assets/moonpool-wordmark.png";
+  import wordmark from "../assets/moonpool-wordmark-text.png";
+  import brandIcon from "../assets/app-icon.png";
   import { t } from "./i18n.svelte";
   import Icon from "./Icon.svelte";
 
@@ -25,7 +26,10 @@
 </script>
 
 <div class="titlebar" data-tauri-drag-region>
-  <img class="wordmark" src={wordmark} alt="moonpool" draggable="false" />
+  <span class="brand" data-tauri-drag-region>
+    <img class="brandicon" src={brandIcon} alt="" aria-hidden="true" draggable="false" />
+    <img class="wordmark" src={wordmark} alt="moonpool" draggable="false" />
+  </span>
   <div class="controls">
     <button class="ctl" title={t("titlebar.minimize")} aria-label={t("titlebar.minimize")} onclick={minimize}>
       <Icon name="minimize" size={11} width={2.4} />
@@ -59,6 +63,19 @@
     border-bottom: 1px solid var(--border-muted);
     user-select: none;
     -webkit-user-select: none;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .brandicon {
+    height: 16px;
+    width: 16px;
+    pointer-events: none;
+    /* Glow in the icon's own center color (#61FCED); scaled for the small size. */
+    filter: drop-shadow(0 0 4px rgba(97, 252, 237, 0.455))
+      drop-shadow(0 0 8px rgba(97, 252, 237, 0.28));
   }
   .wordmark {
     height: 15px;
