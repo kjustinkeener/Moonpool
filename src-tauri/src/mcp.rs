@@ -120,6 +120,13 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if !hub_running() {
         return Err("Moonpool is not running - call moonpool_bootup_launcher first".into());
     }
+    // Defense in depth: `action` is always a hard-coded literal and every `app_id`
+    // reaching here has passed `is_valid_app_id`, so no forwarded token should ever
+    // look like a flag. Refuse if that invariant is ever violated rather than spawn
+    // a child whose argv could be reinterpreted.
+    if action.starts_with('-') || args.iter().any(|a| a.starts_with('-')) {
+        return Err("refusing to forward a flag-like control argument".into());
+    }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let ticket = new_ticket();
 
@@ -441,14 +448,34 @@ Moonpool already knows how to run it, and running it any other way risks a secon
 same port. The usual loop: moonpool_list_apps to find the id, moonpool_restart_app after a \
 code change, then moonpool_app_output to read what it printed.";
 
+/// An `app_id` supplied by an MCP client is forwarded to a fresh `moonpool.exe`
+/// process as a positional command-line token. Restrict it to the character set
+/// real manifest ids use so it can never be read as a launcher flag (an id of
+/// `--uninstall` would otherwise appear in the child's argv) and can never carry
+/// shell/whitespace surprises across the process boundary. This is the primary
+/// guard; `startup_mode` in lib.rs (which only honours flags in argv[1]) is the
+/// second, independent layer.
+fn is_valid_app_id(id: &str) -> bool {
+    !id.is_empty()
+        && !id.starts_with('-')
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
 /// Dispatch one tool call. Returns the text the agent sees.
 fn call_tool(name: &str, args: &Value) -> Result<String, String> {
     let id = || -> Result<String, String> {
-        args.get("app_id")
+        let raw = args
+            .get("app_id")
             .and_then(Value::as_str)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string)
-            .ok_or_else(|| "app_id is required".to_string())
+            .ok_or_else(|| "app_id is required".to_string())?;
+        if !is_valid_app_id(raw) {
+            return Err(
+                "invalid app_id: use only letters, digits, '.', '_', '-' (no leading '-')".into(),
+            );
+        }
+        Ok(raw.to_string())
     };
     match name {
         "moonpool_list_apps" => list_apps(),
@@ -572,6 +599,37 @@ pub fn serve() {
                 break;
             }
             let _ = stdout.flush();
+        }
+    }
+}
+
+#[cfg(test)]
+mod app_id_tests {
+    use super::is_valid_app_id;
+
+    #[test]
+    fn rejects_flags_and_shell_surprises() {
+        for bad in [
+            "",
+            "--uninstall",
+            "--wait-pid",
+            "-x",
+            "--ticket",
+            "a b",
+            "a/b",
+            "a;b",
+            "a\"b",
+            "a$b",
+            "app\n",
+        ] {
+            assert!(!is_valid_app_id(bad), "{bad:?} must be rejected");
+        }
+    }
+
+    #[test]
+    fn accepts_real_manifest_ids() {
+        for ok in ["web", "my-app", "app_2", "docs.v3", "A1", "a-b_c.d"] {
+            assert!(is_valid_app_id(ok), "{ok:?} must be accepted");
         }
     }
 }
