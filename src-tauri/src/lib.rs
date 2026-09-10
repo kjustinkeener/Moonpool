@@ -14,8 +14,8 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::Engine as _;
@@ -201,10 +201,21 @@ struct HubState {
     /// size when a Win+D restore of the borderless window brings it back as the
     /// ~215x26 minimized-placeholder sliver.
     last_good_size: Mutex<Option<(u32, u32)>>,
+    /// Serializes state.json writers (the status poller and out-of-band ticket
+    /// flushes) so two snapshots can't interleave: the last writer to acquire this
+    /// wins, rather than two atomic renames racing to leave the older snapshot on
+    /// disk. The atomic write prevents torn files; this prevents stale ones.
+    state_write: Mutex<()>,
 }
 
-/// Cap on retained ticket records (oldest dropped first).
+/// Cap on retained ticket records (oldest *resolved* dropped first; see
+/// `record_ticket`). A pending ticket is never evicted by the cap.
 const MAX_TICKETS: usize = 50;
+
+/// How long a resolved (ok/error) ticket is kept before it can be expired. A
+/// pending ticket has no TTL: it stays until it resolves, so a poller can never
+/// miss the outcome of a command that is simply taking a while.
+const TICKET_TTL_MS: u64 = 24 * 60 * 60 * 1000;
 
 /// Per-app cap on the retained PTY output ring (bytes). Enough for a long build
 /// log without letting a chatty app grow memory without bound.
@@ -231,6 +242,53 @@ fn example_manifest() -> &'static str {
 }
 /// AI configuration guide, seeded next to the manifest so agents can read it.
 const AI_README: &str = include_str!("../../AI-README.md");
+
+// ---------------------------------------------------------------------------
+// Durable I/O
+// ---------------------------------------------------------------------------
+
+/// Distinguishes concurrent temp files so two writers to the same target (or two
+/// targets in the same dir) never collide on the temp name.
+static TMP_SEQ: AtomicU64 = AtomicU64::new(0);
+
+/// Write `bytes` to `path` durably: create the parent, write a uniquely-named
+/// sibling temp file, flush it to disk, then rename it over the target. A crash or
+/// a concurrent reader therefore sees either the whole old file or the whole new
+/// one, never a truncated JSON - the failure mode a plain `fs::write` leaves behind
+/// when it dies mid-write. `fs::rename` replaces the destination atomically on the
+/// same volume (NTFS/APFS/ext4), which is where all our config lives.
+pub(crate) fn atomic_write(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let parent = path.parent().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent directory")
+    })?;
+    std::fs::create_dir_all(parent)?;
+    let seq = TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let stem = path.file_name().and_then(|n| n.to_str()).unwrap_or("file");
+    let tmp = parent.join(format!(".{stem}.{}.{seq}.tmp", std::process::id()));
+    {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(bytes)?;
+        f.sync_all()?;
+    }
+    match std::fs::rename(&tmp, path) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            // Leave nothing behind if the swap failed (target locked, etc.).
+            let _ = std::fs::remove_file(&tmp);
+            Err(e)
+        }
+    }
+}
+
+/// Lock a mutex, tolerating poisoning. A poisoned lock means another thread
+/// panicked while holding it; for our config/state data that is recoverable (each
+/// writer replaces the whole value under the guard, so no half-updated invariant
+/// can survive), so we take the inner data instead of cascading that one panic into
+/// an abort on every later access. This is the R1 lock-poison policy for the
+/// persistence-bearing locks (settings, manifest, tickets, statuses, state writer).
+pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
 
 /// Moonpool's config directory. Installed: `%APPDATA%\Moonpool`. Portable:
 /// `{exe dir}\moonpool-config` (see `portable`), so all data travels with the folder.
@@ -460,18 +518,37 @@ fn load_settings(app: &AppHandle) -> Settings {
 
 fn save_settings(app: &AppHandle, s: &Settings) -> Result<(), String> {
     let path = settings_path(app).ok_or("no config directory")?;
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
     let json = serde_json::to_string_pretty(s).map_err(|e| e.to_string())?;
-    std::fs::write(path, json).map_err(|e| e.to_string())
+    atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())
+}
+
+/// Persist-then-commit for a settings change: clone the current settings, apply
+/// `mutate` to the copy, write that candidate to disk FIRST, and only overwrite the
+/// in-memory settings once the write succeeds. If the disk write fails the shared
+/// state is left untouched, so memory can never diverge from what's persisted (the
+/// old bug was mutate-in-memory-then-save, which silently kept a change the disk
+/// rejected). Returns the committed settings so the caller can apply side effects
+/// (window flags, tray) only on success.
+fn commit_settings<F: FnOnce(&mut Settings)>(
+    app: &AppHandle,
+    state: &State<HubState>,
+    mutate: F,
+) -> Result<Settings, String> {
+    let candidate = {
+        let mut c = lock(&state.settings).clone();
+        mutate(&mut c);
+        c
+    };
+    save_settings(app, &candidate)?;
+    *lock(&state.settings) = candidate.clone();
+    Ok(candidate)
 }
 
 /// Append a line to moonpool.log when debug logging is enabled.
 pub(crate) fn log_line(app: &AppHandle, msg: &str) {
     let enabled = app
         .try_state::<HubState>()
-        .map(|s| s.settings.lock().unwrap().debug_logging)
+        .map(|s| lock(&s.settings).debug_logging)
         .unwrap_or(false);
     if !enabled {
         return;
@@ -498,17 +575,31 @@ fn parse_example() -> Vec<AppEntry> {
     serde_json::from_str(example_manifest()).unwrap_or_default()
 }
 
-/// Read the manifest from disk, seeding the example on first run and falling back
-/// to it if the file is missing or malformed.
+/// The manifest to fall back to when the file on disk is unreadable or malformed:
+/// the last-known-good in-memory manifest if the hub is already running with one,
+/// otherwise the seeded example. This stops a corrupt hand-edit (or a truncated
+/// write from an older build) from silently replacing the user's real app list with
+/// the example set on the next reload; the running manifest is kept until a *valid*
+/// file replaces it.
+fn last_known_good(app: &AppHandle) -> Vec<AppEntry> {
+    if let Some(state) = app.try_state::<HubState>() {
+        let current = lock(&state.manifest);
+        if !current.is_empty() {
+            return current.clone();
+        }
+    }
+    parse_example()
+}
+
+/// Read the manifest from disk, seeding the example on first run and, if the file is
+/// missing or malformed, falling back to the last-known-good manifest (see
+/// `last_known_good`) rather than blindly to the example.
 fn load_manifest(app: &AppHandle) -> Vec<AppEntry> {
     let Some(path) = manifest_path(app) else {
-        return parse_example();
+        return last_known_good(app);
     };
     if !path.exists() {
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let _ = std::fs::write(&path, example_manifest());
+        let _ = atomic_write(&path, example_manifest().as_bytes());
         log_line(
             app,
             &format!("seeded example manifest at {}", path.display()),
@@ -541,28 +632,35 @@ fn load_manifest(app: &AppHandle) -> Vec<AppEntry> {
             }
             Err(e) => {
                 // Route through log_line (eprintln is invisible under
-                // windows_subsystem = "windows").
-                log_line(app, &format!("apps.json parse error ({e}); using example"));
-                parse_example()
+                // windows_subsystem = "windows"). Keep the last-known-good manifest
+                // rather than clobbering the user's apps with the example set.
+                log_line(
+                    app,
+                    &format!("apps.json parse error ({e}); keeping last-known-good"),
+                );
+                last_known_good(app)
             }
         },
         None => {
-            log_line(app, &format!("read failed ({last_err}); using example"));
-            parse_example()
+            log_line(
+                app,
+                &format!("read failed ({last_err}); keeping last-known-good"),
+            );
+            last_known_good(app)
         }
     }
 }
 
 #[tauri::command]
 fn get_apps(state: State<HubState>) -> Vec<AppEntry> {
-    state.manifest.lock().unwrap().clone()
+    lock(&state.manifest).clone()
 }
 
 /// Re-read the manifest from disk into state and return it.
 #[tauri::command]
 fn reload_manifest(app: AppHandle, state: State<HubState>) -> Vec<AppEntry> {
     let m = load_manifest(&app);
-    *state.manifest.lock().unwrap() = m.clone();
+    *lock(&state.manifest) = m.clone();
     m
 }
 
@@ -588,17 +686,12 @@ fn open_manifest(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn get_settings(state: State<HubState>) -> Settings {
-    state.settings.lock().unwrap().clone()
+    lock(&state.settings).clone()
 }
 
 #[tauri::command]
 fn set_debug_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.debug_logging = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)?;
+    commit_settings(&app, &state, |s| s.debug_logging = enabled)?;
     if enabled {
         log_line(&app, "--- debug logging enabled ---");
     }
@@ -607,12 +700,7 @@ fn set_debug_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> R
 
 #[tauri::command]
 fn set_close_to_tray(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.close_to_tray = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)
+    commit_settings(&app, &state, |s| s.close_to_tray = enabled).map(|_| ())
 }
 
 #[tauri::command]
@@ -621,12 +709,7 @@ fn set_minimize_to_tray(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.minimize_to_tray = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)
+    commit_settings(&app, &state, |s| s.minimize_to_tray = enabled).map(|_| ())
 }
 
 #[tauri::command]
@@ -635,12 +718,7 @@ fn set_check_on_startup(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.check_on_startup = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)
+    commit_settings(&app, &state, |s| s.check_on_startup = enabled).map(|_| ())
 }
 
 /// Every window this app opens. Always-on-top is applied to all of them so the
@@ -659,13 +737,12 @@ fn apply_always_on_top(app: &AppHandle, on: bool) {
 
 #[tauri::command]
 fn set_always_on_top(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.always_on_top = enabled;
-        g.clone()
-    };
+    // Persist and commit before touching the windows: if the write fails we return
+    // an error with nothing changed, rather than leaving the windows pinned to a
+    // state that was never saved.
+    commit_settings(&app, &state, |s| s.always_on_top = enabled)?;
     apply_always_on_top(&app, enabled);
-    save_settings(&app, &s)
+    Ok(())
 }
 
 /// Change the UI language.
@@ -681,36 +758,24 @@ fn set_locale(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.locale = locale;
-        g.locale_resolved = resolved.clone();
-        g.clone()
-    };
+    commit_settings(&app, &state, |s| {
+        s.locale = locale;
+        s.locale_resolved = resolved.clone();
+    })?;
     retranslate_tray(&app, &resolved);
-    save_settings(&app, &s)
+    Ok(())
 }
 
 #[tauri::command]
 fn set_transparency(value: u8, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.transparency = value.min(90);
-        g.clone()
-    };
-    save_settings(&app, &s)
+    commit_settings(&app, &state, |s| s.transparency = value.min(90)).map(|_| ())
 }
 
 /// Persist the Ctrl+wheel zoom factor. Clamped here as well as in the webview,
 /// since the value is read back at launch and applied without further checking.
 #[tauri::command]
 fn set_ui_scale(scale: f64, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.ui_scale = scale.clamp(0.5, 3.0);
-        g.clone()
-    };
-    save_settings(&app, &s)
+    commit_settings(&app, &state, |s| s.ui_scale = scale.clamp(0.5, 3.0)).map(|_| ())
 }
 
 /// Open the log file in the default app.
@@ -749,7 +814,7 @@ fn app_icon(
     // so an icon changed in a new build of the target app shows up immediately.
     let refresh = refresh.unwrap_or(false);
     let mut entry = {
-        let m = state.manifest.lock().unwrap();
+        let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
     }?;
     // Resolve {MP_HOME}/{MP_DATA} tokens and ./-anchored paths so icon lookup (cwd,
@@ -859,20 +924,41 @@ fn app_icon(
     None
 }
 
-/// Write the full manifest to disk (used by the in-app editor).
+/// Reject a manifest that would corrupt runtime behavior before it is persisted:
+/// empty or duplicate ids (ids key the running-app map and the state.json records),
+/// and a port of 0 (serde already bounds the type to 1..=65535, so 0 is the only
+/// out-of-range integer that can still arrive). Returns a user-facing message the
+/// editor surfaces; nothing is written when it fails.
+fn validate_manifest(entries: &[AppEntry]) -> Result<(), String> {
+    let mut seen = std::collections::HashSet::new();
+    for e in entries {
+        if e.id.trim().is_empty() {
+            return Err("every app needs a non-empty id".into());
+        }
+        if !seen.insert(e.id.as_str()) {
+            return Err(format!("duplicate app id: {}", e.id));
+        }
+        if e.port == Some(0) {
+            return Err(format!("app '{}' has an invalid port (must be 1-65535)", e.id));
+        }
+    }
+    Ok(())
+}
+
+/// Write the full manifest to disk (used by the in-app editor). Validates first,
+/// persists atomically, and only then commits the new manifest to shared state, so
+/// a rejected or failed write leaves both disk and memory on the prior manifest.
 #[tauri::command]
 fn save_manifest(
     app: AppHandle,
     entries: Vec<AppEntry>,
     state: State<HubState>,
 ) -> Result<(), String> {
+    validate_manifest(&entries)?;
     let path = manifest_path(&app).ok_or("no config directory")?;
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
     let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
-    std::fs::write(&path, json).map_err(|e| e.to_string())?;
-    *state.manifest.lock().unwrap() = entries;
+    atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
+    *lock(&state.manifest) = entries;
     Ok(())
 }
 
@@ -885,7 +971,7 @@ fn launch_app(
     state: State<HubState>,
 ) -> Result<(), String> {
     let entry = {
-        let m = state.manifest.lock().unwrap();
+        let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
     }
     .ok_or_else(|| format!("unknown app: {id}"))?;
@@ -1049,7 +1135,7 @@ fn term_resize(id: String, cols: u16, rows: u16, state: State<HubState>) -> Resu
 #[tauri::command]
 fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
     let entry = {
-        let m = state.manifest.lock().unwrap();
+        let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
     };
 
@@ -1118,7 +1204,7 @@ fn spawn_status_poller(app: AppHandle) {
         loop {
             let entries = {
                 match app.try_state::<HubState>() {
-                    Some(s) => s.manifest.lock().unwrap().clone(),
+                    Some(s) => lock(&s.manifest).clone(),
                     None => break,
                 }
             };
@@ -1186,7 +1272,7 @@ fn spawn_status_poller(app: AppHandle) {
                 });
             }
             if let Some(state) = app.try_state::<HubState>() {
-                *state.last_statuses.lock().unwrap() = statuses.clone();
+                *lock(&state.last_statuses) = statuses.clone();
             }
             write_state(&app);
             let _ = app.emit("status://update", statuses);
@@ -1447,16 +1533,20 @@ fn write_state(app: &AppHandle) {
     let Some(state) = app.try_state::<HubState>() else {
         return;
     };
-    let entries = state.manifest.lock().unwrap().clone();
-    let statuses = state.last_statuses.lock().unwrap().clone();
-    let tickets = state.tickets.lock().unwrap().clone();
+    // Serialize writers so a poller tick and an out-of-band ticket flush can't race
+    // to leave the older snapshot on disk. Held across build+write for a consistent
+    // last-writer-wins ordering.
+    let _writer = lock(&state.state_write);
+    let entries = lock(&state.manifest).clone();
+    let statuses = lock(&state.last_statuses).clone();
+    let tickets = lock(&state.tickets).clone();
     let snapshot = serde_json::json!({
         "apps": entries,
         "statuses": statuses,
         "tickets": tickets,
     });
     if let Ok(text) = serde_json::to_string_pretty(&snapshot) {
-        let _ = std::fs::write(path, text);
+        let _ = atomic_write(&path, text.as_bytes());
     }
 }
 
@@ -1495,6 +1585,27 @@ fn hub_paths_report(app: &AppHandle) -> String {
     )
 }
 
+/// Trim the ticket ring without ever dropping a pending ticket. First expire
+/// resolved tickets older than `TICKET_TTL_MS`; if still over `MAX_TICKETS`, drop
+/// the oldest *resolved* ones (the vec is newest-last, so `retain` visits oldest
+/// first) until back under the cap. Pending tickets are always retained, so a
+/// caller polling for the outcome of a slow command can never have it evicted.
+fn prune_tickets(tickets: &mut Vec<Ticket>) {
+    let now = now_millis();
+    tickets.retain(|t| t.status == "pending" || now.saturating_sub(t.ts) < TICKET_TTL_MS);
+    if tickets.len() > MAX_TICKETS {
+        let mut to_drop = tickets.len() - MAX_TICKETS;
+        tickets.retain(|t| {
+            if to_drop > 0 && t.status != "pending" {
+                to_drop -= 1;
+                false
+            } else {
+                true
+            }
+        });
+    }
+}
+
 fn record_ticket(
     app: &AppHandle,
     ticket: &str,
@@ -1504,7 +1615,7 @@ fn record_ticket(
     detail: Option<String>,
 ) {
     if let Some(state) = app.try_state::<HubState>() {
-        let mut tickets = state.tickets.lock().unwrap();
+        let mut tickets = lock(&state.tickets);
         let rec = Ticket {
             ticket: ticket.to_string(),
             action: action.to_string(),
@@ -1517,10 +1628,7 @@ fn record_ticket(
             Some(existing) => *existing = rec,
             None => {
                 tickets.push(rec);
-                let overflow = tickets.len().saturating_sub(MAX_TICKETS);
-                if overflow > 0 {
-                    tickets.drain(0..overflow);
-                }
+                prune_tickets(&mut tickets);
             }
         }
     }
@@ -1728,6 +1836,7 @@ pub fn run() {
             last_statuses: Mutex::new(Vec::new()),
             term_logs: Mutex::new(HashMap::new()),
             last_good_size: Mutex::new(None),
+            state_write: Mutex::new(()),
         })
         .setup(|app| {
             let handle = app.handle().clone();
@@ -1749,11 +1858,11 @@ pub fn run() {
             let settings = load_settings(&handle);
             let always_on_top = settings.always_on_top;
             let locale = settings.locale_resolved.clone();
-            *handle.state::<HubState>().settings.lock().unwrap() = settings;
+            *lock(&handle.state::<HubState>().settings) = settings;
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
             let manifest = load_manifest(&handle);
-            *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
+            *lock(&handle.state::<HubState>().manifest) = manifest;
             seed_ai_readme(&handle);
             // Write the embedded example dashboards to {MP_HOME}/dashboards on first
             // run (skips files that already exist, so user edits are preserved).
@@ -1792,7 +1901,7 @@ pub fn run() {
                 .app_handle()
                 .try_state::<HubState>()
                 .map(|s| {
-                    let g = s.settings.lock().unwrap();
+                    let g = lock(&s.settings);
                     (g.close_to_tray, g.minimize_to_tray)
                 })
                 .unwrap_or((true, true));
@@ -2000,5 +2109,104 @@ mod startup_tests {
             startup_mode(&argv(&["restart", "mcp"])),
             StartupMode::Normal
         );
+    }
+}
+
+#[cfg(test)]
+mod persistence_tests {
+    use super::*;
+
+    fn ticket(id: &str, status: &str, ts: u64) -> Ticket {
+        Ticket {
+            ticket: id.to_string(),
+            action: "launch".to_string(),
+            arg: None,
+            status: status.to_string(),
+            detail: None,
+            ts,
+        }
+    }
+
+    #[test]
+    fn prune_never_evicts_a_pending_ticket() {
+        let now = now_millis();
+        let mut tickets: Vec<Ticket> = (0..MAX_TICKETS + 10)
+            .map(|i| ticket(&format!("resolved-{i}"), "ok", now))
+            .collect();
+        // One pending ticket, added as the very oldest so a naive oldest-first drop
+        // would remove it.
+        tickets.insert(0, ticket("pending-1", "pending", now));
+        prune_tickets(&mut tickets);
+        assert!(tickets.len() <= MAX_TICKETS);
+        assert!(
+            tickets.iter().any(|t| t.ticket == "pending-1"),
+            "pending ticket must survive pruning"
+        );
+    }
+
+    #[test]
+    fn prune_expires_old_resolved_but_keeps_old_pending() {
+        let now = now_millis();
+        let stale = now.saturating_sub(TICKET_TTL_MS + 1);
+        let mut tickets = vec![
+            ticket("old-ok", "ok", stale),
+            ticket("old-pending", "pending", stale),
+            ticket("fresh-ok", "ok", now),
+        ];
+        prune_tickets(&mut tickets);
+        assert!(!tickets.iter().any(|t| t.ticket == "old-ok"));
+        assert!(tickets.iter().any(|t| t.ticket == "old-pending"));
+        assert!(tickets.iter().any(|t| t.ticket == "fresh-ok"));
+    }
+
+    #[test]
+    fn prune_drops_oldest_resolved_first() {
+        let now = now_millis();
+        let mut tickets: Vec<Ticket> = (0..MAX_TICKETS + 3)
+            .map(|i| ticket(&format!("t{i:03}"), "ok", now))
+            .collect();
+        prune_tickets(&mut tickets);
+        assert_eq!(tickets.len(), MAX_TICKETS);
+        // t000..t002 are the three oldest and should be the ones dropped.
+        assert!(!tickets.iter().any(|t| t.ticket == "t000"));
+        assert!(tickets.iter().any(|t| t.ticket == "t003"));
+    }
+
+    fn manifest(json: &str) -> Vec<AppEntry> {
+        serde_json::from_str(json).expect("test manifest parses")
+    }
+
+    #[test]
+    fn validate_rejects_empty_and_duplicate_ids_and_zero_port() {
+        let base = r#"{"id":"a","name":"A","group":"G","type":"web"}"#;
+        assert!(validate_manifest(&manifest(&format!("[{base}]"))).is_ok());
+
+        let empty = r#"[{"id":"  ","name":"A","group":"G","type":"web"}]"#;
+        assert!(validate_manifest(&manifest(empty)).is_err());
+
+        let dup = format!("[{base},{base}]");
+        assert!(validate_manifest(&manifest(&dup)).is_err());
+
+        let zero_port = r#"[{"id":"a","name":"A","group":"G","type":"web","port":0}]"#;
+        assert!(validate_manifest(&manifest(zero_port)).is_err());
+    }
+
+    #[test]
+    fn atomic_write_replaces_and_round_trips() {
+        let dir = std::env::temp_dir().join(format!("mp-atomic-{}", std::process::id()));
+        let path = dir.join("state.json");
+        atomic_write(&path, b"first").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "first");
+        // Overwrite an existing target (the Windows replace path).
+        atomic_write(&path, b"second").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "second");
+        // No stray temp files left behind.
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|e| e.file_name().to_string_lossy().contains(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "temp files should be renamed away");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
