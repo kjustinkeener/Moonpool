@@ -15,7 +15,7 @@ use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::Engine as _;
@@ -212,9 +212,45 @@ struct HubState {
     last_good_size: Mutex<Option<(u32, u32)>>,
 }
 
-/// Completed outcomes remain observable for this long. Pending records are never
-/// evicted, even when many requests are active.
-const TICKET_TTL_MILLIS: u64 = 5 * 60 * 1000;
+// R1 poison policy
+// ----------------
+// A thread that panics while holding a mutex leaves it poisoned. For every piece
+// of HubState that is *pure data* - the manifest, settings, tickets, cached
+// statuses, the state.json write guard, terminal-log ring, and last-good window
+// size - a poisoned lock carries no torn invariant we cannot simply read past, so
+// we recover the inner value rather than propagating the panic and taking the
+// whole hub down. Recovering is strictly better than a second panic here: the data
+// is still structurally valid, and refusing to serve it would only turn one
+// thread's crash into a dead UI.
+//
+// The one exception is the `apps` process-ownership map: see `lock_apps`.
+pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|p| p.into_inner())
+}
+
+// Fail-closed lock for the `apps` map. Unlike the pure-data fields above, `apps`
+// tracks live child processes and PTY handles; a panic mid-mutation can leave a
+// half-inserted or half-torn-down entry, so recovering the inner value could kill
+// or leak the wrong process. Refuse instead. Fail-closed until R3 introduces
+// per-app controllers that can reason about a single app's state in isolation.
+fn lock_apps(state: &HubState) -> Result<MutexGuard<'_, HashMap<String, RunningApp>>, String> {
+    state.apps.lock().map_err(|_| {
+        "Moonpool must be restarted: an earlier error left internal process state inconsistent"
+            .into()
+    })
+}
+
+/// Guaranteed observation floor: a completed (ok/error) outcome is never dropped
+/// to satisfy the soft cap until it is at least this old, so a caller polling
+/// state.json always gets a window to observe its command's result. Pending records
+/// are never evicted, even when many requests are active.
+const TICKET_OBSERVE_MS: u64 = 5 * 60 * 1000;
+/// Soft cap on retained tickets. Applies only to completed outcomes past the
+/// observation floor; pending and fresh-completed records may temporarily exceed it.
+const MAX_TICKETS: usize = 50;
+/// Absolute expiry: a completed outcome older than this is dropped regardless of
+/// the cap, so stale records cannot linger indefinitely on a quiet hub.
+const TICKET_TTL_MS: u64 = 24 * 60 * 60 * 1000;
 
 /// Per-app cap on the retained PTY output ring (bytes). Enough for a long build
 /// log without letting a chatty app grow memory without bound.
@@ -501,18 +537,18 @@ fn update_settings<F>(
 where
     F: FnOnce(&mut Settings),
 {
-    if let Some(error) = state.settings_error.lock().unwrap().clone() {
+    if let Some(error) = lock(&state.settings_error).clone() {
         return Err(format!(
             "{error}. Repair settings.json and restart Moonpool before changing settings"
         ));
     }
-    let mut current = state.settings.lock().unwrap();
+    let mut current = lock(&state.settings);
     let mut candidate = current.clone();
     update(&mut candidate);
     persist_then_commit(&mut *current, candidate.clone(), |value| {
         save_settings(app, value)
     })?;
-    *state.settings_error.lock().unwrap() = None;
+    *lock(&state.settings_error) = None;
     Ok(candidate)
 }
 
@@ -520,7 +556,7 @@ where
 pub(crate) fn log_line(app: &AppHandle, msg: &str) {
     let enabled = app
         .try_state::<HubState>()
-        .map(|s| s.settings.lock().unwrap().debug_logging)
+        .map(|s| lock(&s.settings).debug_logging)
         .unwrap_or(false);
     if !enabled {
         return;
@@ -649,10 +685,10 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
 
 #[tauri::command]
 fn get_apps(state: State<HubState>) -> Result<Vec<AppEntry>, String> {
-    if let Some(error) = state.manifest_error.lock().unwrap().clone() {
+    if let Some(error) = lock(&state.manifest_error).clone() {
         return Err(error);
     }
-    Ok(state.manifest.lock().unwrap().clone())
+    Ok(lock(&state.manifest).clone())
 }
 
 /// Re-read the manifest from disk into state and return it.
@@ -661,12 +697,12 @@ fn reload_manifest(app: AppHandle, state: State<HubState>) -> Result<Vec<AppEntr
     let m = match load_manifest(&app) {
         Ok(manifest) => manifest,
         Err(error) => {
-            *state.manifest_error.lock().unwrap() = Some(error.clone());
+            *lock(&state.manifest_error) = Some(error.clone());
             return Err(error);
         }
     };
-    *state.manifest.lock().unwrap() = m.clone();
-    *state.manifest_error.lock().unwrap() = None;
+    *lock(&state.manifest) = m.clone();
+    *lock(&state.manifest_error) = None;
     Ok(m)
 }
 
@@ -690,10 +726,10 @@ fn open_manifest(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn get_settings(state: State<HubState>) -> Result<Settings, String> {
-    if let Some(error) = state.settings_error.lock().unwrap().clone() {
+    if let Some(error) = lock(&state.settings_error).clone() {
         return Err(error);
     }
-    Ok(state.settings.lock().unwrap().clone())
+    Ok(lock(&state.settings).clone())
 }
 
 #[tauri::command]
@@ -824,7 +860,7 @@ fn app_icon(
     // so an icon changed in a new build of the target app shows up immediately.
     let refresh = refresh.unwrap_or(false);
     let mut entry = {
-        let m = state.manifest.lock().unwrap();
+        let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
     }?;
     // Resolve {MP_HOME}/{MP_DATA} tokens and ./-anchored paths so icon lookup (cwd,
@@ -941,7 +977,7 @@ fn save_manifest(
     entries: Vec<AppEntry>,
     state: State<HubState>,
 ) -> Result<(), String> {
-    if let Some(error) = state.manifest_error.lock().unwrap().clone() {
+    if let Some(error) = lock(&state.manifest_error).clone() {
         return Err(format!(
             "{error}. Repair apps.json and reload it before saving from Moonpool"
         ));
@@ -950,8 +986,8 @@ fn save_manifest(
     validate_manifest(&entries)?;
     let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
     persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
-    *state.manifest.lock().unwrap() = entries;
-    *state.manifest_error.lock().unwrap() = None;
+    *lock(&state.manifest) = entries;
+    *lock(&state.manifest_error) = None;
     Ok(())
 }
 
@@ -964,13 +1000,13 @@ fn launch_app(
     state: State<HubState>,
 ) -> Result<(), String> {
     let entry = {
-        let m = state.manifest.lock().unwrap();
+        let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
     }
     .ok_or_else(|| format!("unknown app: {id}"))?;
 
     {
-        let apps = state.apps.lock().unwrap();
+        let apps = lock_apps(&state)?;
         if apps.contains_key(&id) {
             return Err("already running".into());
         }
@@ -1023,7 +1059,7 @@ fn launch_app(
     // from later removing the winner's entry on cleanup.
     {
         use std::collections::hash_map::Entry;
-        let mut apps = state.apps.lock().unwrap();
+        let mut apps = lock_apps(&state)?;
         match apps.entry(id.clone()) {
             Entry::Occupied(_) => {
                 drop(apps);
@@ -1065,7 +1101,7 @@ fn launch_app(
                 Ok(0) => break,
                 Ok(n) => {
                     if let Some(state) = app2.try_state::<HubState>() {
-                        let mut logs = state.term_logs.lock().unwrap();
+                        let mut logs = lock(&state.term_logs);
                         let buf_for_id = logs.entry(id2.clone()).or_default();
                         buf_for_id.extend_from_slice(&buf[..n]);
                         // Trim from the front so the ring keeps the newest output.
@@ -1087,8 +1123,15 @@ fn launch_app(
         }
         // Drop the running entry so status reflects the exit.
         if let Some(state) = app2.try_state::<HubState>() {
-            if let Some(mut a) = state.apps.lock().unwrap().remove(&id2) {
-                let _ = a.child.kill();
+            // fail-closed until R3 per-app controllers: on a poisoned apps lock,
+            // skip cleanup rather than act on possibly half-torn-down state.
+            match state.apps.lock() {
+                Ok(mut apps) => {
+                    if let Some(mut a) = apps.remove(&id2) {
+                        let _ = a.child.kill();
+                    }
+                }
+                Err(_) => log_line(&app2, "apps lock poisoned; skipping exit cleanup"),
             }
         }
         let _ = app2.emit("term://exit", id2.clone());
@@ -1099,7 +1142,7 @@ fn launch_app(
 
 #[tauri::command]
 fn term_input(id: String, data: String, state: State<HubState>) -> Result<(), String> {
-    let mut apps = state.apps.lock().unwrap();
+    let mut apps = lock_apps(&state)?;
     if let Some(a) = apps.get_mut(&id) {
         a.writer
             .write_all(data.as_bytes())
@@ -1111,7 +1154,7 @@ fn term_input(id: String, data: String, state: State<HubState>) -> Result<(), St
 
 #[tauri::command]
 fn term_resize(id: String, cols: u16, rows: u16, state: State<HubState>) -> Result<(), String> {
-    let apps = state.apps.lock().unwrap();
+    let apps = lock_apps(&state)?;
     if let Some(a) = apps.get(&id) {
         a.master
             .resize(PtySize {
@@ -1128,14 +1171,14 @@ fn term_resize(id: String, cols: u16, rows: u16, state: State<HubState>) -> Resu
 #[tauri::command]
 fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
     let entry = {
-        let m = state.manifest.lock().unwrap();
+        let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
     };
 
     // Kill the PTY subtree we own. child.kill() ends cmd.exe, but the launch
     // scripts spawn deep trees (cmd -> pwsh -> npm -> node/cargo -> app), so
     // tree-kill the whole subtree by PID.
-    if let Some(mut a) = state.apps.lock().unwrap().remove(&id) {
+    if let Some(mut a) = lock_apps(&state)?.remove(&id) {
         a.stop.store(true, Ordering::Relaxed);
         let pid = a.child.process_id();
         let _ = a.child.kill();
@@ -1197,7 +1240,7 @@ fn spawn_status_poller(app: AppHandle) {
         loop {
             let entries = {
                 match app.try_state::<HubState>() {
-                    Some(s) => s.manifest.lock().unwrap().clone(),
+                    Some(s) => lock(&s.manifest).clone(),
                     None => break,
                 }
             };
@@ -1208,24 +1251,31 @@ fn spawn_status_poller(app: AppHandle) {
             // leave the app stuck "managed" (permanent amber). try_wait() on the top
             // process is the reliable liveness signal.
             let managed: HashSet<String> = match app.try_state::<HubState>() {
-                Some(state) => {
-                    let mut apps = state.apps.lock().unwrap();
-                    let dead: Vec<String> = apps
-                        .iter_mut()
-                        .filter_map(|(id, a)| match a.child.try_wait() {
-                            Ok(Some(_)) => {
-                                a.stop.store(true, Ordering::Relaxed);
-                                Some(id.clone())
-                            }
-                            _ => None,
-                        })
-                        .collect();
-                    for id in &dead {
-                        apps.remove(id);
-                        let _ = app.emit("term://exit", id.clone());
+                // fail-closed until R3 per-app controllers: never recover a poisoned
+                // apps lock. Skip this reap tick and treat nothing as managed.
+                Some(state) => match state.apps.lock() {
+                    Ok(mut apps) => {
+                        let dead: Vec<String> = apps
+                            .iter_mut()
+                            .filter_map(|(id, a)| match a.child.try_wait() {
+                                Ok(Some(_)) => {
+                                    a.stop.store(true, Ordering::Relaxed);
+                                    Some(id.clone())
+                                }
+                                _ => None,
+                            })
+                            .collect();
+                        for id in &dead {
+                            apps.remove(id);
+                            let _ = app.emit("term://exit", id.clone());
+                        }
+                        apps.keys().cloned().collect()
                     }
-                    apps.keys().cloned().collect()
-                }
+                    Err(_) => {
+                        log_line(&app, "apps lock poisoned; skipping status reap this tick");
+                        HashSet::new()
+                    }
+                },
                 None => break,
             };
 
@@ -1265,7 +1315,7 @@ fn spawn_status_poller(app: AppHandle) {
                 });
             }
             if let Some(state) = app.try_state::<HubState>() {
-                *state.last_statuses.lock().unwrap() = statuses.clone();
+                *lock(&state.last_statuses) = statuses.clone();
             }
             write_state(&app);
             let _ = app.emit("status://update", statuses);
@@ -1469,7 +1519,7 @@ fn dump_term_log(app: &AppHandle, id: Option<&str>, positional: &[&str]) -> (&'s
     };
     let Some(bytes) = app
         .try_state::<HubState>()
-        .and_then(|s| s.term_logs.lock().unwrap().get(id).cloned())
+        .and_then(|s| lock(&s.term_logs).get(id).cloned())
     else {
         return (
             "error",
@@ -1526,10 +1576,15 @@ fn write_state(app: &AppHandle) {
     let Some(state) = app.try_state::<HubState>() else {
         return;
     };
-    let _writer = state.state_write.lock().unwrap();
-    let entries = state.manifest.lock().unwrap().clone();
-    let statuses = state.last_statuses.lock().unwrap().clone();
-    let tickets = state.tickets.lock().unwrap().clone();
+    let _writer = lock(&state.state_write);
+    let entries = lock(&state.manifest).clone();
+    let statuses = lock(&state.last_statuses).clone();
+    let tickets = {
+        // Expire stale records even when no new command arrives.
+        let mut tickets = lock(&state.tickets);
+        prune_tickets(&mut tickets, now_millis());
+        tickets.clone()
+    };
     let snapshot = serde_json::json!({
         "apps": entries,
         "statuses": statuses,
@@ -1541,8 +1596,44 @@ fn write_state(app: &AppHandle) {
 }
 
 fn prune_tickets(tickets: &mut Vec<Ticket>, now: u64) {
-    tickets.retain(|ticket| {
-        ticket.status == "pending" || now.saturating_sub(ticket.ts) <= TICKET_TTL_MILLIS
+    let age = |t: &Ticket| now.saturating_sub(t.ts);
+    let completed = |t: &Ticket| t.status == "ok" || t.status == "error";
+
+    // Absolute expiry: a completed outcome past the TTL goes even under the cap.
+    // Pending is never removed by age.
+    tickets.retain(|t| !(completed(t) && age(t) >= TICKET_TTL_MS));
+
+    // Soft cap. Only completed outcomes past the observation floor are eligible to
+    // be dropped; pending records and fresh-completed outcomes may push the list
+    // past MAX_TICKETS until they either complete or age past the floor.
+    if tickets.len() <= MAX_TICKETS {
+        return;
+    }
+    let mut excess = tickets.len() - MAX_TICKETS;
+    // Oldest cap-eligible first (largest age == smallest ts).
+    let mut eligible: Vec<usize> = tickets
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| completed(t) && age(t) >= TICKET_OBSERVE_MS)
+        .map(|(i, _)| i)
+        .collect();
+    eligible.sort_by_key(|&i| tickets[i].ts);
+    let mut drop_idx: std::collections::HashSet<usize> = std::collections::HashSet::new();
+    for &i in eligible.iter() {
+        if excess == 0 {
+            break;
+        }
+        drop_idx.insert(i);
+        excess -= 1;
+    }
+    if drop_idx.is_empty() {
+        return;
+    }
+    let mut i = 0usize;
+    tickets.retain(|_| {
+        let keep = !drop_idx.contains(&i);
+        i += 1;
+        keep
     });
 }
 
@@ -1590,7 +1681,7 @@ fn record_ticket(
     detail: Option<String>,
 ) {
     if let Some(state) = app.try_state::<HubState>() {
-        let mut tickets = state.tickets.lock().unwrap();
+        let mut tickets = lock(&state.tickets);
         let now = now_millis();
         prune_tickets(&mut tickets, now);
         let rec = Ticket {
@@ -1640,7 +1731,7 @@ fn show_main(app: &AppHandle) {
             if sz.height < 300 {
                 let last = app
                     .try_state::<HubState>()
-                    .and_then(|s| *s.last_good_size.lock().unwrap());
+                    .and_then(|s| *lock(&s.last_good_size));
                 if let Some((w, h)) = last {
                     let _ = win.set_size(tauri::PhysicalSize::new(w, h));
                     // The collapsed sliver also sits at an off-screen minimize
@@ -1837,8 +1928,8 @@ pub fn run() {
             };
             let always_on_top = settings.always_on_top;
             let locale = settings.locale_resolved.clone();
-            *handle.state::<HubState>().settings.lock().unwrap() = settings;
-            *handle.state::<HubState>().settings_error.lock().unwrap() = settings_error;
+            *lock(&handle.state::<HubState>().settings) = settings;
+            *lock(&handle.state::<HubState>().settings_error) = settings_error;
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
             let (manifest, manifest_error) = match load_manifest(&handle) {
@@ -1848,8 +1939,8 @@ pub fn run() {
                     (Vec::new(), Some(error))
                 }
             };
-            *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
-            *handle.state::<HubState>().manifest_error.lock().unwrap() = manifest_error;
+            *lock(&handle.state::<HubState>().manifest) = manifest;
+            *lock(&handle.state::<HubState>().manifest_error) = manifest_error;
             seed_ai_readme(&handle);
             // Write the embedded example dashboards to {MP_HOME}/dashboards on first
             // run (skips files that already exist, so user edits are preserved).
@@ -1869,7 +1960,7 @@ pub fn run() {
                 if let Ok(sz) = win.inner_size() {
                     if sz.width >= 300 && sz.height >= 300 {
                         if let Some(s) = handle.try_state::<HubState>() {
-                            *s.last_good_size.lock().unwrap() = Some((sz.width, sz.height));
+                            *lock(&s.last_good_size) = Some((sz.width, sz.height));
                         }
                     }
                 }
@@ -1888,7 +1979,7 @@ pub fn run() {
                 .app_handle()
                 .try_state::<HubState>()
                 .map(|s| {
-                    let g = s.settings.lock().unwrap();
+                    let g = lock(&s.settings);
                     (g.close_to_tray, g.minimize_to_tray)
                 })
                 .unwrap_or((true, true));
@@ -1976,7 +2067,7 @@ pub fn run() {
                                 let last = window
                                     .app_handle()
                                     .try_state::<HubState>()
-                                    .and_then(|s| *s.last_good_size.lock().unwrap());
+                                    .and_then(|s| *lock(&s.last_good_size));
                                 if let Some((w, h)) = last {
                                     let _ = window.set_size(tauri::PhysicalSize::new(w, h));
                                 }
@@ -1986,7 +2077,7 @@ pub fn run() {
                             // path can restore it if a Win+D brings the window back
                             // collapsed.
                             if let Some(s) = window.app_handle().try_state::<HubState>() {
-                                *s.last_good_size.lock().unwrap() = Some((sz.width, sz.height));
+                                *lock(&s.last_good_size) = Some((sz.width, sz.height));
                             }
                             log_line(
                                 window.app_handle(),
@@ -2046,8 +2137,8 @@ pub fn run() {
 #[cfg(test)]
 mod startup_tests {
     use super::{
-        parse_manifest_text, persist_then_commit, prune_tickets, startup_mode, StartupMode, Ticket,
-        TICKET_TTL_MILLIS,
+        lock, parse_manifest_text, persist_then_commit, prune_tickets, startup_mode, StartupMode,
+        Ticket, MAX_TICKETS, TICKET_OBSERVE_MS, TICKET_TTL_MS,
     };
 
     fn argv(rest: &[&str]) -> Vec<String> {
@@ -2168,15 +2259,21 @@ mod startup_tests {
 
     #[test]
     fn ticket_cleanup_never_evicts_pending_or_fresh_outcomes() {
-        let now = TICKET_TTL_MILLIS + 10;
+        // now is past the observation floor: a stale completed outcome is cap-eligible,
+        // but a fresh one (ts == now) must still be retained even though we are over
+        // the cap - that is the observation-floor guarantee.
+        let now = TICKET_OBSERVE_MS + 10;
         let mut tickets: Vec<Ticket> = (0..60).map(|index| ticket(index, "pending", 0)).collect();
         tickets.push(ticket(60, "ok", now));
         tickets.push(ticket(61, "error", 0));
 
         prune_tickets(&mut tickets, now);
 
+        // 60 pending (never evicted) + the fresh "ok"; the stale "error" is dropped by
+        // the cap (len was 62 > 50, and it is the only cap-eligible record).
         assert_eq!(tickets.len(), 61);
         assert!(tickets.iter().all(|item| item.status != "error"));
+        assert!(tickets.iter().any(|item| item.status == "ok"));
         assert_eq!(
             tickets
                 .iter()
@@ -2185,4 +2282,75 @@ mod startup_tests {
             60
         );
     }
+
+    #[test]
+    fn recoverable_lock_returns_inner_value_after_poison() {
+        use std::sync::{Arc, Mutex};
+        let m = Arc::new(Mutex::new(41u32));
+        let m2 = Arc::clone(&m);
+        // Poison the mutex by panicking while holding the guard.
+        let _ = std::thread::spawn(move || {
+            let mut g = m2.lock().unwrap();
+            *g = 99;
+            panic!("poison it");
+        })
+        .join();
+        assert!(m.lock().is_err(), "mutex should now be poisoned");
+        // lock() recovers the inner value instead of panicking a second time.
+        let mut g = lock(&m);
+        assert_eq!(*g, 99);
+        *g += 1;
+        assert_eq!(*g, 100);
+    }
+
+    #[test]
+    fn prune_keeps_fresh_completed_over_cap_then_drops_oldest_after_floor() {
+        // Large base so saturating_sub never underflows and every ts is distinct.
+        let base = 10 * TICKET_OBSERVE_MS;
+        let mut tickets: Vec<Ticket> = (0..60u64)
+            .map(|i| ticket(i as usize, "ok", base + i))
+            .collect();
+
+        // Just after creation every outcome is younger than the observation floor,
+        // so the cap does not apply and all 60 survive (past MAX_TICKETS).
+        let fresh = base + 59;
+        prune_tickets(&mut tickets, fresh);
+        assert_eq!(tickets.len(), 60);
+        assert!(tickets.len() > MAX_TICKETS);
+
+        // Past the floor every outcome is cap-eligible; the oldest (smallest ts) are
+        // dropped first until the list is back at the cap.
+        let aged = base + 59 + TICKET_OBSERVE_MS + 1;
+        prune_tickets(&mut tickets, aged);
+        assert_eq!(tickets.len(), MAX_TICKETS);
+        let min_ts = tickets.iter().map(|t| t.ts).min().unwrap();
+        assert_eq!(min_ts, base + 10, "the 10 oldest were dropped, newest kept");
+    }
+
+    #[test]
+    fn prune_expires_completed_after_ttl_even_below_cap() {
+        let now = TICKET_TTL_MS + 1;
+        let mut tickets = vec![
+            ticket(0, "ok", 0),      // age >= TTL -> absolute expiry, even under the cap
+            ticket(1, "error", now), // fresh -> retained
+        ];
+        prune_tickets(&mut tickets, now);
+        assert_eq!(tickets.len(), 1);
+        assert_eq!(tickets[0].ticket, "ticket-1");
+    }
+
+    #[test]
+    fn prune_never_evicts_pending_by_age_or_count() {
+        // Far past every threshold, and well over the cap: pending is still immortal.
+        let now = TICKET_TTL_MS * 2;
+        let mut tickets: Vec<Ticket> = (0..120).map(|i| ticket(i, "pending", 0)).collect();
+        prune_tickets(&mut tickets, now);
+        assert_eq!(tickets.len(), 120);
+        assert!(tickets.iter().all(|t| t.status == "pending"));
+    }
+
+    // Deferred (manual): poisoned-`apps`-lock refuses lifecycle commands (lock_apps
+    // returns Err) and cold-start-corrupt preserves the file + surfaces an empty list.
+    // Both need a running Tauri app/AppHandle, so they are covered by manual QA rather
+    // than unit tests here.
 }
