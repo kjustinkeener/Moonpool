@@ -31,6 +31,7 @@ mod dashboards;
 mod i18n;
 mod install;
 mod mcp;
+mod persistence;
 mod platform;
 mod portable;
 mod update;
@@ -187,12 +188,20 @@ struct RunningApp {
 struct HubState {
     apps: Mutex<HashMap<String, RunningApp>>,
     manifest: Mutex<Vec<AppEntry>>,
+    /// Set when an existing apps.json cannot be loaded. The file is preserved
+    /// and the frontend receives this recovery error instead of example data.
+    manifest_error: Mutex<Option<String>>,
     settings: Mutex<Settings>,
+    /// Set when settings.json is malformed. Mutations are refused so the user's
+    /// file remains available for repair.
+    settings_error: Mutex<Option<String>>,
     /// Recent control-command outcomes, newest last; capped to avoid growth.
     tickets: Mutex<Vec<Ticket>>,
     /// Last status snapshot the poller computed, so an out-of-band state.json
     /// flush (after a ticket update) still writes accurate running/managed flags.
     last_statuses: Mutex<Vec<AppStatus>>,
+    /// Serializes complete state snapshot capture and replacement.
+    state_write: Mutex<()>,
     /// Recent PTY output per app id, capped at MAX_TERM_LOG bytes each. Kept in
     /// Rust (not just the WebView) so the `dump` control command can write an
     /// app's console output to a file, including after the app has exited.
@@ -203,8 +212,9 @@ struct HubState {
     last_good_size: Mutex<Option<(u32, u32)>>,
 }
 
-/// Cap on retained ticket records (oldest dropped first).
-const MAX_TICKETS: usize = 50;
+/// Completed outcomes remain observable for this long. Pending records are never
+/// evicted, even when many requests are active.
+const TICKET_TTL_MILLIS: u64 = 5 * 60 * 1000;
 
 /// Per-app cap on the retained PTY output ring (bytes). Enough for a long build
 /// log without letting a chatty app grow memory without bound.
@@ -451,20 +461,59 @@ fn log_path(app: &AppHandle) -> Option<PathBuf> {
     moonpool_dir(app).map(|d| d.join("moonpool.log"))
 }
 
-fn load_settings(app: &AppHandle) -> Settings {
-    settings_path(app)
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default()
+fn load_settings(app: &AppHandle) -> Result<Settings, String> {
+    let path = settings_path(app).ok_or("no config directory")?;
+    if !path.exists() {
+        return Ok(Settings::default());
+    }
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| format!("cannot read {}: {e}; file preserved", path.display()))?;
+    serde_json::from_str(&text)
+        .map_err(|e| format!("invalid {}: {e}; file preserved", path.display()))
 }
 
 fn save_settings(app: &AppHandle, s: &Settings) -> Result<(), String> {
     let path = settings_path(app).ok_or("no config directory")?;
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
+    if path.exists() {
+        let existing = std::fs::read_to_string(&path)
+            .map_err(|e| format!("cannot read {}: {e}; file preserved", path.display()))?;
+        serde_json::from_str::<Settings>(&existing)
+            .map_err(|e| format!("invalid {}: {e}; file preserved", path.display()))?;
     }
     let json = serde_json::to_string_pretty(s).map_err(|e| e.to_string())?;
-    std::fs::write(path, json).map_err(|e| e.to_string())
+    persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())
+}
+
+fn persist_then_commit<T, F>(current: &mut T, candidate: T, persist: F) -> Result<(), String>
+where
+    F: FnOnce(&T) -> Result<(), String>,
+{
+    persist(&candidate)?;
+    *current = candidate;
+    Ok(())
+}
+
+fn update_settings<F>(
+    app: &AppHandle,
+    state: &State<HubState>,
+    update: F,
+) -> Result<Settings, String>
+where
+    F: FnOnce(&mut Settings),
+{
+    if let Some(error) = state.settings_error.lock().unwrap().clone() {
+        return Err(format!(
+            "{error}. Repair settings.json and restart Moonpool before changing settings"
+        ));
+    }
+    let mut current = state.settings.lock().unwrap();
+    let mut candidate = current.clone();
+    update(&mut candidate);
+    persist_then_commit(&mut *current, candidate.clone(), |value| {
+        save_settings(app, value)
+    })?;
+    *state.settings_error.lock().unwrap() = None;
+    Ok(candidate)
 }
 
 /// Append a line to moonpool.log when debug logging is enabled.
@@ -494,21 +543,79 @@ pub(crate) fn log_line(app: &AppHandle, msg: &str) {
     }
 }
 
-fn parse_example() -> Vec<AppEntry> {
-    serde_json::from_str(example_manifest()).unwrap_or_default()
+fn valid_manifest_id(id: &str) -> bool {
+    !id.is_empty()
+        && !id.starts_with('-')
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
 }
 
-/// Read the manifest from disk, seeding the example on first run and falling back
-/// to it if the file is missing or malformed.
-fn load_manifest(app: &AppHandle) -> Vec<AppEntry> {
+fn validate_manifest(entries: &[AppEntry]) -> Result<(), String> {
+    let mut ids = HashSet::new();
+    for (index, entry) in entries.iter().enumerate() {
+        let label = format!("apps.json entry {}", index + 1);
+        if !valid_manifest_id(&entry.id) {
+            return Err(format!(
+                "{label} has invalid id {:?}; use letters, digits, '.', '_', and '-' without a leading '-'",
+                entry.id
+            ));
+        }
+        if !ids.insert(entry.id.as_str()) {
+            return Err(format!("duplicate app id {:?}", entry.id));
+        }
+        if entry.name.trim().is_empty() {
+            return Err(format!("{label} ({}) has an empty name", entry.id));
+        }
+        if entry.group.trim().is_empty() {
+            return Err(format!("{label} ({}) has an empty group", entry.id));
+        }
+        if !matches!(
+            entry.app_type.as_str(),
+            "desktop" | "web" | "static" | "cli"
+        ) {
+            return Err(format!(
+                "{label} ({}) has unknown type {:?}",
+                entry.id, entry.app_type
+            ));
+        }
+        if entry.port == Some(0) {
+            return Err(format!("{label} ({}) has invalid port 0", entry.id));
+        }
+        let has_command = entry
+            .command
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty());
+        let has_url = entry
+            .url
+            .as_deref()
+            .is_some_and(|value| !value.trim().is_empty());
+        if entry.app_type == "static" {
+            if !has_url {
+                return Err(format!("{label} ({}) requires a url", entry.id));
+            }
+        } else if !has_command {
+            return Err(format!("{label} ({}) requires a command", entry.id));
+        }
+    }
+    Ok(())
+}
+
+fn parse_manifest_text(text: &str) -> Result<Vec<AppEntry>, String> {
+    let entries: Vec<AppEntry> = serde_json::from_str(text).map_err(|e| e.to_string())?;
+    validate_manifest(&entries)?;
+    Ok(entries)
+}
+
+/// Read and validate the manifest, seeding examples only when no file exists.
+/// A malformed existing file is left untouched for repair.
+fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
     let Some(path) = manifest_path(app) else {
-        return parse_example();
+        return Err("no config directory".into());
     };
     if !path.exists() {
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let _ = std::fs::write(&path, example_manifest());
+        persistence::atomic_write(&path, example_manifest().as_bytes())
+            .map_err(|e| format!("cannot seed {}: {e}", path.display()))?;
         log_line(
             app,
             &format!("seeded example manifest at {}", path.display()),
@@ -530,40 +637,37 @@ fn load_manifest(app: &AppHandle) -> Vec<AppEntry> {
             }
         }
     }
-    match text {
-        Some(t) => match serde_json::from_str::<Vec<AppEntry>>(&t) {
-            Ok(v) => {
-                log_line(
-                    app,
-                    &format!("loaded {} apps from {}", v.len(), path.display()),
-                );
-                v
-            }
-            Err(e) => {
-                // Route through log_line (eprintln is invisible under
-                // windows_subsystem = "windows").
-                log_line(app, &format!("apps.json parse error ({e}); using example"));
-                parse_example()
-            }
-        },
-        None => {
-            log_line(app, &format!("read failed ({last_err}); using example"));
-            parse_example()
-        }
-    }
+    let text = text.ok_or_else(|| format!("cannot read {}: {last_err}", path.display()))?;
+    let entries = parse_manifest_text(&text)
+        .map_err(|e| format!("invalid {}: {e}; file preserved", path.display()))?;
+    log_line(
+        app,
+        &format!("loaded {} apps from {}", entries.len(), path.display()),
+    );
+    Ok(entries)
 }
 
 #[tauri::command]
-fn get_apps(state: State<HubState>) -> Vec<AppEntry> {
-    state.manifest.lock().unwrap().clone()
+fn get_apps(state: State<HubState>) -> Result<Vec<AppEntry>, String> {
+    if let Some(error) = state.manifest_error.lock().unwrap().clone() {
+        return Err(error);
+    }
+    Ok(state.manifest.lock().unwrap().clone())
 }
 
 /// Re-read the manifest from disk into state and return it.
 #[tauri::command]
-fn reload_manifest(app: AppHandle, state: State<HubState>) -> Vec<AppEntry> {
-    let m = load_manifest(&app);
+fn reload_manifest(app: AppHandle, state: State<HubState>) -> Result<Vec<AppEntry>, String> {
+    let m = match load_manifest(&app) {
+        Ok(manifest) => manifest,
+        Err(error) => {
+            *state.manifest_error.lock().unwrap() = Some(error.clone());
+            return Err(error);
+        }
+    };
     *state.manifest.lock().unwrap() = m.clone();
-    m
+    *state.manifest_error.lock().unwrap() = None;
+    Ok(m)
 }
 
 /// Open the manifest file in the user's default editor.
@@ -571,10 +675,8 @@ fn reload_manifest(app: AppHandle, state: State<HubState>) -> Vec<AppEntry> {
 fn open_manifest(app: AppHandle) -> Result<(), String> {
     let path = manifest_path(&app).ok_or("no config directory")?;
     if !path.exists() {
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        let _ = std::fs::write(&path, example_manifest());
+        persistence::atomic_write(&path, example_manifest().as_bytes())
+            .map_err(|e| format!("cannot seed {}: {e}", path.display()))?;
     }
     // On Linux the manifest's application/json MIME often has no handler and
     // xdg-open lands in a browser; open the text editor explicitly there.
@@ -587,18 +689,16 @@ fn open_manifest(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn get_settings(state: State<HubState>) -> Settings {
-    state.settings.lock().unwrap().clone()
+fn get_settings(state: State<HubState>) -> Result<Settings, String> {
+    if let Some(error) = state.settings_error.lock().unwrap().clone() {
+        return Err(error);
+    }
+    Ok(state.settings.lock().unwrap().clone())
 }
 
 #[tauri::command]
 fn set_debug_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.debug_logging = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)?;
+    update_settings(&app, &state, |settings| settings.debug_logging = enabled)?;
     if enabled {
         log_line(&app, "--- debug logging enabled ---");
     }
@@ -607,12 +707,7 @@ fn set_debug_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> R
 
 #[tauri::command]
 fn set_close_to_tray(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.close_to_tray = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)
+    update_settings(&app, &state, |settings| settings.close_to_tray = enabled).map(|_| ())
 }
 
 #[tauri::command]
@@ -621,12 +716,7 @@ fn set_minimize_to_tray(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.minimize_to_tray = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)
+    update_settings(&app, &state, |settings| settings.minimize_to_tray = enabled).map(|_| ())
 }
 
 #[tauri::command]
@@ -635,12 +725,7 @@ fn set_check_on_startup(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.check_on_startup = enabled;
-        g.clone()
-    };
-    save_settings(&app, &s)
+    update_settings(&app, &state, |settings| settings.check_on_startup = enabled).map(|_| ())
 }
 
 /// Every window this app opens. Always-on-top is applied to all of them so the
@@ -659,13 +744,9 @@ fn apply_always_on_top(app: &AppHandle, on: bool) {
 
 #[tauri::command]
 fn set_always_on_top(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.always_on_top = enabled;
-        g.clone()
-    };
+    update_settings(&app, &state, |settings| settings.always_on_top = enabled)?;
     apply_always_on_top(&app, enabled);
-    save_settings(&app, &s)
+    Ok(())
 }
 
 /// Change the UI language.
@@ -681,36 +762,30 @@ fn set_locale(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.locale = locale;
-        g.locale_resolved = resolved.clone();
-        g.clone()
-    };
+    update_settings(&app, &state, |settings| {
+        settings.locale = locale;
+        settings.locale_resolved = resolved.clone();
+    })?;
     retranslate_tray(&app, &resolved);
-    save_settings(&app, &s)
+    Ok(())
 }
 
 #[tauri::command]
 fn set_transparency(value: u8, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.transparency = value.min(90);
-        g.clone()
-    };
-    save_settings(&app, &s)
+    update_settings(&app, &state, |settings| {
+        settings.transparency = value.min(90)
+    })
+    .map(|_| ())
 }
 
 /// Persist the Ctrl+wheel zoom factor. Clamped here as well as in the webview,
 /// since the value is read back at launch and applied without further checking.
 #[tauri::command]
 fn set_ui_scale(scale: f64, app: AppHandle, state: State<HubState>) -> Result<(), String> {
-    let s = {
-        let mut g = state.settings.lock().unwrap();
-        g.ui_scale = scale.clamp(0.5, 3.0);
-        g.clone()
-    };
-    save_settings(&app, &s)
+    update_settings(&app, &state, |settings| {
+        settings.ui_scale = scale.clamp(0.5, 3.0)
+    })
+    .map(|_| ())
 }
 
 /// Open the log file in the default app.
@@ -866,13 +941,17 @@ fn save_manifest(
     entries: Vec<AppEntry>,
     state: State<HubState>,
 ) -> Result<(), String> {
-    let path = manifest_path(&app).ok_or("no config directory")?;
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
+    if let Some(error) = state.manifest_error.lock().unwrap().clone() {
+        return Err(format!(
+            "{error}. Repair apps.json and reload it before saving from Moonpool"
+        ));
     }
+    let path = manifest_path(&app).ok_or("no config directory")?;
+    validate_manifest(&entries)?;
     let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
-    std::fs::write(&path, json).map_err(|e| e.to_string())?;
+    persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
     *state.manifest.lock().unwrap() = entries;
+    *state.manifest_error.lock().unwrap() = None;
     Ok(())
 }
 
@@ -1447,6 +1526,7 @@ fn write_state(app: &AppHandle) {
     let Some(state) = app.try_state::<HubState>() else {
         return;
     };
+    let _writer = state.state_write.lock().unwrap();
     let entries = state.manifest.lock().unwrap().clone();
     let statuses = state.last_statuses.lock().unwrap().clone();
     let tickets = state.tickets.lock().unwrap().clone();
@@ -1456,8 +1536,14 @@ fn write_state(app: &AppHandle) {
         "tickets": tickets,
     });
     if let Ok(text) = serde_json::to_string_pretty(&snapshot) {
-        let _ = std::fs::write(path, text);
+        let _ = persistence::atomic_write(&path, text.as_bytes());
     }
+}
+
+fn prune_tickets(tickets: &mut Vec<Ticket>, now: u64) {
+    tickets.retain(|ticket| {
+        ticket.status == "pending" || now.saturating_sub(ticket.ts) <= TICKET_TTL_MILLIS
+    });
 }
 
 /// Insert or update a ticket record, then flush state.json so a poller on the
@@ -1505,23 +1591,19 @@ fn record_ticket(
 ) {
     if let Some(state) = app.try_state::<HubState>() {
         let mut tickets = state.tickets.lock().unwrap();
+        let now = now_millis();
+        prune_tickets(&mut tickets, now);
         let rec = Ticket {
             ticket: ticket.to_string(),
             action: action.to_string(),
             arg,
             status: status.to_string(),
             detail,
-            ts: now_millis(),
+            ts: now,
         };
         match tickets.iter_mut().find(|t| t.ticket == ticket) {
             Some(existing) => *existing = rec,
-            None => {
-                tickets.push(rec);
-                let overflow = tickets.len().saturating_sub(MAX_TICKETS);
-                if overflow > 0 {
-                    tickets.drain(0..overflow);
-                }
-            }
+            None => tickets.push(rec),
         }
     }
     write_state(app);
@@ -1723,9 +1805,12 @@ pub fn run() {
         .manage(HubState {
             apps: Mutex::new(HashMap::new()),
             manifest: Mutex::new(Vec::new()),
+            manifest_error: Mutex::new(None),
             settings: Mutex::new(Settings::default()),
+            settings_error: Mutex::new(None),
             tickets: Mutex::new(Vec::new()),
             last_statuses: Mutex::new(Vec::new()),
+            state_write: Mutex::new(()),
             term_logs: Mutex::new(HashMap::new()),
             last_good_size: Mutex::new(None),
         })
@@ -1746,14 +1831,25 @@ pub fn run() {
                 return Ok(());
             }
             // Load settings first so logging (if enabled) captures the manifest load.
-            let settings = load_settings(&handle);
+            let (settings, settings_error) = match load_settings(&handle) {
+                Ok(settings) => (settings, None),
+                Err(error) => (Settings::default(), Some(error)),
+            };
             let always_on_top = settings.always_on_top;
             let locale = settings.locale_resolved.clone();
             *handle.state::<HubState>().settings.lock().unwrap() = settings;
+            *handle.state::<HubState>().settings_error.lock().unwrap() = settings_error;
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
-            let manifest = load_manifest(&handle);
+            let (manifest, manifest_error) = match load_manifest(&handle) {
+                Ok(manifest) => (manifest, None),
+                Err(error) => {
+                    log_line(&handle, &error);
+                    (Vec::new(), Some(error))
+                }
+            };
             *handle.state::<HubState>().manifest.lock().unwrap() = manifest;
+            *handle.state::<HubState>().manifest_error.lock().unwrap() = manifest_error;
             seed_ai_readme(&handle);
             // Write the embedded example dashboards to {MP_HOME}/dashboards on first
             // run (skips files that already exist, so user edits are preserved).
@@ -1949,7 +2045,10 @@ pub fn run() {
 
 #[cfg(test)]
 mod startup_tests {
-    use super::{startup_mode, StartupMode};
+    use super::{
+        parse_manifest_text, persist_then_commit, prune_tickets, startup_mode, StartupMode, Ticket,
+        TICKET_TTL_MILLIS,
+    };
 
     fn argv(rest: &[&str]) -> Vec<String> {
         std::iter::once("moonpool.exe")
@@ -1962,7 +2061,10 @@ mod startup_tests {
     fn recognizes_startup_modes_in_argv1() {
         assert_eq!(startup_mode(&argv(&[])), StartupMode::Normal);
         assert_eq!(startup_mode(&argv(&["mcp"])), StartupMode::Mcp);
-        assert_eq!(startup_mode(&argv(&["--uninstall"])), StartupMode::Uninstall);
+        assert_eq!(
+            startup_mode(&argv(&["--uninstall"])),
+            StartupMode::Uninstall
+        );
         assert_eq!(
             startup_mode(&argv(&["--wait-pid", "42"])),
             StartupMode::WaitForPid(42)
@@ -1999,6 +2101,88 @@ mod startup_tests {
         assert_eq!(
             startup_mode(&argv(&["restart", "mcp"])),
             StartupMode::Normal
+        );
+    }
+
+    fn manifest(port: &str) -> String {
+        format!(
+            r#"[{{"id":"web","name":"Web","group":"Apps","type":"web","command":"run"{port}}}]"#
+        )
+    }
+
+    #[test]
+    fn manifest_ports_must_be_whole_and_in_range() {
+        assert!(parse_manifest_text(&manifest(r#", "port": 1"#)).is_ok());
+        assert!(parse_manifest_text(&manifest(r#", "port": 65535"#)).is_ok());
+        for port in [
+            r#", "port": 0"#,
+            r#", "port": 1.5"#,
+            r#", "port": 65536"#,
+            r#", "port": "3000""#,
+        ] {
+            assert!(
+                parse_manifest_text(&manifest(port)).is_err(),
+                "accepted {port}"
+            );
+        }
+    }
+
+    #[test]
+    fn manifest_rejects_duplicate_ids_and_missing_type_requirements() {
+        let duplicate = r#"[
+            {"id":"same","name":"One","group":"Apps","type":"web","command":"run"},
+            {"id":"same","name":"Two","group":"Apps","type":"cli","command":"run"}
+        ]"#;
+        assert!(parse_manifest_text(duplicate).is_err());
+        assert!(parse_manifest_text(
+            r#"[{"id":"page","name":"Page","group":"Apps","type":"static"}]"#
+        )
+        .is_err());
+        assert!(parse_manifest_text(
+            r#"[{"id":"bad id","name":"Bad","group":"Apps","type":"cli","command":"run"}]"#
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn failed_persistence_does_not_commit_runtime_state() {
+        let mut current = String::from("last-valid");
+        let result = persist_then_commit(&mut current, String::from("candidate"), |_| {
+            Err("injected write failure".into())
+        });
+
+        assert!(result.is_err());
+        assert_eq!(current, "last-valid");
+    }
+
+    fn ticket(index: usize, status: &str, ts: u64) -> Ticket {
+        Ticket {
+            ticket: format!("ticket-{index}"),
+            action: "launch".into(),
+            arg: Some("web".into()),
+            status: status.into(),
+            detail: None,
+            ts,
+        }
+    }
+
+    #[test]
+    fn ticket_cleanup_never_evicts_pending_or_fresh_outcomes() {
+        let now = TICKET_TTL_MILLIS + 10;
+        let mut tickets: Vec<Ticket> = (0..60).map(|index| ticket(index, "pending", 0)).collect();
+        tickets.push(ticket(60, "ok", now));
+        tickets.push(ticket(61, "error", 0));
+
+        prune_tickets(&mut tickets, now);
+
+        assert_eq!(tickets.len(), 61);
+        assert!(tickets.iter().all(|item| item.status != "error"));
+        assert_eq!(
+            tickets
+                .iter()
+                .filter(|item| item.status == "pending")
+                .count(),
+            60
         );
     }
 }

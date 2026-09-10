@@ -151,6 +151,15 @@
       error = t("editor.nameRequired");
       return;
     }
+    const portText = String(f.port).trim();
+    const port = portText ? Number(portText) : undefined;
+    if (
+      port !== undefined &&
+      (!Number.isInteger(port) || port < 1 || port > 65535)
+    ) {
+      error = "port must be a whole number from 1 to 65535";
+      return;
+    }
     const env: Record<string, string> = {};
     for (const line of f.env.split("\n")) {
       const kv = line.trim();
@@ -164,7 +173,7 @@
       type: f.type,
       cwd: f.cwd.trim() || undefined,
       command: f.command.trim() || undefined,
-      port: f.port.trim() ? Number(f.port) : undefined,
+      port,
       url: f.url.trim() || undefined,
       openBrowser: f.openBrowser,
       processName: f.processName.trim() || undefined,
@@ -211,7 +220,7 @@
         <input bind:value={f.cwd} class:warned={cwdWarn} placeholder={ti.ph.cwd ?? "path to the app folder"} />
       </label>
       <label class="wide" class:dim={!ti.fields.includes("command")} title={t("editor.commandHint")}>command<input bind:value={f.command} placeholder={ti.ph.command ?? t("editor.phCommand")} /></label>
-      <label class:dim={!ti.fields.includes("port")} title={t("editor.portHint")}>port<input bind:value={f.port} placeholder={ti.ph.port ?? "3000"} /></label>
+      <label class:dim={!ti.fields.includes("port")} title={t("editor.portHint")}>port<input type="number" inputmode="numeric" min="1" max="65535" step="1" bind:value={f.port} placeholder={ti.ph.port ?? "3000"} /></label>
       <label class:dim={!ti.fields.includes("processName")} title={t("editor.processNameHint")}>processName<input bind:value={f.processName} placeholder={ti.ph.processName ?? "my-app"} /></label>
       <label class="wide" class:dim={!ti.fields.includes("url")} title={t("editor.urlHint")}>
         <span class="lbl">url{#if urlWarn}<span class="warn" title={t("editor.portableWarn")}>{t("editor.notPortable")}</span>{/if}</span>

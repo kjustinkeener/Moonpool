@@ -36,6 +36,7 @@
   import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 
   let apps = $state<AppEntry[]>([]);
+  let persistenceError = $state("");
   let statuses = $state<Record<string, AppStatus>>({});
   let openTabs = $state<string[]>([]);
   let activeTab = $state<string | null>(null);
@@ -181,29 +182,50 @@
       }
       next = next.concat(entry);
     }
+    try {
+      await saveManifest(next);
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+      return;
+    }
     apps = next;
-    await saveManifest(next);
+    persistenceError = "";
     loadIcon(entry.id);
   }
   async function handleEditorDelete(id: string) {
     const next = apps.filter((a) => a.id !== id);
-    apps = next;
-    await saveManifest(next);
+    try {
+      await saveManifest(next);
+      apps = next;
+      persistenceError = "";
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
   }
 
   // Right-click menu actions from the sidebar.
   async function handleDelete(app: AppEntry) {
     if (!confirm(t("app.confirmDelete", { name: app.name }))) return;
     const next = apps.filter((a) => a.id !== app.id);
-    apps = next;
-    await saveManifest(next);
+    try {
+      await saveManifest(next);
+      apps = next;
+      persistenceError = "";
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
   }
   async function handleRename(app: AppEntry, name: string) {
     const trimmed = name.trim();
     if (!trimmed || trimmed === app.name) return;
     const next = apps.map((a) => (a.id === app.id ? { ...a, name: trimmed } : a));
-    apps = next;
-    await saveManifest(next);
+    try {
+      await saveManifest(next);
+      apps = next;
+      persistenceError = "";
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
   }
   async function handleSetIcon(app: AppEntry) {
     const picked = await open({
@@ -214,9 +236,14 @@
     }).catch(() => null);
     if (typeof picked !== "string" || !picked) return;
     const next = apps.map((a) => (a.id === app.id ? { ...a, icon: picked } : a));
-    apps = next;
-    await saveManifest(next);
-    loadIcon(app.id);
+    try {
+      await saveManifest(next);
+      apps = next;
+      persistenceError = "";
+      loadIcon(app.id);
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
   }
 
   // Per-app last-started time (persisted); drives recency ordering within each group.
@@ -415,8 +442,12 @@
       (e) => handleEditorDelete(e.payload.id),
     );
 
-    apps = await getApps();
-    loadAllIcons(true);
+    try {
+      apps = await getApps();
+      loadAllIcons(true);
+    } catch (e) {
+      persistenceError = `Could not load apps.json: ${String(e)}`;
+    }
     manifestDir()
       .then((d) => (cfgDir = d))
       .catch(() => {});
@@ -583,9 +614,14 @@
   }
 
   async function handleReload() {
-    apps = await reloadManifest();
-    iconSrc = {};
-    loadAllIcons(true);
+    try {
+      apps = await reloadManifest();
+      persistenceError = "";
+      iconSrc = {};
+      loadAllIcons(true);
+    } catch (e) {
+      persistenceError = `Could not reload apps.json: ${String(e)}`;
+    }
   }
   // F5 or Ctrl/Cmd+R reloads the manifest from disk (same as the menu Reload),
   // instead of the webview's default page refresh.
@@ -643,6 +679,12 @@
 
 <div class="app" class:resizing>
   <Titlebar />
+  {#if persistenceError}
+    <div class="persistence-error" role="alert">
+      <span>{persistenceError}</span>
+      <button aria-label="Dismiss" onclick={() => (persistenceError = "")}>&times;</button>
+    </div>
+  {/if}
   <div class="body">
   <div class="sidebar-host" style:width="{sidebarWidth}px">
     <Sidebar
@@ -769,6 +811,23 @@
 </div>
 
 <style>
+  .persistence-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 12px;
+    color: #ffd7d7;
+    background: #6b2028;
+    font-size: 12px;
+  }
+  .persistence-error button {
+    border: 0;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+  }
   .app {
     display: flex;
     flex-direction: column;
