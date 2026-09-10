@@ -175,6 +175,17 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     }
 }
 
+/// App IDs cross a process boundary as positional command-line arguments. Keep
+/// their grammar deliberately narrow so an ID can never be interpreted as a
+/// launcher flag (for example `--uninstall`) or change argv parsing semantics.
+fn valid_app_id(id: &str) -> bool {
+    !id.is_empty()
+        && !id.starts_with('-')
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+}
+
 /// Boot the resident tray hub, for the cold-start case where no hub is running and
 /// every other tool would (correctly) refuse. Spawns the installed exe with NO
 /// subcommand so it comes up as the normal tray window, then waits until it is
@@ -446,9 +457,12 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
     let id = || -> Result<String, String> {
         args.get("app_id")
             .and_then(Value::as_str)
-            .filter(|s| !s.is_empty())
+            .filter(|s| valid_app_id(s))
             .map(str::to_string)
-            .ok_or_else(|| "app_id is required".to_string())
+            .ok_or_else(|| {
+                "app_id is required and may contain only letters, digits, '.', '_', and '-' (not leading '-')"
+                    .to_string()
+            })
     };
     match name {
         "moonpool_list_apps" => list_apps(),
@@ -572,6 +586,25 @@ pub fn serve() {
                 break;
             }
             let _ = stdout.flush();
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::valid_app_id;
+
+    #[test]
+    fn app_ids_cannot_be_launcher_flags() {
+        for id in ["--uninstall", "--wait-pid", "-x", "", "has space", "a/b"] {
+            assert!(!valid_app_id(id), "{id:?} must be rejected");
+        }
+    }
+
+    #[test]
+    fn manifest_safe_app_ids_are_accepted() {
+        for id in ["my-app", "app_2", "docs.v3"] {
+            assert!(valid_app_id(id), "{id:?} must be accepted");
         }
     }
 }

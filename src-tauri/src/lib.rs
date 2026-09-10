@@ -1227,6 +1227,29 @@ fn wait_for_pid_exit(pid: u32) {
     }
 }
 
+/// Startup-only modes are recognized exclusively in argv[1]. App IDs and other
+/// forwarded control arguments are never allowed to select an early process mode.
+#[derive(Debug, PartialEq, Eq)]
+enum StartupMode {
+    Normal,
+    Mcp,
+    Uninstall,
+    WaitForPid(u32),
+}
+
+fn startup_mode(args: &[String]) -> StartupMode {
+    match args.get(1).map(String::as_str) {
+        Some("mcp") => StartupMode::Mcp,
+        Some("--uninstall") => StartupMode::Uninstall,
+        Some("--wait-pid") => args
+            .get(2)
+            .and_then(|pid| pid.parse::<u32>().ok())
+            .map(StartupMode::WaitForPid)
+            .unwrap_or(StartupMode::Normal),
+        _ => StartupMode::Normal,
+    }
+}
+
 fn dispatch_control(app: &AppHandle, argv: &[String]) {
     // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
     // are positional (action + app id) exactly as before.
@@ -1627,34 +1650,29 @@ fn build_tray(app: &AppHandle, locale: &str) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let args: Vec<String> = std::env::args().collect();
     // MCP server entry point (`moonpool.exe mcp`, run by an agent client over
     // stdio). Must come before the Tauri builder: the single-instance plugin would
     // otherwise forward this argv to the resident window and exit, leaving the
     // client talking to a process that is gone.
-    if std::env::args().nth(1).as_deref() == Some("mcp") {
-        mcp::serve();
-        return;
-    }
-
-    // Uninstall entry point (Add/Remove Programs calls `moonpool.exe --uninstall`).
-    // Handled before any window/tray so it's a clean, headless teardown.
-    if std::env::args().any(|a| a == "--uninstall") {
-        install::run_uninstall();
-        return;
-    }
-
     // A relaunch we spawned (install / portable) passes `--wait-pid <pid>`: wait for
     // that parent (the installer or previous instance) to fully exit BEFORE we build
     // anything. Otherwise the single-instance plugin below routes us straight back
     // into the still-alive parent - which, for a bare relaunch, just re-surfaces the
     // parent's window (the installer) instead of letting this fresh copy boot the hub.
-    {
-        let args: Vec<String> = std::env::args().collect();
-        if let Some(i) = args.iter().position(|a| a == "--wait-pid") {
-            if let Some(pid) = args.get(i + 1).and_then(|s| s.parse::<u32>().ok()) {
-                wait_for_pid_exit(pid);
-            }
+    match startup_mode(&args) {
+        StartupMode::Mcp => {
+            mcp::serve();
+            return;
         }
+        // Add/Remove Programs calls `moonpool.exe --uninstall`. This is handled
+        // before any window/tray so it is a clean, headless teardown.
+        StartupMode::Uninstall => {
+            install::run_uninstall();
+            return;
+        }
+        StartupMode::WaitForPid(pid) => wait_for_pid_exit(pid),
+        StartupMode::Normal => {}
     }
 
     // Remove a leftover `moonpool.old` from a prior self-update.
@@ -1911,4 +1929,44 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{startup_mode, StartupMode};
+
+    fn args(parts: &[&str]) -> Vec<String> {
+        std::iter::once("moonpool.exe")
+            .chain(parts.iter().copied())
+            .map(str::to_string)
+            .collect()
+    }
+
+    #[test]
+    fn startup_flags_are_position_sensitive() {
+        assert_eq!(
+            startup_mode(&args(&["launch", "--uninstall"])),
+            StartupMode::Normal
+        );
+        assert_eq!(
+            startup_mode(&args(&["launch", "--wait-pid", "123"])),
+            StartupMode::Normal
+        );
+        assert_eq!(
+            startup_mode(&args(&["--uninstall"])),
+            StartupMode::Uninstall
+        );
+    }
+
+    #[test]
+    fn wait_pid_requires_a_valid_top_level_pid() {
+        assert_eq!(
+            startup_mode(&args(&["--wait-pid", "42"])),
+            StartupMode::WaitForPid(42)
+        );
+        assert_eq!(
+            startup_mode(&args(&["--wait-pid", "nope"])),
+            StartupMode::Normal
+        );
+    }
 }
