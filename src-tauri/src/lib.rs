@@ -1626,35 +1626,69 @@ fn build_tray(app: &AppHandle, locale: &str) -> tauri::Result<()> {
 // ---------------------------------------------------------------------------
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// A process-startup mode selected *only* by the first argument (`argv[1]`).
+///
+/// These modes divert `run()` before the Tauri builder, so they must never be
+/// selectable by a value that crosses a trust boundary. In particular the MCP
+/// bridge forwards a caller-supplied `app_id` as a positional token
+/// (`moonpool.exe launch <app_id> --ticket ..`); scanning the whole argv for
+/// `--uninstall`/`--wait-pid` (as earlier revisions did) let an `app_id` of
+/// `"--uninstall"` trigger a headless uninstall. Keying strictly on `argv[1]`
+/// closes that: a control action always occupies `argv[1]`, so a flag appearing
+/// in any later position is inert here and is dealt with by `dispatch_control`.
+#[derive(Debug, PartialEq, Eq)]
+enum StartupMode {
+    /// Normal tray-hub boot, or a forwarded control invocation (`launch`, `stop`, ..).
+    Normal,
+    /// `moonpool.exe mcp` - serve the stdio MCP bridge.
+    Mcp,
+    /// `moonpool.exe --uninstall` - headless teardown.
+    Uninstall,
+    /// `moonpool.exe --wait-pid <pid>` - block until <pid> exits, then boot.
+    WaitForPid(u32),
+}
+
+fn startup_mode(args: &[String]) -> StartupMode {
+    match args.get(1).map(String::as_str) {
+        Some("mcp") => StartupMode::Mcp,
+        Some("--uninstall") => StartupMode::Uninstall,
+        // A malformed/missing pid is treated as a normal boot rather than a panic
+        // or a silent skip that would leave the relaunch racing the single-instance
+        // lock; the caller controls this argument, so this is only defensive.
+        Some("--wait-pid") => args
+            .get(2)
+            .and_then(|p| p.parse::<u32>().ok())
+            .map(StartupMode::WaitForPid)
+            .unwrap_or(StartupMode::Normal),
+        _ => StartupMode::Normal,
+    }
+}
+
 pub fn run() {
-    // MCP server entry point (`moonpool.exe mcp`, run by an agent client over
-    // stdio). Must come before the Tauri builder: the single-instance plugin would
-    // otherwise forward this argv to the resident window and exit, leaving the
-    // client talking to a process that is gone.
-    if std::env::args().nth(1).as_deref() == Some("mcp") {
-        mcp::serve();
-        return;
-    }
-
-    // Uninstall entry point (Add/Remove Programs calls `moonpool.exe --uninstall`).
-    // Handled before any window/tray so it's a clean, headless teardown.
-    if std::env::args().any(|a| a == "--uninstall") {
-        install::run_uninstall();
-        return;
-    }
-
-    // A relaunch we spawned (install / portable) passes `--wait-pid <pid>`: wait for
-    // that parent (the installer or previous instance) to fully exit BEFORE we build
-    // anything. Otherwise the single-instance plugin below routes us straight back
-    // into the still-alive parent - which, for a bare relaunch, just re-surfaces the
-    // parent's window (the installer) instead of letting this fresh copy boot the hub.
-    {
-        let args: Vec<String> = std::env::args().collect();
-        if let Some(i) = args.iter().position(|a| a == "--wait-pid") {
-            if let Some(pid) = args.get(i + 1).and_then(|s| s.parse::<u32>().ok()) {
-                wait_for_pid_exit(pid);
-            }
+    let args: Vec<String> = std::env::args().collect();
+    match startup_mode(&args) {
+        // MCP server entry point (`moonpool.exe mcp`, run by an agent client over
+        // stdio). Must come before the Tauri builder: the single-instance plugin
+        // would otherwise forward this argv to the resident window and exit, leaving
+        // the client talking to a process that is gone.
+        StartupMode::Mcp => {
+            mcp::serve();
+            return;
         }
+        // Uninstall entry point (Add/Remove Programs calls `moonpool.exe --uninstall`).
+        // Handled before any window/tray so it's a clean, headless teardown.
+        StartupMode::Uninstall => {
+            install::run_uninstall();
+            return;
+        }
+        // A relaunch we spawned (install / portable) passes `--wait-pid <pid>`: wait
+        // for that parent (the installer or previous instance) to fully exit BEFORE
+        // we build anything. Otherwise the single-instance plugin below routes us
+        // straight back into the still-alive parent - which, for a bare relaunch,
+        // just re-surfaces the parent's window (the installer) instead of letting
+        // this fresh copy boot the hub.
+        StartupMode::WaitForPid(pid) => wait_for_pid_exit(pid),
+        StartupMode::Normal => {}
     }
 
     // Remove a leftover `moonpool.old` from a prior self-update.
@@ -1911,4 +1945,60 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");
+}
+
+#[cfg(test)]
+mod startup_tests {
+    use super::{startup_mode, StartupMode};
+
+    fn argv(rest: &[&str]) -> Vec<String> {
+        std::iter::once("moonpool.exe")
+            .chain(rest.iter().copied())
+            .map(str::to_string)
+            .collect()
+    }
+
+    #[test]
+    fn recognizes_startup_modes_in_argv1() {
+        assert_eq!(startup_mode(&argv(&[])), StartupMode::Normal);
+        assert_eq!(startup_mode(&argv(&["mcp"])), StartupMode::Mcp);
+        assert_eq!(startup_mode(&argv(&["--uninstall"])), StartupMode::Uninstall);
+        assert_eq!(
+            startup_mode(&argv(&["--wait-pid", "42"])),
+            StartupMode::WaitForPid(42)
+        );
+    }
+
+    #[test]
+    fn wait_pid_without_valid_number_is_normal_not_a_panic() {
+        assert_eq!(startup_mode(&argv(&["--wait-pid"])), StartupMode::Normal);
+        assert_eq!(
+            startup_mode(&argv(&["--wait-pid", "nope"])),
+            StartupMode::Normal
+        );
+    }
+
+    // The injection regression: an `app_id` forwarded by the MCP bridge lands in
+    // argv[2+], never argv[1], so it can never select a teardown/wait mode even if
+    // it is literally a launcher flag. (mcp::valid_app_id rejects these too - this
+    // is the second, independent layer.)
+    #[test]
+    fn forwarded_app_id_flag_cannot_select_a_startup_mode() {
+        assert_eq!(
+            startup_mode(&argv(&["launch", "--uninstall"])),
+            StartupMode::Normal
+        );
+        assert_eq!(
+            startup_mode(&argv(&["launch", "--uninstall", "--ticket", "k"])),
+            StartupMode::Normal
+        );
+        assert_eq!(
+            startup_mode(&argv(&["stop", "--wait-pid", "1"])),
+            StartupMode::Normal
+        );
+        assert_eq!(
+            startup_mode(&argv(&["restart", "mcp"])),
+            StartupMode::Normal
+        );
+    }
 }
