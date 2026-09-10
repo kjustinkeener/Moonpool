@@ -106,10 +106,7 @@ pub fn save(window: &WebviewWindow) {
         }
         s.maximized = false;
     }
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
     if let Ok(json) = serde_json::to_string_pretty(&s) {
-        let _ = std::fs::write(&path, json);
+        let _ = crate::persistence::atomic_write(&path, json.as_bytes());
     }
 }

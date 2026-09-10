@@ -44,9 +44,28 @@ fn state_path() -> Option<PathBuf> {
     crate::portable::data_dir().map(|d| d.join("state.json"))
 }
 
+fn read_json_with_retry<F>(mut read: F, attempts: usize, delay: Duration) -> Option<Value>
+where
+    F: FnMut() -> Option<String>,
+{
+    for attempt in 0..attempts.max(1) {
+        if let Some(value) = read().and_then(|text| serde_json::from_str(&text).ok()) {
+            return Some(value);
+        }
+        if attempt + 1 < attempts {
+            std::thread::sleep(delay);
+        }
+    }
+    None
+}
+
 fn read_state() -> Option<Value> {
-    let text = std::fs::read_to_string(state_path()?).ok()?;
-    serde_json::from_str(&text).ok()
+    let path = state_path()?;
+    read_json_with_retry(
+        || std::fs::read_to_string(&path).ok(),
+        4,
+        Duration::from_millis(15),
+    )
 }
 
 /// Subcommand tokens that mark a moonpool process as NOT the resident tray hub -
@@ -605,7 +624,8 @@ pub fn serve() {
 
 #[cfg(test)]
 mod app_id_tests {
-    use super::is_valid_app_id;
+    use super::{is_valid_app_id, read_json_with_retry};
+    use std::time::Duration;
 
     #[test]
     fn rejects_flags_and_shell_surprises() {
@@ -631,5 +651,26 @@ mod app_id_tests {
         for ok in ["web", "my-app", "app_2", "docs.v3", "A1", "a-b_c.d"] {
             assert!(is_valid_app_id(ok), "{ok:?} must be accepted");
         }
+    }
+
+    #[test]
+    fn retries_a_transient_snapshot_parse_failure() {
+        let mut reads = 0;
+        let value = read_json_with_retry(
+            || {
+                reads += 1;
+                Some(if reads < 3 {
+                    "{incomplete".into()
+                } else {
+                    r#"{"tickets":[]}"#.into()
+                })
+            },
+            4,
+            Duration::ZERO,
+        )
+        .unwrap();
+
+        assert_eq!(reads, 3);
+        assert_eq!(value["tickets"].as_array().unwrap().len(), 0);
     }
 }

@@ -23,6 +23,7 @@
   let checkOnStartup = $state(true);
   let transparency = $state(0);
   let alwaysOnTop = $state(false);
+  let saveError = $state("");
   let dir = $state("");
 
   // Named palettes (Nord, Gruvbox, ...) are proper nouns and stay as written in
@@ -80,8 +81,8 @@
       transparency = s.transparency ?? 0;
       alwaysOnTop = !!s.alwaysOnTop;
       applyTransparency(transparency);
-    } catch {
-      /* defaults */
+    } catch (e) {
+      saveError = `Could not load settings.json: ${String(e)}`;
     }
     manifestDir()
       .then((d) => (dir = d))
@@ -89,28 +90,65 @@
   });
 
   async function toggle() {
+    const previous = debugLogging;
     debugLogging = !debugLogging;
-    await setDebugLogging(debugLogging).catch(() => {});
+    try {
+      await setDebugLogging(debugLogging);
+      saveError = "";
+    } catch (e) {
+      debugLogging = previous;
+      saveError = `Could not save settings.json: ${String(e)}`;
+    }
   }
   async function toggleCloseToTray() {
+    const previous = closeToTray;
     closeToTray = !closeToTray;
-    await setCloseToTray(closeToTray).catch(() => {});
+    try {
+      await setCloseToTray(closeToTray);
+      saveError = "";
+    } catch (e) {
+      closeToTray = previous;
+      saveError = `Could not save settings.json: ${String(e)}`;
+    }
   }
   async function toggleMinimizeToTray() {
+    const previous = minimizeToTray;
     minimizeToTray = !minimizeToTray;
-    await setMinimizeToTray(minimizeToTray).catch(() => {});
+    try {
+      await setMinimizeToTray(minimizeToTray);
+      saveError = "";
+    } catch (e) {
+      minimizeToTray = previous;
+      saveError = `Could not save settings.json: ${String(e)}`;
+    }
   }
   async function toggleCheckOnStartup() {
+    const previous = checkOnStartup;
     checkOnStartup = !checkOnStartup;
-    await setCheckOnStartup(checkOnStartup).catch(() => {});
+    try {
+      await setCheckOnStartup(checkOnStartup);
+      saveError = "";
+    } catch (e) {
+      checkOnStartup = previous;
+      saveError = `Could not save settings.json: ${String(e)}`;
+    }
   }
   async function toggleAlwaysOnTop() {
+    const previous = alwaysOnTop;
     alwaysOnTop = !alwaysOnTop;
-    await setAlwaysOnTop(alwaysOnTop).catch(() => {});
+    try {
+      await setAlwaysOnTop(alwaysOnTop);
+      saveError = "";
+    } catch (e) {
+      alwaysOnTop = previous;
+      saveError = `Could not save settings.json: ${String(e)}`;
+    }
   }
 </script>
 
 <h2>{t("settings.title")}</h2>
+
+{#if saveError}<div class="save-error" role="alert">{saveError}</div>{/if}
 
 <div class="setting">
   <div class="title">{t("settings.language")}</div>
@@ -216,6 +254,14 @@
 </div>
 
 <style>
+  .save-error {
+    margin-bottom: 10px;
+    padding: 7px 9px;
+    color: #ffd7d7;
+    background: #6b2028;
+    border-radius: 4px;
+    font-size: 11px;
+  }
   h2 {
     margin: 0 0 16px;
     font-size: 16px;
