@@ -366,6 +366,38 @@ const PROJECT_ICON_CANDIDATES: &[&str] = &[
     "src-tauri/icons/icon.ico",
 ];
 
+/// Hex digit value of one ASCII byte, or `None` if it isn't `0-9a-fA-F`.
+fn hex_val(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
+    }
+}
+
+/// Decode `%XX` escapes in a percent-encoded string. Decodes to bytes first so
+/// multi-byte UTF-8 escapes (e.g. `%C3%A9`) round-trip; a stray/invalid `%` is left
+/// as-is. Replaces the old `%20`-only substitution so paths like `%23`/accented
+/// folders resolve.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let (Some(h), Some(l)) = (hex_val(bytes[i + 1]), hex_val(bytes[i + 2])) {
+                out.push((h << 4) | l);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 /// Directories to scan for an app's own icon: its cwd, plus a file:// url's folder.
 fn app_dirs(entry: &AppEntry) -> Vec<PathBuf> {
     let mut dirs = Vec::new();
@@ -374,7 +406,7 @@ fn app_dirs(entry: &AppEntry) -> Vec<PathBuf> {
     }
     if let Some(url) = &entry.url {
         if let Some(rest) = url.strip_prefix("file:///") {
-            let decoded = rest.replace("%20", " ");
+            let decoded = percent_decode(rest);
             if let Some(parent) = PathBuf::from(decoded).parent() {
                 dirs.push(parent.to_path_buf());
             }
@@ -1079,11 +1111,7 @@ fn launch_app(
     }
 
     // A fresh run starts a fresh log so `dump` never mixes two runs' output.
-    state
-        .term_logs
-        .lock()
-        .unwrap()
-        .insert(id.clone(), Vec::new());
+    lock(&state.term_logs).insert(id.clone(), Vec::new());
 
     log_line(&app, &format!("launch {id}: {command} (cwd {cwd})"));
 
@@ -1208,9 +1236,21 @@ fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
     Ok(())
 }
 
+/// Whether a resolved url may be handed to the OS opener. `apps.json` is editable by
+/// the user AND writable by MCP agents, so an arbitrary `url` reaching the opener is a
+/// real vector: `file://`, `javascript:`, `vbscript:`, `data:` etc. can run code or
+/// read local files. Only plain web links (and `mailto:`) are allowed through.
+fn is_openable_url(url: &str) -> bool {
+    let u = url.trim_start().to_ascii_lowercase();
+    u.starts_with("http://") || u.starts_with("https://") || u.starts_with("mailto:")
+}
+
 #[tauri::command]
 fn open_url(app: AppHandle, url: String) -> Result<(), String> {
     let url = portable::resolve_tokens(&url, &app);
+    if !is_openable_url(&url) {
+        return Err(format!("refusing to open non-web url: {url}"));
+    }
     app.opener()
         .open_url(url, None::<&str>)
         .map_err(|e| e.to_string())
@@ -1300,7 +1340,11 @@ fn spawn_status_poller(app: AppHandle) {
                 if detected && is_managed && e.open_browser && !opened.contains(&e.id) {
                     if let Some(url) = &e.url {
                         let url = portable::resolve_tokens(url, &app);
-                        let _ = app.opener().open_url(url, None::<&str>);
+                        if is_openable_url(&url) {
+                            let _ = app.opener().open_url(url, None::<&str>);
+                        }
+                        // Mark as handled either way so a rejected url isn't retried
+                        // every poll tick.
                         opened.insert(e.id.clone());
                     }
                 }
@@ -2132,6 +2176,44 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");
+}
+
+#[cfg(test)]
+mod url_tests {
+    use super::{is_openable_url, percent_decode};
+
+    #[test]
+    fn only_web_and_mailto_schemes_open() {
+        for ok in [
+            "http://x",
+            "https://x/y",
+            "HTTPS://X",
+            "  https://x",
+            "mailto:a@b",
+        ] {
+            assert!(is_openable_url(ok), "{ok:?} should be openable");
+        }
+        for bad in [
+            "file:///c:/x",
+            "javascript:alert(1)",
+            "vbscript:msgbox",
+            "data:text/html,x",
+            "ftp://x",
+            "",
+            "c:/x",
+        ] {
+            assert!(!is_openable_url(bad), "{bad:?} must be rejected");
+        }
+    }
+
+    #[test]
+    fn percent_decode_handles_multibyte_and_stray_percent() {
+        assert_eq!(percent_decode("a%20b"), "a b");
+        assert_eq!(percent_decode("a%23b"), "a#b");
+        assert_eq!(percent_decode("caf%C3%A9"), "café");
+        assert_eq!(percent_decode("100%done"), "100%done");
+        assert_eq!(percent_decode("trailing%2"), "trailing%2");
+    }
 }
 
 #[cfg(test)]
