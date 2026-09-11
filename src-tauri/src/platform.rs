@@ -110,6 +110,130 @@ pub fn kill_tree(pid: u32) {
     }
 }
 
+/// Owns a spawned child and its whole descendant tree so it can be force-killed
+/// reliably - even after the top process has exited (its PID could be recycled) and
+/// even for grandchildren that re-parented away from the top (a snapshot `taskkill /T`
+/// misses those). This is what makes Stop dependable for the deep trees genai launch
+/// commands spawn (cmd -> npm/uv -> node/python -> model server/docker/workers).
+///
+/// Windows: a Job Object the child is assigned to at spawn; `kill` calls
+/// `TerminateJobObject`, killing by job membership regardless of PID reuse or
+/// re-parenting. `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` also reaps the tree if Moonpool
+/// itself dies (closing the last job handle kills the members). If the job can't be
+/// created or assigned (older OS, or the child sits in a non-nestable job), it degrades
+/// to a by-PID `kill_tree`.
+///
+/// Unix: the PTY child is a process-group leader, so the group is just its PID and
+/// `kill` signals the pgid - exactly what `kill_tree` already does.
+#[cfg(windows)]
+pub struct ProcessGroup {
+    job: JobHandle,
+    pid: Option<u32>,
+}
+
+/// A Job Object handle. Raw HANDLE isn't `Send`, but the job is only ever created,
+/// assigned once, and terminated - all thread-safe kernel operations - so it is sound
+/// to move a `RunningApp` (which holds one) across threads.
+#[cfg(windows)]
+struct JobHandle(windows_sys::Win32::Foundation::HANDLE);
+#[cfg(windows)]
+unsafe impl Send for JobHandle {}
+#[cfg(windows)]
+unsafe impl Sync for JobHandle {}
+#[cfg(windows)]
+impl Drop for JobHandle {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            // With KILL_ON_JOB_CLOSE set, closing the last handle also kills any
+            // members still alive - a backstop for a run removed without an explicit
+            // kill (e.g. a clean natural exit) and for Moonpool exiting.
+            unsafe { windows_sys::Win32::Foundation::CloseHandle(self.0) };
+        }
+    }
+}
+
+#[cfg(windows)]
+impl ProcessGroup {
+    /// Create an owning job for a freshly spawned child `pid` and assign it. Any step
+    /// failing leaves a null job so `kill` falls back to `kill_tree(pid)`.
+    pub fn own(pid: Option<u32>) -> Self {
+        use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
+        use windows_sys::Win32::System::JobObjects::{
+            AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+            SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+        };
+        use windows_sys::Win32::System::Threading::{
+            OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE,
+        };
+        let job = unsafe {
+            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+            if job.is_null() {
+                return Self {
+                    job: JobHandle(std::ptr::null_mut()),
+                    pid,
+                };
+            }
+            let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            let set_ok = SetInformationJobObject(
+                job,
+                JobObjectExtendedLimitInformation,
+                &info as *const _ as *const _,
+                std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+            ) != 0;
+            let assigned = set_ok
+                && pid
+                    .map(|pid| {
+                        let h = OpenProcess(PROCESS_TERMINATE | PROCESS_SET_QUOTA, FALSE, pid);
+                        if h.is_null() {
+                            return false;
+                        }
+                        let ok = AssignProcessToJobObject(job, h) != 0;
+                        CloseHandle(h);
+                        ok
+                    })
+                    .unwrap_or(false);
+            if assigned {
+                job
+            } else {
+                CloseHandle(job);
+                std::ptr::null_mut()
+            }
+        };
+        Self {
+            job: JobHandle(job),
+            pid,
+        }
+    }
+
+    /// Force-kill the whole group. Uses the job when we have one; otherwise a by-PID
+    /// tree kill (still correct while the top PID is live, i.e. an explicit Stop).
+    pub fn kill(&self) {
+        if !self.job.0.is_null() {
+            unsafe { windows_sys::Win32::System::JobObjects::TerminateJobObject(self.job.0, 1) };
+        } else if let Some(pid) = self.pid {
+            kill_tree(pid);
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub struct ProcessGroup {
+    pid: Option<u32>,
+}
+#[cfg(not(windows))]
+impl ProcessGroup {
+    pub fn own(pid: Option<u32>) -> Self {
+        Self { pid }
+    }
+    pub fn kill(&self) {
+        if let Some(pid) = self.pid {
+            kill_tree(pid);
+        }
+    }
+}
+
 /// Force-kill every process matching `name` (its base exe name).
 pub fn kill_by_name(name: &str) {
     #[cfg(windows)]

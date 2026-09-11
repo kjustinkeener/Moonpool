@@ -36,6 +36,13 @@ ureq = "2"
 minisign-verify = "0.2"
 semver = "1"
 
+[target.'cfg(windows)'.dependencies]
+# Job Objects for reliable whole-tree process ownership: a launched app's deep
+# subtree (cmd -> npm/uv -> node/python -> model server/docker/workers) is assigned
+# to a job at spawn, so Stop kills every descendant by membership - immune to the
+# PID recycling and re-parenting that make a snapshot `taskkill /T` miss grandchildren.
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+
 [profile.release]
 # Smaller, faster release binaries. panic = "abort" is intentionally omitted so
 # the updater/tauri build stays on the default unwinding path.

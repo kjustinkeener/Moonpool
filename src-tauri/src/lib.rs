@@ -186,6 +186,10 @@ struct RunningApp {
     child: Box<dyn portable_pty::Child + Send + Sync>,
     /// Signals the reader thread to exit (best-effort; honored after its next read).
     stop: Arc<AtomicBool>,
+    /// Owns the child and its whole descendant tree (a Job Object on Windows). Killing
+    /// this reliably takes down grandchildren that re-parented or outlived the top
+    /// process - which a snapshot `taskkill /T` by PID would miss.
+    group: platform::ProcessGroup,
     /// Monotonic id for THIS run of THIS app id. The reader thread captures its own
     /// generation and only tears the slot down if it still matches - otherwise a slow
     /// exit-cleanup from a prior run could evict/kill a fresh relaunch that reused the
@@ -1120,6 +1124,9 @@ fn launch_app(
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
     let writer = Arc::new(Mutex::new(writer));
     let stop = Arc::new(AtomicBool::new(false));
+    // Take ownership of the child's whole tree at spawn (before it can spawn deep
+    // descendants) so Stop and exit-cleanup can kill the group reliably.
+    let group = platform::ProcessGroup::own(child.process_id());
 
     // Reserve the slot under the lock BEFORE spawning the reader thread. The
     // "already running" guard above dropped the lock, so a concurrent launch of
@@ -1136,6 +1143,7 @@ fn launch_app(
                 drop(apps);
                 stop.store(true, Ordering::Relaxed);
                 let _ = child.kill();
+                group.kill();
                 return Err("already running".into());
             }
             Entry::Vacant(slot) => {
@@ -1147,11 +1155,8 @@ fn launch_app(
                 if stop_epoch_now != stop_epoch_at_start {
                     drop(apps);
                     stop.store(true, Ordering::Relaxed);
-                    let pid = child.process_id();
                     let _ = child.kill();
-                    if let Some(pid) = pid {
-                        platform::kill_tree(pid);
-                    }
+                    group.kill();
                     return Err("stopped during launch".into());
                 }
                 let generation = state.next_generation.fetch_add(1, Ordering::Relaxed);
@@ -1160,6 +1165,7 @@ fn launch_app(
                     master: pair.master,
                     child,
                     stop: stop.clone(),
+                    group,
                     generation,
                 });
                 generation
@@ -1217,8 +1223,10 @@ fn launch_app(
             match state.apps.lock() {
                 Ok(mut apps) => {
                     if apps.get(&id2).map(|a| a.generation) == Some(generation) {
-                        if let Some(mut a) = apps.remove(&id2) {
-                            let _ = a.child.kill();
+                        if let Some(a) = apps.remove(&id2) {
+                            // Kill the whole group, not just the top: on EOF a grandchild
+                            // may still be alive (and is what held the PTY open).
+                            a.group.kill();
                         }
                     } else {
                         // A newer run owns the slot (relaunch); this exit is stale.
@@ -1294,11 +1302,11 @@ fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
     // tree-kill the whole subtree by PID.
     if let Some(mut a) = lock_apps(&state)?.remove(&id) {
         a.stop.store(true, Ordering::Relaxed);
-        let pid = a.child.process_id();
         let _ = a.child.kill();
-        if let Some(pid) = pid {
-            platform::kill_tree(pid);
-        }
+        // Kill the owned group: TerminateJobObject takes down every descendant by job
+        // membership (re-parented grandchildren included), which a snapshot taskkill /T
+        // by PID can miss. Falls back to kill_tree(pid) when there is no job.
+        a.group.kill();
     }
 
     if let Some(e) = entry {
@@ -1402,7 +1410,13 @@ fn spawn_status_poller(app: AppHandle) {
                             })
                             .collect();
                         for id in &dead {
-                            apps.remove(id);
+                            // Reap the whole group: try_wait only saw the TOP process
+                            // exit; a re-parented grandchild can still be alive (this is
+                            // the leak the job ownership closes). Killing by job membership
+                            // is safe here even though the top PID is dead+recyclable.
+                            if let Some(a) = apps.remove(id) {
+                                a.group.kill();
+                            }
                             let _ = app.emit("term://exit", id.clone());
                         }
                         apps.keys().cloned().collect()
