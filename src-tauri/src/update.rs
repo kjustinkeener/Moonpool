@@ -50,15 +50,28 @@ fn current_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
-/// Delete a leftover `moonpool.old` next to the running exe (from a prior update).
-/// Best-effort: if the file is somehow still locked, we just try again next launch.
+/// Delete leftover `moonpool.old` / `moonpool.new` next to the running exe (from a
+/// prior update). Best-effort: if a file is somehow still locked, we retry next launch.
 pub fn cleanup_old() {
     if let Ok(cur) = std::env::current_exe() {
-        let old = cur.with_extension("old");
-        if old.exists() {
-            let _ = std::fs::remove_file(&old);
+        for ext in ["old", "new"] {
+            let stray = cur.with_extension(ext);
+            if stray.exists() {
+                let _ = std::fs::remove_file(&stray);
+            }
         }
     }
+}
+
+/// Whether `candidate` is a strictly newer semver than `current` (both tolerate a
+/// leading `v`). Errors if either is unparseable. Single source of truth for the
+/// "is this an upgrade?" question so `update_check` and `update_apply` can't diverge.
+fn is_newer(current: &str, candidate: &str) -> Result<bool, String> {
+    let cur = semver::Version::parse(current.trim_start_matches('v'))
+        .map_err(|e| format!("bad current version {current}: {e}"))?;
+    let new = semver::Version::parse(candidate.trim_start_matches('v'))
+        .map_err(|e| format!("bad manifest version {candidate}: {e}"))?;
+    Ok(new > cur)
 }
 
 /// Fetch and parse the manifest. Returns whether a newer version is offered.
@@ -69,21 +82,25 @@ pub fn update_check() -> Result<CheckResult, String> {
     let info: UpdateInfo =
         serde_json::from_str(&body).map_err(|e| format!("bad update manifest: {e}"))?;
 
-    let cur = semver::Version::parse(&current)
-        .map_err(|e| format!("bad current version {current}: {e}"))?;
-    let new = semver::Version::parse(info.version.trim_start_matches('v'))
-        .map_err(|e| format!("bad manifest version {}: {e}", info.version))?;
-
-    Ok(CheckResult {
-        current,
-        available: (new > cur).then_some(info),
-    })
+    let available = is_newer(&current, &info.version)?.then_some(info);
+    Ok(CheckResult { current, available })
 }
 
 /// Download, verify, and apply an update, then relaunch. On success this never
 /// returns normally: the process exits and the new exe takes over.
 #[tauri::command]
 pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
+    // Never install a build that isn't strictly newer, even when `update_apply` is
+    // called directly: the newer-than check in `update_check` is otherwise the only
+    // guard and a caller (or a stale/rolled-back manifest) could bypass it and
+    // downgrade the app.
+    if !is_newer(current_version(), &info.version)? {
+        return Err(format!(
+            "refusing to install {}: not newer than current {}",
+            info.version,
+            current_version()
+        ));
+    }
     let bytes = http_get_bytes(&info.url)?;
     verify_signature(&bytes, &info.signature)?;
     self_replace_and_relaunch(&app, &bytes, info.version.trim_start_matches('v'))?;
@@ -137,8 +154,14 @@ fn self_replace_and_relaunch(
     // so "Installed apps" is right. Best-effort, after the write is committed.
     crate::install::update_display_version(new_version);
 
-    // Launch the freshly written exe, then bow out.
-    if let Err(e) = std::process::Command::new(&cur).spawn() {
+    // Launch the freshly written exe, then bow out. Tell the child to wait for THIS
+    // process to exit (`--wait-pid`) before it builds anything, so it doesn't race the
+    // single-instance lock we still hold and get routed straight back into us (leaving
+    // no resident instance). Mirrors `install::relaunch_and_exit`.
+    let mut c = std::process::Command::new(&cur);
+    c.arg("--wait-pid").arg(std::process::id().to_string());
+    crate::platform::hidden(&mut c);
+    if let Err(e) = c.spawn() {
         let _ = std::fs::remove_file(&cur);
         let _ = std::fs::rename(&old, &cur);
         return Err(format!("relaunch: {e}"));
@@ -150,9 +173,24 @@ fn self_replace_and_relaunch(
     Ok(())
 }
 
+/// Write the new exe durably: stream to a temp file beside the target, flush and
+/// fsync it, then atomically rename it into place. A failure or crash mid-write leaves
+/// only the temp file (cleaned up on error and on next launch), never a truncated exe
+/// at `path` that would brick the app.
 fn write_new_exe(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    std::fs::write(path, bytes)?;
-    Ok(())
+    use std::io::Write;
+    let tmp = path.with_extension("new");
+    let result = (|| {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(bytes)?;
+        f.flush()?;
+        f.sync_all()?;
+        std::fs::rename(&tmp, path)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    result
 }
 
 // --- tiny HTTP helpers (ureq, blocking) -----------------------------------
@@ -181,4 +219,19 @@ pub fn exe_dir() -> Option<PathBuf> {
     std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(Path::to_path_buf))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_newer;
+
+    #[test]
+    fn only_strictly_newer_versions_apply() {
+        assert!(is_newer("0.3.7", "0.3.8").unwrap());
+        assert!(is_newer("0.3.7", "v0.4.0").unwrap());
+        assert!(is_newer("v0.3.7", "0.4.0").unwrap());
+        assert!(!is_newer("0.3.7", "0.3.7").unwrap(), "equal is not newer");
+        assert!(!is_newer("0.3.7", "0.3.6").unwrap(), "older is not newer");
+        assert!(is_newer("0.3.7", "not-a-version").is_err());
+    }
 }
