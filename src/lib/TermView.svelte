@@ -26,6 +26,9 @@
   // cancelled if the view unmounts first (doFit on a disposed term would otherwise run).
   let settleTimer: ReturnType<typeof setTimeout> | null = null;
   let activeFitTimer: ReturnType<typeof setTimeout> | null = null;
+  // Set in onDestroy. onMount is async, so the view can unmount mid-await; anything
+  // registered (or launched) after that point would leak or run against a dead view.
+  let destroyed = false;
   let lastCols = 0;
   let lastRows = 0;
   let unsubTheme: (() => void) | null = null;
@@ -150,18 +153,26 @@
       window.removeEventListener("mouseup", onMouseUp);
     };
 
-    unlistenOut = await onTermOutput((o) => {
+    const uOut = await onTermOutput((o) => {
       if (o.id !== id) return;
       const bin = atob(o.data);
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       term.write(arr);
     });
-    unlistenExit = await onTermExit((exitId) => {
+    // Unmounted while awaiting: unlisten now (onDestroy already ran with a null handle).
+    if (destroyed) return uOut();
+    unlistenOut = uOut;
+
+    const uExit = await onTermExit((exitId) => {
       if (exitId === id) term.write(`\r\n\x1b[90m${t("term.processExited")}\x1b[0m\r\n`);
     });
+    if (destroyed) return uExit();
+    unlistenExit = uExit;
 
-    // Launch the app sized to the terminal we just laid out.
+    // Launch the app sized to the terminal we just laid out - unless we've since
+    // unmounted (e.g. the user switched away before this resolved).
+    if (destroyed) return;
     try {
       await launchApp(id, term.cols, term.rows);
     } catch (err) {
@@ -169,6 +180,7 @@
       term.write(`\r\n\x1b[33m${err}\x1b[0m\r\n`);
     }
 
+    if (destroyed) return;
     ro = new ResizeObserver(() => scheduleFit());
     ro.observe(el);
 
@@ -184,6 +196,7 @@
   });
 
   onDestroy(() => {
+    destroyed = true;
     ro?.disconnect();
     if (copiedTimer) clearTimeout(copiedTimer);
     if (fitTimer) clearTimeout(fitTimer);

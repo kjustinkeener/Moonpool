@@ -202,7 +202,22 @@
     persistenceError = "";
     loadIcon(entry.id);
   }
+  // Removing an app that the hub is actively running (owns a live PTY for) would
+  // orphan that process - the manifest entry is gone but the child keeps running with
+  // no way to stop it from the UI. Stop it first. Gated on `managed` (owned), not
+  // `running`, so we never kill an unowned process that merely holds the port/name.
+  async function stopIfManaged(id: string) {
+    if (statuses[id]?.managed) {
+      try {
+        await stopApp(id);
+      } catch {
+        /* best effort - proceed with the delete regardless */
+      }
+    }
+  }
+
   async function handleEditorDelete(id: string) {
+    await stopIfManaged(id);
     const next = apps.filter((a) => a.id !== id);
     try {
       await saveManifest(next);
@@ -216,6 +231,7 @@
   // Right-click menu actions from the sidebar.
   async function handleDelete(app: AppEntry) {
     if (!confirm(t("app.confirmDelete", { name: app.name }))) return;
+    await stopIfManaged(app.id);
     const next = apps.filter((a) => a.id !== app.id);
     try {
       await saveManifest(next);
