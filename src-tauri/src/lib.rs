@@ -197,6 +197,17 @@ struct HubState {
     apps: Mutex<HashMap<String, RunningApp>>,
     /// Hands out the per-run generation stamped on each `RunningApp` (see its field).
     next_generation: AtomicU64,
+    /// Per-id "a stop was requested" marker. `launch_app` snapshots its id's value
+    /// before spawning and re-checks it after winning the slot; if it advanced, a
+    /// `stop_app` for this id landed in the spawn->insert window, so the freshly
+    /// spawned child is torn down instead of being registered as running. Without
+    /// this, Stop-during-launch silently no-ops (the id isn't in `apps` yet) and the
+    /// app runs on anyway. Complements `generation`, which guards the opposite race
+    /// (a stale exit evicting a newer run). Map is keyed by app id (bounded); never
+    /// cleaned, which is fine - one small entry per app that was ever stopped.
+    stop_epoch: Mutex<HashMap<String, u64>>,
+    /// Hands out the monotonic value written into `stop_epoch` on each stop.
+    stop_seq: AtomicU64,
     manifest: Mutex<Vec<AppEntry>>,
     /// Set when an existing apps.json cannot be loaded. The file is preserved
     /// and the frontend receives this recovery error instead of example data.
@@ -1066,6 +1077,11 @@ fn launch_app(
         }
     }
 
+    // Snapshot this id's stop epoch before spawning. If a stop_app for this id lands
+    // while we're mid-launch (after the spawn below, before we win the slot), the
+    // epoch will have advanced and we abort - see the Entry::Vacant arm.
+    let stop_epoch_at_start = lock(&state.stop_epoch).get(&id).copied().unwrap_or(0);
+
     // Expand {MP_HOME}/{MP_DATA} tokens and anchor ./ paths so a portable bundle's
     // entries resolve against the folder rather than the process cwd.
     let command = entry
@@ -1123,6 +1139,21 @@ fn launch_app(
                 return Err("already running".into());
             }
             Entry::Vacant(slot) => {
+                // Honor a stop that raced our spawn: if this id's stop epoch advanced
+                // since we snapshotted it (a stop_app ran while we were spawning, found
+                // no slot to remove, and returned), tear down the child we just spawned
+                // instead of registering it - the user asked for it stopped.
+                let stop_epoch_now = lock(&state.stop_epoch).get(&id).copied().unwrap_or(0);
+                if stop_epoch_now != stop_epoch_at_start {
+                    drop(apps);
+                    stop.store(true, Ordering::Relaxed);
+                    let pid = child.process_id();
+                    let _ = child.kill();
+                    if let Some(pid) = pid {
+                        platform::kill_tree(pid);
+                    }
+                    return Err("stopped during launch".into());
+                }
                 let generation = state.next_generation.fetch_add(1, Ordering::Relaxed);
                 slot.insert(RunningApp {
                     writer,
@@ -1242,6 +1273,17 @@ fn term_resize(id: String, cols: u16, rows: u16, state: State<HubState>) -> Resu
 
 #[tauri::command]
 fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
+    // Advance this id's stop epoch first, in its own short-lived lock (released before
+    // we touch `apps`). A launch mid-spawn snapshots this value and re-checks it under
+    // the apps lock; bumping it here makes such a launch abort instead of registering a
+    // child we're trying to stop. Done before-and-outside the apps lock so the ordering
+    // stays one-lock-at-a-time (launch takes apps then epoch; stop never holds both),
+    // which rules out an apps<->epoch deadlock.
+    {
+        let seq = state.stop_seq.fetch_add(1, Ordering::Relaxed);
+        lock(&state.stop_epoch).insert(id.clone(), seq);
+    }
+
     let entry = {
         let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
@@ -1994,6 +2036,8 @@ pub fn run() {
         .manage(HubState {
             apps: Mutex::new(HashMap::new()),
             next_generation: AtomicU64::new(1),
+            stop_epoch: Mutex::new(HashMap::new()),
+            stop_seq: AtomicU64::new(1),
             manifest: Mutex::new(Vec::new()),
             manifest_error: Mutex::new(None),
             settings: Mutex::new(Settings::default()),
