@@ -12,7 +12,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -879,22 +879,34 @@ fn manifest_dir(app: AppHandle) -> Result<String, String> {
         .ok_or_else(|| "no config directory".to_string())
 }
 
-/// Resolve an app's icon to an <img> src: manifest icon -> icons/<id>.* ->
-/// desktop exe icon -> web favicon -> None (frontend shows a glyph).
+/// Resolve an app's icon to an <img> src. Snapshots the manifest entry under the lock,
+/// then runs the blocking resolution (a PowerShell exe-icon extract in step 4, a TCP
+/// liveness probe in step 5) on a blocking thread so the frontend's parallel icon
+/// fetches can interleave instead of serializing on the command worker.
 #[tauri::command]
-fn app_icon(
+async fn app_icon(
     id: String,
     refresh: Option<bool>,
     app: AppHandle,
-    state: State<HubState>,
-) -> Option<String> {
-    // `refresh` forces past the exe mtime-cache and the WebView's favicon cache,
-    // so an icon changed in a new build of the target app shows up immediately.
+    state: State<'_, HubState>,
+) -> Result<Option<String>, ()> {
     let refresh = refresh.unwrap_or(false);
-    let mut entry = {
+    let entry = {
         let m = lock(&state.manifest);
         m.iter().find(|e| e.id == id).cloned()
-    }?;
+    };
+    let Some(entry) = entry else { return Ok(None) };
+    Ok(
+        tauri::async_runtime::spawn_blocking(move || resolve_icon(entry, id, app, refresh))
+            .await
+            .unwrap_or(None),
+    )
+}
+
+/// Resolve `entry`'s icon to an <img> src: manifest icon -> icons/<id>.* -> desktop exe
+/// icon -> web favicon -> None (frontend shows a glyph). Blocking; call off the async
+/// command worker (see `app_icon`).
+fn resolve_icon(mut entry: AppEntry, id: String, app: AppHandle, refresh: bool) -> Option<String> {
     // Resolve {MP_HOME}/{MP_DATA} tokens and ./-anchored paths so icon lookup (cwd,
     // file:// url, explicit icon path) works for portable bundles.
     entry.cwd = entry
@@ -1261,8 +1273,18 @@ fn open_url(app: AppHandle, url: String) -> Result<(), String> {
 // ---------------------------------------------------------------------------
 
 fn tcp_alive(port: u16) -> bool {
-    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
-    TcpStream::connect_timeout(&addr, Duration::from_millis(250)).is_ok()
+    // Probe both loopback stacks: a dev server may bind IPv4 (127.0.0.1) or be
+    // IPv6-only ([::1]). local_port() collapses localhost/127.0.0.1/[::1] to just the
+    // port, so without the v6 attempt an IPv6-only app would always read as "down".
+    // On loopback a closed port refuses immediately, so the second probe only costs
+    // real time in the rare case something filters loopback.
+    for ip in [IpAddr::V4(Ipv4Addr::LOCALHOST), IpAddr::V6(Ipv6Addr::LOCALHOST)] {
+        let addr = SocketAddr::new(ip, port);
+        if TcpStream::connect_timeout(&addr, Duration::from_millis(250)).is_ok() {
+            return true;
+        }
+    }
+    false
 }
 
 fn process_running(sys: &System, target: &str) -> bool {
