@@ -205,7 +205,8 @@ pub fn establish_portable_at(app: AppHandle, target_dir: String) -> Result<(), S
         src_exe.clone()
     } else {
         let target = PathBuf::from(&target_dir);
-        let exe_target = target.join("moonpool.exe");
+        let exe_name = src_exe.file_name().ok_or("exe has no file name")?;
+        let exe_target = target.join(exe_name);
         std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
         std::fs::write(target.join(FLAG_FILE), FLAG_NOTE)
             .map_err(|e| format!("write flag: {e}"))?;
@@ -234,11 +235,19 @@ pub fn export_portable(_app: AppHandle, target_dir: String, clone: bool) -> Resu
         return Err("target folder does not exist".into());
     }
     let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let exe_target = target.join("moonpool.exe");
+    let exe_name = src_exe.file_name().ok_or("exe has no file name")?;
+    let exe_target = target.join(exe_name);
 
     // Don't stamp a copy onto the running exe's own folder.
     if src_exe.canonicalize().ok() == exe_target.canonicalize().ok() {
         return Err("pick a different folder - that's this exe's own folder".into());
+    }
+
+    // Don't silently clobber an unrelated file: only overwrite a dest exe that's already
+    // part of a portable Moonpool (flag file beside it). A same-named exe with no flag is
+    // something else - refuse rather than replace it.
+    if exe_target.exists() && !target.join(FLAG_FILE).exists() {
+        return Err("that folder already has an exe of this name that isn't a portable Moonpool - pick an empty folder".into());
     }
 
     std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
@@ -284,13 +293,12 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 }
 
 /// Open a folder in the OS file manager (used after creating a portable copy so the
-/// user can zip it). explorer.exe often returns a non-zero exit even on success, so
-/// we only spawn it and don't check the status.
+/// user can zip it). Goes through the Tauri opener so it works on every platform,
+/// not just Windows' explorer.exe.
 #[tauri::command]
-pub fn reveal_path(path: String) -> Result<(), String> {
-    let mut c = std::process::Command::new("explorer");
-    c.arg(&path);
-    crate::platform::hidden(&mut c);
-    c.spawn().map_err(|e| format!("open folder: {e}"))?;
-    Ok(())
+pub fn reveal_path(app: AppHandle, path: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_path(path, None::<&str>)
+        .map_err(|e| format!("open folder: {e}"))
 }

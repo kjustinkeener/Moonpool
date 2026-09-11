@@ -101,13 +101,29 @@ pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
             current_version()
         ));
     }
-    let bytes = http_get_bytes(&info.url)?;
-    verify_signature(&bytes, &info.signature)?;
-    self_replace_and_relaunch(&app, &bytes, info.version.trim_start_matches('v'))?;
-    Ok(())
+
+    // The self-replace is the Windows rename trick plus a registry version sync; there
+    // is no in-place updater on other platforms. Point the user at a manual download
+    // instead - the About panel links the releases page. Guard before downloading so a
+    // non-Windows build never runs Windows-only file/registry surgery.
+    #[cfg(not(windows))]
+    {
+        let _ = &app;
+        return Err(
+            "automatic update is Windows-only; download the latest release manually".to_string(),
+        );
+    }
+    #[cfg(windows)]
+    {
+        let bytes = http_get_bytes(&info.url)?;
+        verify_signature(&bytes, &info.signature)?;
+        self_replace_and_relaunch(&app, &bytes, info.version.trim_start_matches('v'))?;
+        Ok(())
+    }
 }
 
 /// Verify `data` against `sig_text` (a full .minisig file) using the committed key.
+#[cfg(windows)]
 fn verify_signature(data: &[u8], sig_text: &str) -> Result<(), String> {
     use base64::Engine as _;
     let pubkey_file = base64::engine::general_purpose::STANDARD
@@ -132,6 +148,7 @@ fn verify_signature(data: &[u8], sig_text: &str) -> Result<(), String> {
 
 /// The Windows self-replace: rename running exe aside, write the new one in place,
 /// relaunch it, and exit this (old) process.
+#[cfg(windows)]
 fn self_replace_and_relaunch(
     app: &AppHandle,
     new_bytes: &[u8],
@@ -177,6 +194,7 @@ fn self_replace_and_relaunch(
 /// fsync it, then atomically rename it into place. A failure or crash mid-write leaves
 /// only the temp file (cleaned up on error and on next launch), never a truncated exe
 /// at `path` that would brick the app.
+#[cfg(windows)]
 fn write_new_exe(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
     let tmp = path.with_extension("new");

@@ -39,6 +39,9 @@
   let desktop = $state(true);
   let phase = $state<"idle" | "working" | "done" | "portable" | "error">("idle");
   let error = $state("");
+  // Which action failed, so "Try Again" re-runs the right one (install vs portable)
+  // instead of always calling install().
+  let lastAction: "install" | "portable" = "install";
 
   // The window is transparent, but app.css paints body with a solid theme color -
   // that's the dark "outer border" box behind the card. Clear it so only the card
@@ -146,6 +149,7 @@
 
   async function install() {
     if (phase === "working" || installed) return;
+    lastAction = "install";
     phase = "working";
     error = "";
     try {
@@ -164,6 +168,7 @@
   // The backend relaunches and exits this process, so we just show a brief beat.
   async function runPortable() {
     if (phase === "working" || phase === "portable") return;
+    lastAction = "portable";
     error = "";
     let folder: string;
     try {
@@ -230,7 +235,7 @@
       </div>
     {:else if phase === "error"}
       <div class="state err">{t("installer.failed", { error })}</div>
-      <button class="cta" onclick={install}>{t("common.tryAgain")}</button>
+      <button class="cta" onclick={() => (lastAction === "portable" ? runPortable() : install())}>{t("common.tryAgain")}</button>
     {:else}
       <button
         class="cta"
