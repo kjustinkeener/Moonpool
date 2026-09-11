@@ -44,6 +44,13 @@ fn is_installed() -> bool {
 /// release builds run from outside the install dir. Dev builds (`cargo tauri dev`)
 /// always boot the hub so development isn't interrupted by the installer.
 pub fn needs_setup() -> bool {
+    // The custom installer (LOCALAPPDATA copy, shortcuts, registry) is Windows-only.
+    // On other platforms there's nothing to install into, and returning true would
+    // strand a release build on an install card whose `perform_install` fails with
+    // "no LOCALAPPDATA" - so non-Windows always boots the hub directly.
+    if !cfg!(windows) {
+        return false;
+    }
     // A portable exe (flag file beside it) boots the hub directly - it deliberately
     // runs from outside the install dir, so `is_installed()` is false there too.
     !cfg!(debug_assertions) && !is_installed() && !crate::portable::is_portable()
