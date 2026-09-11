@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -176,17 +176,27 @@ struct TermOutput {
 // ---------------------------------------------------------------------------
 
 struct RunningApp {
-    writer: Box<dyn Write + Send>,
+    /// Behind its own Arc<Mutex> so `term_input` can write to the PTY without holding
+    /// the whole `apps` map locked across the write (a big paste would otherwise block
+    /// every other lifecycle op - launch/stop/status - for its duration).
+    writer: Arc<Mutex<Box<dyn Write + Send>>>,
     master: Box<dyn MasterPty + Send>,
     // The spawned PTY child: killed on stop_app, reaped by the poller's try_wait,
     // and waited on by the reader thread.
     child: Box<dyn portable_pty::Child + Send + Sync>,
     /// Signals the reader thread to exit (best-effort; honored after its next read).
     stop: Arc<AtomicBool>,
+    /// Monotonic id for THIS run of THIS app id. The reader thread captures its own
+    /// generation and only tears the slot down if it still matches - otherwise a slow
+    /// exit-cleanup from a prior run could evict/kill a fresh relaunch that reused the
+    /// same id.
+    generation: u64,
 }
 
 struct HubState {
     apps: Mutex<HashMap<String, RunningApp>>,
+    /// Hands out the per-run generation stamped on each `RunningApp` (see its field).
+    next_generation: AtomicU64,
     manifest: Mutex<Vec<AppEntry>>,
     /// Set when an existing apps.json cannot be loaded. The file is preserved
     /// and the frontend receives this recovery error instead of example data.
@@ -1092,6 +1102,7 @@ fn launch_app(
     let mut child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+    let writer = Arc::new(Mutex::new(writer));
     let stop = Arc::new(AtomicBool::new(false));
 
     // Reserve the slot under the lock BEFORE spawning the reader thread. The
@@ -1101,7 +1112,7 @@ fn launch_app(
     // return, instead of overwriting/leaking the existing RunningApp. Spawning the
     // reader thread only after we win the slot also keeps a losing launch's reader
     // from later removing the winner's entry on cleanup.
-    {
+    let generation = {
         use std::collections::hash_map::Entry;
         let mut apps = lock_apps(&state)?;
         match apps.entry(id.clone()) {
@@ -1112,15 +1123,18 @@ fn launch_app(
                 return Err("already running".into());
             }
             Entry::Vacant(slot) => {
+                let generation = state.next_generation.fetch_add(1, Ordering::Relaxed);
                 slot.insert(RunningApp {
                     writer,
                     master: pair.master,
                     child,
                     stop: stop.clone(),
+                    generation,
                 });
+                generation
             }
         }
-    }
+    };
 
     // A fresh run starts a fresh log so `dump` never mixes two runs' output.
     lock(&state.term_logs).insert(id.clone(), Vec::new());
@@ -1161,20 +1175,33 @@ fn launch_app(
                 Err(_) => break,
             }
         }
-        // Drop the running entry so status reflects the exit.
+        // Drop the running entry so status reflects the exit - but only if the slot is
+        // still THIS run. A relaunch that reused the same id after we started exiting
+        // owns a newer generation; removing/killing it here would take down the fresh
+        // instance the user just started.
+        let mut this_run_exited = true;
         if let Some(state) = app2.try_state::<HubState>() {
             // fail-closed until R3 per-app controllers: on a poisoned apps lock,
             // skip cleanup rather than act on possibly half-torn-down state.
             match state.apps.lock() {
                 Ok(mut apps) => {
-                    if let Some(mut a) = apps.remove(&id2) {
-                        let _ = a.child.kill();
+                    if apps.get(&id2).map(|a| a.generation) == Some(generation) {
+                        if let Some(mut a) = apps.remove(&id2) {
+                            let _ = a.child.kill();
+                        }
+                    } else {
+                        // A newer run owns the slot (relaunch); this exit is stale.
+                        this_run_exited = false;
                     }
                 }
                 Err(_) => log_line(&app2, "apps lock poisoned; skipping exit cleanup"),
             }
         }
-        let _ = app2.emit("term://exit", id2.clone());
+        // Only tell the terminal the process exited if it was still ours - a relaunch
+        // that reused this id has a live process the frontend shouldn't mark exited.
+        if this_run_exited {
+            let _ = app2.emit("term://exit", id2.clone());
+        }
     });
 
     Ok(())
@@ -1182,12 +1209,17 @@ fn launch_app(
 
 #[tauri::command]
 fn term_input(id: String, data: String, state: State<HubState>) -> Result<(), String> {
-    let mut apps = lock_apps(&state)?;
-    if let Some(a) = apps.get_mut(&id) {
-        a.writer
-            .write_all(data.as_bytes())
-            .map_err(|e| e.to_string())?;
-        let _ = a.writer.flush();
+    // Clone out just this app's writer handle and release the apps map lock before the
+    // write, so a large paste blocks only this terminal's writer - not every launch /
+    // stop / status op that also needs the map.
+    let writer = {
+        let apps = lock_apps(&state)?;
+        apps.get(&id).map(|a| a.writer.clone())
+    };
+    if let Some(writer) = writer {
+        let mut w = lock(&writer);
+        w.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+        let _ = w.flush();
     }
     Ok(())
 }
@@ -1961,6 +1993,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(HubState {
             apps: Mutex::new(HashMap::new()),
+            next_generation: AtomicU64::new(1),
             manifest: Mutex::new(Vec::new()),
             manifest_error: Mutex::new(None),
             settings: Mutex::new(Settings::default()),
