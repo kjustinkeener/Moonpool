@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import {
     getSettings,
     setDebugLogging,
@@ -88,6 +88,9 @@
       .then((d) => (dir = d))
       .catch(() => {});
   });
+
+  // Cancel a pending debounced transparency save if the window closes first.
+  onDestroy(() => clearTimeout(saveTimer));
 
   async function toggle() {
     const previous = debugLogging;

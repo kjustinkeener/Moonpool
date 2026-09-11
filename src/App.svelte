@@ -61,8 +61,15 @@
     const src = await appIcon(id, refresh).catch(() => null);
     if (src) iconSrc = { ...iconSrc, [id]: src };
   }
-  function loadAllIcons(refresh = false) {
-    for (const a of apps) loadIcon(a.id, refresh);
+  async function loadAllIcons(refresh = false) {
+    // Fetch all icons in parallel, then commit them in a single assignment instead of
+    // a per-icon spread in a loop (which rebuilt the whole map N times).
+    const results = await Promise.all(
+      apps.map(async (a) => [a.id, await appIcon(a.id, refresh).catch(() => null)] as const),
+    );
+    const add: Record<string, string> = {};
+    for (const [id, src] of results) if (src) add[id] = src;
+    if (Object.keys(add).length) iconSrc = { ...iconSrc, ...add };
   }
 
   // AI quickstart.
@@ -170,16 +177,19 @@
   async function handleEditorSave(entry: AppEntry, originalId?: string) {
     let next = [...apps];
     const idx = originalId ? next.findIndex((a) => a.id === originalId) : -1;
+    // The (name-derived or edited) id may collide with another app. Uniquify against
+    // every OTHER entry - excluding the row being edited so keeping its own id is fine.
+    // On the edit branch this was previously skipped, so a rename onto another app's id
+    // only got caught by the backend's validate_manifest as a raw save error.
+    const existing = new Set(next.filter((_, i) => i !== idx).map((a) => a.id));
+    if (existing.has(entry.id)) {
+      let n = 2;
+      while (existing.has(`${entry.id}-${n}`)) n++;
+      entry = { ...entry, id: `${entry.id}-${n}` };
+    }
     if (idx >= 0) {
       next[idx] = entry;
     } else {
-      // New app: the name-derived id may collide, so make it unique.
-      const existing = new Set(next.map((a) => a.id));
-      if (existing.has(entry.id)) {
-        let n = 2;
-        while (existing.has(`${entry.id}-${n}`)) n++;
-        entry = { ...entry, id: `${entry.id}-${n}` };
-      }
       next = next.concat(entry);
     }
     try {
