@@ -674,8 +674,14 @@
     recordStart(app.id);
     setPending(app.id, "up");
     await stopApp(app.id);
-    // Let the tree-kill / port-free settle before rebinding.
-    await new Promise((r) => setTimeout(r, 900));
+    // Wait for the poller to confirm the old instance is actually down (PTY gone and,
+    // via its tcp_alive probe, the port freed) before rebinding, instead of a fixed
+    // 900ms guess that could rebind onto a still-held port. Capped so a stuck stop
+    // still lets the relaunch proceed.
+    const deadline = Date.now() + 4000;
+    while (isActive(app.id) && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
     if (!openTabs.includes(app.id)) {
       openTabs = [...openTabs, app.id];
     } else {
