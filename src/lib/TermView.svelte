@@ -22,6 +22,10 @@
   let unlistenExit: UnlistenFn | null = null;
   let cleanupMouse: (() => void) | null = null;
   let fitTimer: ReturnType<typeof setTimeout> | null = null;
+  // One-shot re-fit timers (post-mount settle + on-activate), tracked so they can be
+  // cancelled if the view unmounts first (doFit on a disposed term would otherwise run).
+  let settleTimer: ReturnType<typeof setTimeout> | null = null;
+  let activeFitTimer: ReturnType<typeof setTimeout> | null = null;
   let lastCols = 0;
   let lastRows = 0;
   let unsubTheme: (() => void) | null = null;
@@ -169,17 +173,22 @@
     ro.observe(el);
 
     // Re-fit once styles (incl. the reserved scrollbar gutter) have settled.
-    setTimeout(() => doFit(), 120);
+    settleTimer = setTimeout(() => doFit(), 120);
   });
 
   $effect(() => {
-    if (active) setTimeout(doFit, 0);
+    if (active) {
+      if (activeFitTimer) clearTimeout(activeFitTimer);
+      activeFitTimer = setTimeout(doFit, 0);
+    }
   });
 
   onDestroy(() => {
     ro?.disconnect();
     if (copiedTimer) clearTimeout(copiedTimer);
     if (fitTimer) clearTimeout(fitTimer);
+    if (settleTimer) clearTimeout(settleTimer);
+    if (activeFitTimer) clearTimeout(activeFitTimer);
     unsubTheme?.();
     cleanupMouse?.();
     unlistenOut?.();
