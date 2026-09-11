@@ -78,6 +78,25 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # Fail fast if the tag and the three version sources disagree: a mismatched
+      # release ships an exe stamped with one version while update.json advertises
+      # another, so clients either never see the update or reject it. node is already
+      # on PATH from setup-node, so this runs the same on every matrix platform.
+      - name: Preflight version consistency
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./package.json').version")
+          conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          cargo=$(node -e "const s=require('fs').readFileSync('src-tauri/Cargo.toml','utf8');const sec=s.split(/^\[package\]/m)[1]||'';const m=sec.match(/^\s*version\s*=\s*\"([^\"]+)\"/m);process.stdout.write(m?m[1]:'')")
+          echo "tag=$tag package.json=$pkg tauri.conf.json=$conf Cargo.toml=$cargo"
+          fail=0
+          for pair in "package.json:$pkg" "tauri.conf.json:$conf" "Cargo.toml:$cargo"; do
+            name="${pair%%:*}"; v="${pair#*:}"
+            if [ "$v" != "$tag" ]; then echo "::error::$name version '$v' does not match tag '$tag'"; fail=1; fi
+          done
+          [ "$fail" = 0 ]
+
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -106,6 +125,16 @@ jobs:
           $PSNativeCommandArgumentPassing = 'Standard'
           $exe = "src-tauri/target/release/moonpool.exe"
           if (-not (Test-Path $exe)) { throw "raw exe not found at $exe" }
+
+          # The built exe must carry the tagged version before we advertise it in
+          # update.json (the preflight already checked the sources; this catches a
+          # stale/cached build). ProductVersion is 4-part (x.y.z.0); compare x.y.z.
+          $tagVer = "${{ github.ref_name }}".TrimStart("v")
+          $exeVer = (Get-Item $exe).VersionInfo.ProductVersion
+          if ($exeVer) {
+            $exeXYZ = ($exeVer.TrimStart("v").Split(".")[0..2] -join ".")
+            if ($exeXYZ -ne $tagVer) { throw "built exe version '$exeVer' does not match tag '$tagVer'" }
+          }
 
           # Sign the raw exe with Tauri's signer (minisign-compatible). This writes
           # "$exe.sig", whose content is base64 of the full minisign (.minisig) text.
