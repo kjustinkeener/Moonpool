@@ -71,16 +71,16 @@ pub fn mp_home() -> Option<PathBuf> {
 /// The data/config root (`{MP_DATA}`), mode-aware. Handle-free so both the hub and
 /// the `mcp` subcommand (which never builds a Tauri app) resolve it identically:
 /// - portable:  `{exe dir}\moonpool-config`
-/// - installed: `%APPDATA%\Moonpool` (Roaming) on Windows; `$XDG_CONFIG_HOME/Moonpool`
-///   else `$HOME/.config/Moonpool` elsewhere. This matches what Tauri's
-///   `config_dir()` returns, so it is byte-identical to the prior AppHandle path.
+/// - installed: `{install_dir}\moonpool-config` on Windows (`%USERPROFILE%\.moonpool\
+///   moonpool-config` - see `install::install_dir`, deliberately NOT AppData);
+///   `$XDG_CONFIG_HOME/Moonpool` else `$HOME/.config/Moonpool` elsewhere.
 pub fn data_dir() -> Option<PathBuf> {
     if is_portable() {
         return exe_dir().map(|d| d.join(DATA_SUBDIR));
     }
     #[cfg(windows)]
     {
-        std::env::var_os("APPDATA").map(|d| PathBuf::from(d).join("Moonpool"))
+        crate::install::install_dir().map(|d| d.join(DATA_SUBDIR))
     }
     #[cfg(not(windows))]
     {
@@ -276,8 +276,9 @@ pub fn export_portable(_app: AppHandle, target_dir: String, clone: bool) -> Resu
     Ok(exe_target.display().to_string())
 }
 
-/// Recursively copy a directory's files and subdirectories.
-fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+/// Recursively copy a directory's files and subdirectories. `pub(crate)`: also used by
+/// `install::migrate_legacy` to move data out of the pre-relocation AppData location.
+pub(crate) fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(to)?;
     for entry in std::fs::read_dir(from)? {
         let entry = entry?;

@@ -41,7 +41,7 @@ presence-based and only governs launch; the mode is *established* by the install
   from outside the install dir - see `install.rs` / `lib.rs` first-run-install branch),
   so there is no bootstrap trap. The installer offers a **"Portable (run from this
   folder)"** choice that drops `moonpool.portable` (with note) and skips relocating the
-  exe into `%LOCALAPPDATA%\Moonpool`.
+  exe into `%USERPROFILE%\.moonpool`.
 - A dedicated flag file (rather than inferring from the presence of seeded config) keeps
   "am I portable?" separate from "is config seeded yet?".
 
@@ -54,7 +54,10 @@ The config/data root (`moonpool_dir` in `lib.rs`) becomes mode-aware:
 - **Portable:** `{MP_HOME}\moonpool-config\` (a subfolder beside the exe). Named
   `moonpool-config` - not `data` - so it's unambiguous and won't collide with the
   user's own folders in a shared bundle root.
-- **Installed:** unchanged - `%APPDATA%\Moonpool` (Roaming).
+- **Installed:** `%USERPROFILE%\.moonpool\moonpool-config\` (moved off AppData
+  2026-09-11 - see `install.rs` module doc comment for why; existing
+  `%LOCALAPPDATA%\Moonpool`/`%APPDATA%\Moonpool` installs migrate automatically via
+  `install::migrate_legacy`).
 
 The first-run seeding already in place (embedded `apps.example.json` -> `apps.json`,
 embedded `AI-README.md` written beside it) just targets this folder; nothing extra to
@@ -66,8 +69,8 @@ Config path fields (`cwd`, `command`, `url`, `icon`) support tokens, resolved pe
 
 | Token       | Portable                         | Installed                          |
 |-------------|----------------------------------|------------------------------------|
-| `{MP_HOME}` | the exe folder (bundle root)     | `%LOCALAPPDATA%\Moonpool`          |
-| `{MP_DATA}` | `{MP_HOME}\moonpool-config`      | `%APPDATA%\Moonpool` (Roaming)     |
+| `{MP_HOME}` | the exe folder (bundle root)     | `%USERPROFILE%\.moonpool`          |
+| `{MP_DATA}` | `{MP_HOME}\moonpool-config`      | `{MP_HOME}\moonpool-config`        |
 
 Plus an implicit rule: a **relative `cwd`** (starting `./` or `.\`) resolves against
 `{MP_HOME}`, so simple bundles need no token at all.
@@ -138,14 +141,16 @@ to AppData).
       `tauri-plugin-window-state` (dropped entirely, both modes). The plugin only let us
       override the state *filename*, not its dir, and always `create_dir_all`ed
       `%APPDATA%\<id>` (resolved via the Windows known-folder API, unmovable). Our version
-      writes `window-state.json` into `moonpool_dir` - `%APPDATA%\Moonpool` installed,
-      `{MP_DATA}` portable - so it sits with apps.json, travels with a bundle, and leaves
-      no stray AppData dir. Restore runs in `setup`; save is the existing eager
-      Resized/Moved hook (same degenerate-geometry floor guard). A missing or **corrupt**
-      file falls back to the config default size/pos (1200x780, OS-centered). Off-screen
-      guard: position is only restored if the saved rect still overlaps a live monitor.
-      Note: installed users lose their old saved geometry once (old file was under
-      `com.moonpool.app`); harmless, just re-centers on the first launch after upgrade.
+      writes `window-state.json` into `moonpool_dir` - `{MP_DATA}` in both modes now
+      (installed moved from `%APPDATA%\Moonpool` to `%USERPROFILE%\.moonpool\
+      moonpool-config` on 2026-09-11, see "Data location" above) - so it sits with
+      apps.json, travels with a bundle, and leaves no stray AppData dir. Restore runs in
+      `setup`; save is the existing eager Resized/Moved hook (same degenerate-geometry
+      floor guard). A missing or **corrupt** file falls back to the config default
+      size/pos (1200x780, OS-centered). Off-screen guard: position is only restored if
+      the saved rect still overlaps a live monitor.
+      Note: installed users lose their old saved geometry once on each of these moves
+      (old file was under a different root); harmless, just re-centers on first launch.
 - [x] Token + relative-path resolver applied to every path field read from `apps.json`
       (`launch_app` cwd/command, `open_url`, poller auto-open url, `app_icon` cwd/url/icon).
       Raw tokens are preserved on disk / in the editor; resolution happens at point of use.

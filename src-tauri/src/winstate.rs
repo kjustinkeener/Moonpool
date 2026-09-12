@@ -3,9 +3,10 @@
 //! Replaces `tauri-plugin-window-state`: the plugin only let us override the state
 //! *filename*, not its directory, and always `create_dir_all`ed `%APPDATA%\<id>` even
 //! in portable mode. Rolling our own lets the state live next to the rest of the
-//! config (`moonpool_dir`) in both modes - `%APPDATA%\Moonpool\window-state.json` when
-//! installed, `{MP_DATA}\window-state.json` in a portable bundle - so nothing leaks
-//! outside a portable folder and there's no stray AppData directory.
+//! config (`moonpool_dir`) in both modes - `%USERPROFILE%\.moonpool\moonpool-config\
+//! window-state.json` when installed, `{MP_DATA}\window-state.json` in a portable
+//! bundle - so nothing leaks outside a portable folder and there's no stray AppData
+//! directory.
 //!
 //! Scope is deliberately small: physical size + position + a maximized flag for the
 //! `main` window. A missing or corrupt file falls back to the config default size/pos
