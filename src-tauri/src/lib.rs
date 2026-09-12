@@ -1575,6 +1575,37 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         }
         return;
     }
+    // `read-config` is answered here like `dump`: write the current on-disk manifest
+    // plus a version token to a file and report its path. The token feeds the
+    // compare-and-swap in `write-config`, so an agent reads then writes without ever
+    // clobbering a concurrent edit - and never has to touch apps.json directly.
+    if action == "read-config" {
+        let (status, detail) = read_config_cmd(app);
+        log_line(app, &format!("control: read-config -> {status}"));
+        if let Some(t) = &ticket {
+            record_ticket(app, t, &action, None, status, Some(detail));
+        }
+        return;
+    }
+    // `write-config <src-file> [expected-token]` replaces apps.json with the validated
+    // JSON in <src-file>, but only if the current file still matches [expected-token]
+    // (compare-and-swap) AND the new manifest validates. An invalid manifest is rejected
+    // with the exact error and the file is left untouched. Returns the new token.
+    if action == "write-config" {
+        let (status, detail) = write_config_cmd(app, &positional);
+        log_line(app, &format!("control: write-config -> {status}: {detail}"));
+        if let Some(t) = &ticket {
+            record_ticket(
+                app,
+                t,
+                &action,
+                positional.get(1).map(|s| s.to_string()),
+                status,
+                Some(detail),
+            );
+        }
+        return;
+    }
     if !matches!(
         action.as_str(),
         "launch" | "stop" | "restart" | "reload" | "refresh-icons"
@@ -1708,6 +1739,124 @@ fn dump_term_log(app: &AppHandle, id: Option<&str>, positional: &[&str]) -> (&'s
         Ok(()) => ("ok", path.display().to_string()),
         Err(e) => ("error", format!("cannot write {}: {e}", path.display())),
     }
+}
+
+/// FNV-1a 64-bit content hash of the manifest bytes, hex. A dependency-free, stable
+/// version token for the read/write-config compare-and-swap: `write-config` commits
+/// only if the current file still hashes to the token the caller read. The hub only
+/// ever hashes the one real file, so this is immune to the sandbox path-shadow issue.
+fn manifest_token(bytes: &[u8]) -> String {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for &b in bytes {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    format!("{h:016x}")
+}
+
+/// Back the `read-config` control command: write the current on-disk manifest, its
+/// version token, and its validity to a JSON file and return (status, path). Reads the
+/// raw bytes (not the in-memory copy) so the token matches exactly what `write-config`'s
+/// compare-and-swap will check.
+fn read_config_cmd(app: &AppHandle) -> (&'static str, String) {
+    let Some(path) = manifest_path(app) else {
+        return ("error", "no config directory".into());
+    };
+    let bytes = match std::fs::read(&path) {
+        Ok(b) => b,
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return ("error", format!("cannot read {}: {e}", path.display())),
+    };
+    let token = if bytes.is_empty() {
+        "none".to_string()
+    } else {
+        manifest_token(&bytes)
+    };
+    let text = String::from_utf8_lossy(&bytes).to_string();
+    // Validate for the caller's benefit; this does NOT block reading a broken file.
+    let (valid, error) = match parse_manifest_text(&text) {
+        Ok(_) => (true, serde_json::Value::Null),
+        Err(e) => (false, serde_json::Value::String(e)),
+    };
+    let payload = serde_json::json!({
+        "token": token,
+        "valid": valid,
+        "error": error,
+        "path": path.display().to_string(),
+        "manifest_text": text,
+    });
+    let Some(dir) = moonpool_dir(app).map(|d| d.join("dumps")) else {
+        return ("error", "no config directory".into());
+    };
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        return ("error", format!("cannot create {}: {e}", dir.display()));
+    }
+    let out = dir.join("read-config.json");
+    match std::fs::write(&out, payload.to_string()) {
+        Ok(()) => ("ok", out.display().to_string()),
+        Err(e) => ("error", format!("cannot write {}: {e}", out.display())),
+    }
+}
+
+/// Back the `write-config <src-file> [expected-token]` control command. Replaces
+/// apps.json with the JSON in `src-file` after two guards: a compare-and-swap on
+/// `expected-token` (reject "stale" if the file changed since it was read) and full
+/// validation via `parse_manifest_text` (reject with the exact error, file untouched).
+/// On success writes atomically, hot-swaps the in-memory manifest, nudges the UI to
+/// refresh, and returns the new token.
+fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, String) {
+    let Some(src) = positional.get(1) else {
+        return ("error", "write-config needs a source file path".into());
+    };
+    let Some(path) = manifest_path(app) else {
+        return ("error", "no config directory".into());
+    };
+    // Compare-and-swap: refuse if the file changed since the caller read its token.
+    let current = std::fs::read(&path).unwrap_or_default();
+    let current_token = if current.is_empty() {
+        "none".to_string()
+    } else {
+        manifest_token(&current)
+    };
+    if let Some(expected) = positional.get(2) {
+        if *expected != current_token {
+            return (
+                "error",
+                format!(
+                    "stale token: apps.json changed since it was read (you have {expected}, current is {current_token}); re-read and reapply your edit"
+                ),
+            );
+        }
+    }
+    let new_text = match std::fs::read_to_string(src) {
+        Ok(t) => t,
+        Err(e) => return ("error", format!("cannot read source {src}: {e}")),
+    };
+    let entries = match parse_manifest_text(&new_text) {
+        Ok(e) => e,
+        Err(e) => return ("error", format!("rejected invalid manifest: {e}")),
+    };
+    let json = match serde_json::to_string_pretty(&entries) {
+        Ok(j) => j,
+        Err(e) => return ("error", e.to_string()),
+    };
+    if let Err(e) = persistence::atomic_write(&path, json.as_bytes()) {
+        return ("error", format!("cannot write {}: {e}", path.display()));
+    }
+    if let Some(state) = app.try_state::<HubState>() {
+        *lock(&state.manifest) = entries;
+        *lock(&state.manifest_error) = None;
+    }
+    // Nudge the UI to re-pull so the grid reflects the change (mirrors a `reload`).
+    let _ = app.emit(
+        "control://command",
+        ControlCommand {
+            action: "reload".to_string(),
+            arg: None,
+            ticket: None,
+        },
+    );
+    ("ok", manifest_token(json.as_bytes()))
 }
 
 /// Milliseconds since the Unix epoch (0 if the clock is somehow before it).
@@ -2326,6 +2475,23 @@ mod url_tests {
         assert_eq!(percent_decode("caf%C3%A9"), "café");
         assert_eq!(percent_decode("100%done"), "100%done");
         assert_eq!(percent_decode("trailing%2"), "trailing%2");
+    }
+}
+
+#[cfg(test)]
+mod config_token_tests {
+    use super::manifest_token;
+
+    #[test]
+    fn token_is_deterministic_and_change_sensitive() {
+        let a = br#"[{"id":"x","name":"X","type":"cli","command":"echo hi"}]"#;
+        // Same bytes -> same token (the compare-and-swap "unchanged" case).
+        assert_eq!(manifest_token(a), manifest_token(a));
+        // A one-byte change flips the token (so a concurrent edit is caught).
+        let b = br#"[{"id":"x","name":"Y","type":"cli","command":"echo hi"}]"#;
+        assert_ne!(manifest_token(a), manifest_token(b));
+        // Empty is distinct from the "none" sentinel the verbs use for a missing file.
+        assert_ne!(manifest_token(b""), "none");
     }
 }
 

@@ -82,6 +82,8 @@ const NON_HUB_TOKENS: &[&str] = &[
     "show",
     "quit",
     "paths",
+    "read-config",
+    "write-config",
     "--ticket",
     "--uninstall",
     "--wait-pid",
@@ -330,6 +332,29 @@ fn dump(id: &str, tail: usize) -> Result<String, String> {
     Ok(out)
 }
 
+/// Read the current manifest plus a version token through the hub (the hub writes a
+/// JSON file; we read it back and return its contents). Going through the hub is the
+/// point: the agent gets the file the resident hub actually uses, never a sandbox
+/// shadow copy, and a token to feed the compare-and-swap in the write tool.
+fn read_config() -> Result<String, String> {
+    let path = control("read-config", &[])?;
+    std::fs::read_to_string(&path)
+        .map_err(|e| format!("read-config wrote {path} but it could not be read: {e}"))
+}
+
+/// Replace the manifest through the hub. Stages the new JSON to a temp file the hub
+/// reads and validates before committing, passing the token the caller read so a
+/// concurrent edit is rejected rather than clobbered. (The temp file is safe here: the
+/// sandbox gate in `call_tool` means this only runs when our filesystem view is real.)
+fn write_config(manifest: &str, expected_token: &str) -> Result<String, String> {
+    let tmp = std::env::temp_dir().join(format!("moonpool-write-{}.json", std::process::id()));
+    std::fs::write(&tmp, manifest).map_err(|e| format!("cannot stage manifest: {e}"))?;
+    let tmp_str = tmp.to_string_lossy().to_string();
+    let result = control("write-config", &[&tmp_str, expected_token]);
+    let _ = std::fs::remove_file(&tmp);
+    result.map(|token| format!("apps.json updated; new version token {token}"))
+}
+
 /// Full paths the MCP process itself resolves. Paired with the hub's own report
 /// (via `control("paths")`) so a divergence - the MCP reading one apps.json while
 /// the resident hub launches from another - is visible at a glance.
@@ -506,6 +531,23 @@ fn tool_list() -> Value {
             "inputSchema": no_args_schema()
         },
         {
+            "name": "moonpool_read_config",
+            "description": "Read the apps.json manifest the launcher actually uses, plus a version token. Returns JSON: manifest_text (the file's exact contents), token (pass back to moonpool_write_config), valid (whether it parses) and error (the validation error if not). Always read through this tool before editing - never read apps.json off disk yourself, as the launcher's copy may differ from what you can see.",
+            "inputSchema": no_args_schema()
+        },
+        {
+            "name": "moonpool_write_config",
+            "description": "Replace apps.json with new contents, through the launcher. The launcher VALIDATES the new manifest first and rejects it (file left untouched) with the exact error if invalid, so you cannot brick it. Pass expected_token from moonpool_read_config: if the file changed since you read it, the write is rejected as stale - re-read and reapply. On success the launcher reloads the new manifest.",
+            "inputSchema": json!({
+                "type": "object",
+                "properties": {
+                    "manifest": { "type": "string", "description": "The full new apps.json content (a JSON array of app entries) as text." },
+                    "expected_token": { "type": "string", "description": "The token from your most recent moonpool_read_config. The write commits only if apps.json still matches it." }
+                },
+                "required": ["manifest", "expected_token"]
+            })
+        },
+        {
             "name": "moonpool_refresh_app_icons",
             "description": "Re-fetch every app icon.",
             "inputSchema": no_args_schema()
@@ -585,6 +627,20 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
             dump(&id()?, tail)
         }
         "moonpool_reload_config" => control("reload", &[]).map(|_| "apps.json reloaded".into()),
+        "moonpool_read_config" => read_config(),
+        "moonpool_write_config" => {
+            let manifest = args
+                .get("manifest")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "manifest (the full apps.json text) is required".to_string())?;
+            let token = args.get("expected_token").and_then(Value::as_str).ok_or_else(|| {
+                "expected_token is required - call moonpool_read_config first and pass back its token".to_string()
+            })?;
+            if token.is_empty() {
+                return Err("expected_token must not be empty; get it from moonpool_read_config".into());
+            }
+            write_config(manifest, token)
+        }
         "moonpool_launcher_paths" => paths_report(),
         "moonpool_refresh_app_icons" => {
             control("refresh-icons", &[]).map(|_| "icons refreshed".into())
