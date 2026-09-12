@@ -55,9 +55,10 @@ The config/data root (`moonpool_dir` in `lib.rs`) becomes mode-aware:
   `moonpool-config` - not `data` - so it's unambiguous and won't collide with the
   user's own folders in a shared bundle root.
 - **Installed:** `%USERPROFILE%\.moonpool\moonpool-config\` (moved off AppData
-  2026-09-11 - see `install.rs` module doc comment for why; existing
-  `%LOCALAPPDATA%\Moonpool`/`%APPDATA%\Moonpool` installs migrate automatically via
-  `install::migrate_legacy`).
+  2026-09-11 - see `install.rs` module doc comment for why). No automatic migration
+  for an existing `%LOCALAPPDATA%\Moonpool`/`%APPDATA%\Moonpool` install - negligible
+  real installed base made that not worth the risk of silently rewriting
+  `~/.claude.json`; move an old install by hand if it ever comes up.
 
 The first-run seeding already in place (embedded `apps.example.json` -> `apps.json`,
 embedded `AI-README.md` written beside it) just targets this folder; nothing extra to

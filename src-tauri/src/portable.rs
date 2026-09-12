@@ -276,9 +276,8 @@ pub fn export_portable(_app: AppHandle, target_dir: String, clone: bool) -> Resu
     Ok(exe_target.display().to_string())
 }
 
-/// Recursively copy a directory's files and subdirectories. `pub(crate)`: also used by
-/// `install::migrate_legacy` to move data out of the pre-relocation AppData location.
-pub(crate) fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+/// Recursively copy a directory's files and subdirectories.
+fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(to)?;
     for entry in std::fs::read_dir(from)? {
         let entry = entry?;

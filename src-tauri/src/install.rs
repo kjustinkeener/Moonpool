@@ -11,9 +11,13 @@
 //! itself AND everything it spawns: any AppData-based install can get silently
 //! shadowed, both its data files and the exe itself, so an MCP server Claude spawns
 //! from a shadowed exe path can never see a fresh build again. A path outside AppData
-//! entirely can't be redirected. `legacy_install_dir`/`migrate_legacy` below move an
-//! existing `%LOCALAPPDATA%\Moonpool` install here automatically. See memory
-//! `claude-msix-appdata-virtualization` for the full investigation.
+//! entirely can't be redirected. There is deliberately no automatic migration of an
+//! existing `%LOCALAPPDATA%\Moonpool` install: with essentially no real installed base
+//! yet, silently rewriting shortcuts/registry/`~/.claude.json` for near-zero users
+//! isn't worth the risk of corrupting `~/.claude.json` (every Claude Code session's
+//! config, not just Moonpool's) on the rare machine that does have an old install - see
+//! memory `claude-msix-appdata-virtualization` for the full investigation and that
+//! decision. Move an existing install by hand if/when it matters.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -35,19 +39,6 @@ pub fn install_dir() -> Option<PathBuf> {
     std::env::var_os("USERPROFILE").map(|p| PathBuf::from(p).join(".moonpool"))
 }
 
-/// Pre-2026-09 install dir (`%LOCALAPPDATA%\Moonpool`), kept only so an existing
-/// install can find and migrate itself out of it (`is_legacy_installed`,
-/// `migrate_legacy`). Never used for anything else - `install_dir` above is the only
-/// current install location.
-fn legacy_install_dir() -> Option<PathBuf> {
-    std::env::var_os("LOCALAPPDATA").map(|p| PathBuf::from(p).join(APP_NAME))
-}
-
-/// Pre-2026-09 data dir (`%APPDATA%\Moonpool`, Roaming), same reason.
-fn legacy_data_dir() -> Option<PathBuf> {
-    std::env::var_os("APPDATA").map(|p| PathBuf::from(p).join(APP_NAME))
-}
-
 /// The installed exe path, `<install_dir>\moonpool.exe`.
 fn installed_exe() -> Option<PathBuf> {
     install_dir().map(|d| d.join("moonpool.exe"))
@@ -63,131 +54,6 @@ pub fn is_installed() -> bool {
         }
         _ => false,
     }
-}
-
-/// True if this exe is currently running from the legacy `%LOCALAPPDATA%\Moonpool`
-/// location - an install from before the `%USERPROFILE%\.moonpool` relocation that
-/// hasn't migrated yet. Distinct from `is_installed()`, which means "installed at the
-/// current (new) location".
-pub fn is_legacy_installed() -> bool {
-    match (std::env::current_exe(), legacy_install_dir()) {
-        (Ok(cur), Some(dir)) => {
-            let cur = cur.canonicalize().unwrap_or(cur);
-            let dir = dir.canonicalize().unwrap_or(dir);
-            cur.starts_with(&dir)
-        }
-        _ => false,
-    }
-}
-
-/// Migrate an existing `%LOCALAPPDATA%\Moonpool` install to `%USERPROFILE%\.moonpool`:
-/// copy the exe, move `%APPDATA%\Moonpool` data into the new `moonpool-config`
-/// subfolder, re-point shortcuts/registry/`~/.claude.json` at the new exe, schedule
-/// deletion of the old install dir, then relaunch from the new location and exit this
-/// (old-location) process.
-///
-/// Silent - no install card. This is not a fresh install, so `run()` calls it
-/// automatically the moment a legacy install boots a build that has this code, before
-/// the Tauri builder runs (so there's no `AppHandle` yet - relaunch is a direct spawn +
-/// `std::process::exit`, same idiom as `run_uninstall`). Only called when
-/// `is_legacy_installed()` is true and `is_installed()` (new location) is false, so it
-/// never runs for the `mcp` subcommand (which returns before this point in `run()`),
-/// nor for a fresh or portable exe.
-///
-/// Best-effort and non-fatal: any step failing returns `Err` instead of exiting, so the
-/// caller falls through to a normal boot from the OLD location rather than stranding
-/// the user on a half-migrated state.
-pub fn migrate_legacy() -> Result<(), String> {
-    let new_dir = install_dir().ok_or("no USERPROFILE")?;
-    std::fs::create_dir_all(&new_dir).map_err(|e| format!("create new install dir: {e}"))?;
-
-    let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let new_exe = new_dir.join("moonpool.exe");
-    std::fs::copy(&src_exe, &new_exe).map_err(|e| format!("copy exe: {e}"))?;
-
-    if let Some(old_data) = legacy_data_dir() {
-        if old_data.is_dir() {
-            let new_data = new_dir.join(crate::portable::DATA_SUBDIR);
-            if std::fs::rename(&old_data, &new_data).is_err() {
-                // Cross-volume or momentarily locked: fall back to copy, and leave the
-                // old copy in place rather than risk losing data on a partial failure.
-                crate::portable::copy_dir(&old_data, &new_data)
-                    .map_err(|e| format!("copy data: {e}"))?;
-            }
-        }
-    }
-
-    // Re-point shortcuts at the new exe. Only recreate the desktop one if it already
-    // existed - migration shouldn't add a shortcut the user never had.
-    let had_desktop_shortcut = desktop_dir()
-        .map(|d| d.join("Moonpool.lnk").exists())
-        .unwrap_or(false);
-    remove_shortcuts();
-    if let Some(lnk) = start_menu_dir().map(|d| d.join("Moonpool.lnk")) {
-        let _ = create_shortcut(&lnk, &new_exe);
-    }
-    if had_desktop_shortcut {
-        if let Some(desk) = desktop_dir() {
-            let _ = create_shortcut(&desk.join("Moonpool.lnk"), &new_exe);
-        }
-    }
-    let _ = register_uninstall(&new_dir, &new_exe);
-    register_mcp_client(&new_exe);
-
-    if let Some(old_dir) = legacy_install_dir() {
-        schedule_legacy_dir_delete(&old_dir);
-    }
-
-    let mut c = Command::new(&new_exe);
-    c.arg("--wait-pid").arg(std::process::id().to_string());
-    platform::hidden(&mut c);
-    c.spawn().map_err(|e| format!("relaunch: {e}"))?;
-    std::process::exit(0);
-}
-
-/// Rewrite this machine's `~/.claude.json` so the `moonpool` MCP server entry points
-/// at the freshly-migrated exe instead of the legacy AppData path. Best-effort and
-/// silent: a missing file, an already-migrated entry, or any hiccup is a no-op, never
-/// a hard error - this must not risk corrupting a file every Claude Code session (not
-/// just Moonpool's) depends on. Does a literal string replace of the old JSON-escaped
-/// path rather than a full parse/re-serialize, so nothing else in the file - key
-/// order, unrelated MCP servers, formatting - can be disturbed.
-fn register_mcp_client(new_exe: &Path) {
-    let Some(home) = std::env::var_os("USERPROFILE") else {
-        return;
-    };
-    let config_path = PathBuf::from(home).join(".claude.json");
-    let Ok(text) = std::fs::read_to_string(&config_path) else {
-        return;
-    };
-    let Some(old_dir) = legacy_install_dir() else {
-        return;
-    };
-    let old_exe = old_dir.join("moonpool.exe");
-    // JSON string escaping: a literal path's backslashes double when embedded in JSON.
-    let old_json = old_exe.display().to_string().replace('\\', "\\\\");
-    let new_json = new_exe.display().to_string().replace('\\', "\\\\");
-    if !text.contains(&old_json) {
-        return; // already migrated, or a non-default config - nothing to rewrite
-    }
-    let updated = text.replace(&old_json, &new_json);
-    let _ = std::fs::write(&config_path, updated);
-}
-
-/// Detached, retrying delete of the legacy install dir after this process exits (its
-/// own exe is what's locking it - once we exit, the lock clears). Unlike
-/// `run_uninstall`'s teardown this must NOT kill other `moonpool.exe` processes: the
-/// freshly-migrated copy is one of them, running from the NEW location, and killing it
-/// would undo the migration that just happened. Retries for ~30s.
-fn schedule_legacy_dir_delete(dir: &Path) {
-    let dir_s = dir.display().to_string().replace('\'', "''");
-    let script = format!(
-        "for($i=0;$i -lt 60;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 500}}}}"
-    );
-    let mut c = Command::new("powershell");
-    c.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
-    platform::hidden(&mut c);
-    let _ = c.spawn();
 }
 
 /// Should the app show the install card instead of booting the hub? True only in
