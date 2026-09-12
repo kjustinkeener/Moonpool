@@ -84,6 +84,7 @@ const NON_HUB_TOKENS: &[&str] = &[
     "paths",
     "read-config",
     "write-config",
+    "restore-config",
     "--ticket",
     "--uninstall",
     "--wait-pid",
@@ -355,6 +356,22 @@ fn write_config(manifest: &str, expected_token: &str) -> Result<String, String> 
     result.map(|token| format!("apps.json updated; new version token {token}"))
 }
 
+/// Roll apps.json back to a known-good snapshot through the hub. With no selector the
+/// hub writes the ring listing to a file we read back; with one (an index or filename)
+/// the hub validates that snapshot and commits it, returning a human summary. Going
+/// through the hub keeps this sandbox-proof, exactly like read/write-config.
+fn restore_config(selector: Option<&str>) -> Result<String, String> {
+    match selector {
+        None => {
+            let path = control("restore-config", &[])?;
+            std::fs::read_to_string(&path).map_err(|e| {
+                format!("restore-config wrote {path} but it could not be read: {e}")
+            })
+        }
+        Some(sel) => control("restore-config", &[sel]),
+    }
+}
+
 /// Full paths the MCP process itself resolves. Paired with the hub's own report
 /// (via `control("paths")`) so a divergence - the MCP reading one apps.json while
 /// the resident hub launches from another - is visible at a glance.
@@ -548,6 +565,16 @@ fn tool_list() -> Value {
             })
         },
         {
+            "name": "moonpool_restore_config",
+            "description": "Roll apps.json back to a previous known-good version from the launcher's history ring (the launcher snapshots every validated manifest change). Call with NO argument to list the saved snapshots (newest first, each with an index, filename, timestamp and app count); call again with `snapshot` set to an index (1 = newest) or a filename to restore that one. The chosen snapshot is validated before it is written, so a corrupt one is refused and apps.json is left untouched. On success the launcher reloads the restored manifest.",
+            "inputSchema": json!({
+                "type": "object",
+                "properties": {
+                    "snapshot": { "type": "string", "description": "Which snapshot to restore: an index (1 = newest) or a filename, both from the no-argument listing. Omit to list the available snapshots instead of restoring." }
+                }
+            })
+        },
+        {
             "name": "moonpool_refresh_app_icons",
             "description": "Re-fetch every app icon.",
             "inputSchema": no_args_schema()
@@ -640,6 +667,13 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
                 return Err("expected_token must not be empty; get it from moonpool_read_config".into());
             }
             write_config(manifest, token)
+        }
+        "moonpool_restore_config" => {
+            let sel = args
+                .get("snapshot")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty());
+            restore_config(sel)
         }
         "moonpool_launcher_paths" => paths_report(),
         "moonpool_refresh_app_icons" => {
