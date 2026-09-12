@@ -370,6 +370,74 @@ fn paths_report() -> Result<String, String> {
 }
 
 // ---------------------------------------------------------------------------
+// Sandbox self-detection
+// ---------------------------------------------------------------------------
+
+/// True if a canonicalized path lands inside a Windows Store/MSIX package's
+/// per-package overlay (`...\Packages\<pkg>\LocalCache\...`). Kept separate from the
+/// path resolution so it can be unit-tested without a real sandbox.
+fn is_container_overlay_path(canonical: &str) -> bool {
+    let low = canonical.to_ascii_lowercase();
+    low.contains("\\packages\\") && low.contains("\\localcache\\")
+}
+
+/// Detect whether THIS `moonpool.exe mcp` process is running inside a packaged
+/// (Store/MSIX) sandbox - notably the Claude desktop app's - where AppData is
+/// silently redirected to a per-package overlay. When it is, every file this process
+/// reads (state.json, apps.json) resolves to a private copy the real resident hub
+/// never writes, so the tools would otherwise return stale/empty data with no hint
+/// why (moonpool_list_apps = 0 while the hub is plainly running apps). Returns a
+/// human reason string when sandboxed, so the caller can name what tripped detection.
+fn sandbox_reason() -> Option<String> {
+    // Signal 1 (reliable): the canonicalized data dir or exe path sits in a
+    // Store-container overlay. canonicalize() is essential - the raw path looks
+    // normal (`%APPDATA%\Moonpool`); only the resolved form reveals the redirect
+    // into `...\Packages\<pkg>\LocalCache\...`.
+    let overlay = |p: Option<PathBuf>| -> Option<String> {
+        let canonical = std::fs::canonicalize(p?).ok()?;
+        let s = canonical.to_string_lossy().to_string();
+        is_container_overlay_path(&s).then_some(s)
+    };
+    if let Some(p) = overlay(crate::portable::data_dir()) {
+        return Some(format!("config dir canonicalizes into a Store-container overlay ({p})"));
+    }
+    if let Some(p) = overlay(std::env::current_exe().ok()) {
+        return Some(format!("exe canonicalizes into a Store-container overlay ({p})"));
+    }
+
+    // Signal 2 (divergence fallback): a hub is resident yet this process cannot read
+    // state.json at all - a running hub always writes it to the real data dir, so an
+    // unreadable state.json from our view means our filesystem view diverges from the
+    // live hub. Narrowed to "unreadable" (not merely empty apps) to avoid a false
+    // positive against a genuinely empty manifest with the hub running.
+    if hub_running() && read_state().is_none() {
+        return Some(
+            "a hub is running but this process cannot read state.json (its file view \
+             diverges from the live hub)"
+                .to_string(),
+        );
+    }
+    None
+}
+
+/// The loud, actionable error every tool returns when the sandbox is detected, so an
+/// agent is told exactly why the tools are blind and what to do instead, rather than
+/// acting on wrong/empty results. See [[claude-msix-appdata-virtualization]].
+fn sandbox_error(reason: &str) -> String {
+    format!(
+        "MoonPool's MCP server is running inside a packaged (Store/MSIX) sandbox - \
+         typically the Claude desktop app - so its view of MoonPool's files is a \
+         private, stale copy the real resident hub never reads or writes. These MCP \
+         tools therefore CANNOT see or change MoonPool's real state (this is why a \
+         list can come back empty while the hub is plainly running apps).\n\
+         Detected via: {reason}.\n\
+         Drive MoonPool with `moonpool.exe <verb>` (list / launch <id> / stop <id> / \
+         restart <id> / reload / dump <id> / paths) from a shell OUTSIDE the sandbox \
+         instead - that process reaches the real hub and its real files."
+    )
+}
+
+// ---------------------------------------------------------------------------
 // Tool surface
 // ---------------------------------------------------------------------------
 
@@ -484,6 +552,11 @@ fn is_valid_app_id(id: &str) -> bool {
 
 /// Dispatch one tool call. Returns the text the agent sees.
 fn call_tool(name: &str, args: &Value) -> Result<String, String> {
+    // Fail loudly if we are sandboxed: every tool below reads or spawns against a
+    // private overlay of MoonPool's files, so returning their "results" would mislead.
+    if let Some(reason) = sandbox_reason() {
+        return Err(sandbox_error(&reason));
+    }
     let id = || -> Result<String, String> {
         let raw = args
             .get("app_id")
@@ -624,8 +697,27 @@ pub fn serve() {
 
 #[cfg(test)]
 mod app_id_tests {
-    use super::{is_valid_app_id, read_json_with_retry};
+    use super::{is_container_overlay_path, is_valid_app_id, read_json_with_retry};
     use std::time::Duration;
+
+    #[test]
+    fn flags_store_container_overlay_paths() {
+        // The canonicalized redirect that bit us on 2026-09-11.
+        assert!(is_container_overlay_path(
+            r"\\?\C:\Users\justin\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Moonpool\state.json"
+        ));
+        // Case-insensitive.
+        assert!(is_container_overlay_path(
+            r"C:\...\PACKAGES\Some_Pkg\LOCALCACHE\Roaming\Moonpool"
+        ));
+        // A normal install path must not trip it.
+        assert!(!is_container_overlay_path(
+            r"\\?\C:\Users\justin\AppData\Roaming\Moonpool\state.json"
+        ));
+        // LocalCache without a Packages segment (or vice versa) is not the overlay.
+        assert!(!is_container_overlay_path(r"C:\foo\LocalCache\bar"));
+        assert!(!is_container_overlay_path(r"C:\foo\Packages\bar"));
+    }
 
     #[test]
     fn rejects_flags_and_shell_surprises() {
