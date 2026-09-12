@@ -303,8 +303,9 @@ fn example_manifest() -> &'static str {
 /// AI configuration guide, seeded next to the manifest so agents can read it.
 const AI_README: &str = include_str!("../../AI-README.md");
 
-/// Moonpool's config directory. Installed: `%APPDATA%\Moonpool`. Portable:
-/// `{exe dir}\moonpool-config` (see `portable`), so all data travels with the folder.
+/// Moonpool's config directory. Installed: `%USERPROFILE%\.moonpool\moonpool-config`.
+/// Portable: `{exe dir}\moonpool-config` (see `portable`), so all data travels with
+/// the folder.
 fn moonpool_dir(app: &AppHandle) -> Option<PathBuf> {
     let _ = app;
     portable::data_dir()
@@ -2402,6 +2403,16 @@ pub fn run() {
 
     // Remove a leftover `moonpool.old` from a prior self-update.
     update::cleanup_old();
+
+    // Existing installs from before the %USERPROFILE%\.moonpool relocation: migrate
+    // automatically (no install card - this isn't a fresh install) and relaunch, so
+    // this exe never runs from a shadow-prone AppData path again. `migrate_legacy`
+    // exits the process itself on success; a returned `Err` means it bailed out
+    // partway, so fall through and keep booting normally from the old location rather
+    // than stranding the user on a half-migrated state.
+    if install::is_legacy_installed() && !install::is_installed() {
+        let _ = install::migrate_legacy();
+    }
 
     // Portable: keep WebView2's browser profile inside the bundle too. WebView2 reads
     // WEBVIEW2_USER_DATA_FOLDER when it creates its environment, so this must be set

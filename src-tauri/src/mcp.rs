@@ -210,8 +210,8 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
 /// actually resident so the caller can immediately follow with a launch/restart.
 ///
 /// A no-arg spawn is the one invocation that boots the hub rather than the
-/// installer (the exe is installed under %LOCALAPPDATA%, so `needs_setup()` is
-/// false) and rather than dropping a control action on the floor.
+/// installer (the exe is installed under %USERPROFILE%\.moonpool, so `needs_setup()`
+/// is false) and rather than dropping a control action on the floor.
 fn start_hub() -> Result<String, String> {
     if hub_running() {
         return Ok("Moonpool is already running".into());
