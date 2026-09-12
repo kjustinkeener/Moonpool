@@ -234,6 +234,103 @@ impl ProcessGroup {
     }
 }
 
+// Runtime validation of the Job Object tree-kill (R3 #8). #[ignore]d: it spawns real
+// processes and depends on OS timing, so it is not part of the default `cargo test`
+// (and not CI-run). Run it explicitly on Windows to confirm the job cooperates with
+// ConPTY on this machine:
+//   cargo test --package moonpool job_kill -- --ignored --nocapture
+#[cfg(all(test, windows))]
+mod job_object_tests {
+    use super::ProcessGroup;
+    use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+    use std::time::Duration;
+
+    // How many live processes carry our unique signal token on their command line.
+    fn pids_with_signal(sig: &str) -> Vec<u32> {
+        let mut sys = sysinfo::System::new();
+        // everything() so command lines (which carry our token) are populated on Windows.
+        sys.refresh_processes_specifics(sysinfo::ProcessRefreshKind::everything());
+        sys.processes()
+            .iter()
+            .filter(|(_, p)| {
+                p.cmd()
+                    .iter()
+                    .any(|a| a.to_ascii_uppercase().contains(sig))
+            })
+            .map(|(pid, _)| pid.as_u32())
+            .collect()
+    }
+
+    #[test]
+    #[ignore = "spawns real processes; run explicitly to validate the Job Object tree-kill"]
+    fn job_kill_reaps_reparented_grandchildren() {
+        // A unique, harmless, self-terminating signal token (`waitfor /t` just waits and
+        // exits after the timeout even if we somehow miss it), findable via its command
+        // line. Keyed on our PID so parallel/old runs never collide.
+        let sig = format!("MPJOBTEST{:X}", std::process::id());
+        // The grandchild lives in a temp .cmd whose NAME carries the token, so the tree
+        // needs NO nested quotes on the launch line (portable_pty's arg-quoting mangles
+        // nested `"`, which silently broke earlier attempts). The script just holds a
+        // long headless `ping` alive. Its path has no spaces (temp dir), so `start /b`
+        // takes it unquoted.
+        let script = std::env::temp_dir().join(format!("{sig}.cmd"));
+        std::fs::write(&script, "@ping -n 60 -w 1000 127.0.0.1 >nul\r\n").unwrap();
+        let sp = script.to_string_lossy().to_string();
+        // Deep tree whose grandchildren DETACH: each `start /b` launches the script and
+        // its launcher returns, so the grandchild re-parents away - the exact case a
+        // snapshot `taskkill /T` by PID misses. The top cmd stays alive on its own ping
+        // so the run still looks running while we probe. Top + both detached carry `sig`
+        // (via the script path on their command line), so the before-kill count is >= 2.
+        let cmd_line =
+            format!("start /b {sp} & start /b {sp} & ping -n 60 -w 1000 127.0.0.1 >nul");
+
+        let pty = native_pty_system();
+        let pair = pty
+            .openpty(PtySize {
+                rows: 24,
+                cols: 80,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .unwrap();
+        let mut cb = CommandBuilder::new("cmd.exe");
+        cb.arg("/c");
+        cb.arg(&cmd_line);
+        let child = pair.slave.spawn_command(cb).unwrap();
+        let group = ProcessGroup::own(child.process_id());
+
+        // Let the tree materialize (start /b + waitfor take a moment to appear).
+        std::thread::sleep(Duration::from_millis(1500));
+        let before = pids_with_signal(&sig).len();
+        assert!(
+            before >= 2,
+            "test setup: expected >=2 detached grandchildren carrying the token, saw {before}"
+        );
+
+        group.kill();
+        std::thread::sleep(Duration::from_millis(1500));
+        let leftover = pids_with_signal(&sig);
+        let after = leftover.len();
+
+        // Safety net so a FAILING run never leaks the test tree for the waitfor timeout:
+        // kill any survivor by PID (a no-op when the job already reaped them all).
+        for pid in leftover {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/PID", &pid.to_string()])
+                .status();
+        }
+        drop(pair);
+        drop(child);
+        let _ = std::fs::remove_file(&script);
+
+        assert_eq!(
+            after, 0,
+            "Job Object kill left {after} orphaned process(es) with signal {sig} - \
+             the job did not own the re-parented tree (ConPTY nesting?)"
+        );
+    }
+}
+
 /// Force-kill every process matching `name` (its base exe name).
 pub fn kill_by_name(name: &str) {
     #[cfg(windows)]
