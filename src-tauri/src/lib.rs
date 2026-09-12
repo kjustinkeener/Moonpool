@@ -1798,12 +1798,36 @@ fn read_config_cmd(app: &AppHandle) -> (&'static str, String) {
     }
 }
 
+/// Decide the outcome of a write-config request WITHOUT touching the filesystem:
+/// compare-and-swap the token against `current`, then parse+validate `new_text`.
+/// Returns the normalized pretty JSON to write on success, or the exact rejection
+/// reason. Split out so both guard branches are unit-testable without a live hub.
+fn plan_config_write(
+    current: &[u8],
+    expected_token: Option<&str>,
+    new_text: &str,
+) -> Result<String, String> {
+    let current_token = if current.is_empty() {
+        "none".to_string()
+    } else {
+        manifest_token(current)
+    };
+    if let Some(expected) = expected_token {
+        if expected != current_token {
+            return Err(format!(
+                "stale token: apps.json changed since it was read (you have {expected}, current is {current_token}); re-read and reapply your edit"
+            ));
+        }
+    }
+    let entries = parse_manifest_text(new_text).map_err(|e| format!("rejected invalid manifest: {e}"))?;
+    serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())
+}
+
 /// Back the `write-config <src-file> [expected-token]` control command. Replaces
-/// apps.json with the JSON in `src-file` after two guards: a compare-and-swap on
-/// `expected-token` (reject "stale" if the file changed since it was read) and full
-/// validation via `parse_manifest_text` (reject with the exact error, file untouched).
-/// On success writes atomically, hot-swaps the in-memory manifest, nudges the UI to
-/// refresh, and returns the new token.
+/// apps.json with the JSON in `src-file` after two guards (see `plan_config_write`):
+/// a compare-and-swap on `expected-token` and full validation. On success writes
+/// atomically, hot-swaps the in-memory manifest, nudges the UI to refresh, and returns
+/// the new token; on either guard failing, the file is left untouched.
 fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, String) {
     let Some(src) = positional.get(1) else {
         return ("error", "write-config needs a source file path".into());
@@ -1811,39 +1835,24 @@ fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, Stri
     let Some(path) = manifest_path(app) else {
         return ("error", "no config directory".into());
     };
-    // Compare-and-swap: refuse if the file changed since the caller read its token.
     let current = std::fs::read(&path).unwrap_or_default();
-    let current_token = if current.is_empty() {
-        "none".to_string()
-    } else {
-        manifest_token(&current)
-    };
-    if let Some(expected) = positional.get(2) {
-        if *expected != current_token {
-            return (
-                "error",
-                format!(
-                    "stale token: apps.json changed since it was read (you have {expected}, current is {current_token}); re-read and reapply your edit"
-                ),
-            );
-        }
-    }
     let new_text = match std::fs::read_to_string(src) {
         Ok(t) => t,
         Err(e) => return ("error", format!("cannot read source {src}: {e}")),
     };
-    let entries = match parse_manifest_text(&new_text) {
-        Ok(e) => e,
-        Err(e) => return ("error", format!("rejected invalid manifest: {e}")),
-    };
-    let json = match serde_json::to_string_pretty(&entries) {
+    let json = match plan_config_write(&current, positional.get(2).copied(), &new_text) {
         Ok(j) => j,
-        Err(e) => return ("error", e.to_string()),
+        Err(e) => return ("error", e),
     };
     if let Err(e) = persistence::atomic_write(&path, json.as_bytes()) {
         return ("error", format!("cannot write {}: {e}", path.display()));
     }
-    if let Some(state) = app.try_state::<HubState>() {
+    // Refresh the in-memory manifest from the bytes we just wrote (they validated in
+    // plan_config_write, so this re-parse cannot fail).
+    if let (Some(state), Ok(entries)) = (
+        app.try_state::<HubState>(),
+        serde_json::from_str::<Vec<AppEntry>>(&json),
+    ) {
         *lock(&state.manifest) = entries;
         *lock(&state.manifest_error) = None;
     }
@@ -2480,7 +2489,7 @@ mod url_tests {
 
 #[cfg(test)]
 mod config_token_tests {
-    use super::manifest_token;
+    use super::{manifest_token, plan_config_write};
 
     #[test]
     fn token_is_deterministic_and_change_sensitive() {
@@ -2492,6 +2501,42 @@ mod config_token_tests {
         assert_ne!(manifest_token(a), manifest_token(b));
         // Empty is distinct from the "none" sentinel the verbs use for a missing file.
         assert_ne!(manifest_token(b""), "none");
+    }
+
+    const GOOD: &str =
+        r#"[{"id":"x","name":"X","group":"Dev","type":"cli","command":"echo hi"}]"#;
+
+    #[test]
+    fn write_plan_commits_when_token_matches() {
+        let cur = GOOD.as_bytes();
+        let token = manifest_token(cur);
+        let json = plan_config_write(cur, Some(&token), GOOD).expect("matching token commits");
+        // Output is normalized pretty JSON that still parses back to one app.
+        assert!(json.contains("\"id\": \"x\""));
+    }
+
+    #[test]
+    fn write_plan_rejects_a_stale_token() {
+        let err = plan_config_write(GOOD.as_bytes(), Some("deadbeefdeadbeef"), GOOD)
+            .expect_err("stale token must be rejected");
+        assert!(err.starts_with("stale token:"), "got: {err}");
+    }
+
+    #[test]
+    fn write_plan_rejects_an_invalid_manifest_even_with_a_matching_token() {
+        let cur = GOOD.as_bytes();
+        let token = manifest_token(cur);
+        // A `cli` app with no command fails validate_manifest.
+        let bad = r#"[{"id":"x","name":"X","group":"Dev","type":"cli"}]"#;
+        let err = plan_config_write(cur, Some(&token), bad)
+            .expect_err("invalid manifest must be rejected");
+        assert!(err.starts_with("rejected invalid manifest:"), "got: {err}");
+    }
+
+    #[test]
+    fn write_plan_skips_cas_when_no_token_given() {
+        // First-write / force case: no expected token -> only validation gates.
+        plan_config_write(b"", None, GOOD).expect("no-token write validates and commits");
     }
 }
 
