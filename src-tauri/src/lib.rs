@@ -1613,6 +1613,25 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         }
         return;
     }
+    // `restore-config [selector]` rolls apps.json back to a known-good snapshot from the
+    // history ring. With no selector it writes the ring listing to a file (like
+    // read-config) so the agent can choose; with an index or filename it validates that
+    // snapshot and commits it. Answered here like the other config verbs.
+    if action == "restore-config" {
+        let (status, detail) = restore_config_cmd(app, &positional);
+        log_line(app, &format!("control: restore-config -> {status}: {detail}"));
+        if let Some(t) = &ticket {
+            record_ticket(
+                app,
+                t,
+                &action,
+                positional.get(1).map(|s| s.to_string()),
+                status,
+                Some(detail),
+            );
+        }
+        return;
+    }
     if !matches!(
         action.as_str(),
         "launch" | "stop" | "restart" | "reload" | "refresh-icons"
@@ -1898,19 +1917,27 @@ fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, Stri
         Ok(j) => j,
         Err(e) => return ("error", e),
     };
-    if let Err(e) = persistence::atomic_write(&path, json.as_bytes()) {
-        return ("error", format!("cannot write {}: {e}", path.display()));
+    if let Err(e) = commit_manifest_json(app, &path, &json) {
+        return ("error", e);
     }
-    // Refresh the in-memory manifest from the bytes we just wrote (they validated in
-    // plan_config_write, so this re-parse cannot fail).
+    ("ok", manifest_token(json.as_bytes()))
+}
+
+/// Commit already-validated, normalized manifest JSON: atomic write to `path`, hot-swap
+/// the in-memory manifest, ring-snapshot it, and nudge the UI to re-pull. Shared by
+/// write-config and restore-config so the two commit paths cannot drift. `json` MUST have
+/// come from `plan_config_write` (i.e. validated), so the re-parse here cannot fail.
+fn commit_manifest_json(app: &AppHandle, path: &Path, json: &str) -> Result<(), String> {
+    persistence::atomic_write(path, json.as_bytes())
+        .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
     if let (Some(state), Ok(entries)) = (
         app.try_state::<HubState>(),
-        serde_json::from_str::<Vec<AppEntry>>(&json),
+        serde_json::from_str::<Vec<AppEntry>>(json),
     ) {
         *lock(&state.manifest) = entries;
         *lock(&state.manifest_error) = None;
     }
-    snapshot_known_good(app, &json);
+    snapshot_known_good(app, json);
     // Nudge the UI to re-pull so the grid reflects the change (mirrors a `reload`).
     let _ = app.emit(
         "control://command",
@@ -1920,7 +1947,149 @@ fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, Stri
             ticket: None,
         },
     );
-    ("ok", manifest_token(json.as_bytes()))
+    Ok(())
+}
+
+/// Snapshot files in the known-good ring, NEWEST-FIRST (index 1 = most recent). The
+/// fixed-width millis name prefix sorts lexically in time order, so a sort + reverse
+/// gives newest-first without parsing timestamps.
+fn known_good_snapshots(app: &AppHandle) -> Vec<PathBuf> {
+    let Some(dir) = moonpool_dir(app).map(|d| d.join("apps.json.history")) else {
+        return Vec::new();
+    };
+    let mut snaps: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("json"))
+        .collect();
+    snaps.sort();
+    snaps.reverse();
+    snaps
+}
+
+/// Resolve a restore selector against the newest-first snapshot `names`: a 1-based index
+/// (1 = newest) or an exact filename. Returns the index into `names`, or an explanatory
+/// error. Pure, so both the index and filename paths are unit-testable without a hub.
+fn resolve_snapshot(names: &[String], selector: &str) -> Result<usize, String> {
+    if let Ok(n) = selector.parse::<usize>() {
+        if n >= 1 && n <= names.len() {
+            return Ok(n - 1);
+        }
+        return Err(format!(
+            "no snapshot #{n}: there {} (call moonpool_restore_config with no argument to list them)",
+            match names.len() {
+                0 => "are none".to_string(),
+                1 => "is 1".to_string(),
+                k => format!("are {k}"),
+            }
+        ));
+    }
+    names
+        .iter()
+        .position(|f| f == selector)
+        .ok_or_else(|| format!("no snapshot named '{selector}': list them with moonpool_restore_config (no argument)"))
+}
+
+/// Back the `restore-config [selector]` control command. With no selector, write the
+/// ring listing (newest-first, with index/filename/timestamp/app-count/validity) to a
+/// file and return its path, mirroring `read-config`. With a selector (index or
+/// filename), validate that snapshot and, only if it is a valid manifest, commit it as
+/// the new apps.json - a corrupt snapshot is refused so a restore can never brick the
+/// launcher. No compare-and-swap: a restore is a deliberate overwrite of whatever is
+/// current with a chosen past-good version.
+fn restore_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, String) {
+    let snaps = known_good_snapshots(app);
+    let names: Vec<String> = snaps
+        .iter()
+        .filter_map(|p| p.file_name().and_then(|n| n.to_str()).map(String::from))
+        .collect();
+
+    // List mode: no selector.
+    let Some(selector) = positional.get(1) else {
+        let items: Vec<serde_json::Value> = snaps
+            .iter()
+            .enumerate()
+            .map(|(i, p)| {
+                let name = names.get(i).cloned().unwrap_or_default();
+                let text = std::fs::read_to_string(p).unwrap_or_default();
+                let (app_count, valid) = match parse_manifest_text(&text) {
+                    Ok(v) => (v.len() as i64, true),
+                    Err(_) => (-1, false),
+                };
+                // The millis timestamp is the filename prefix before the first '-'.
+                let millis: u64 = name
+                    .split('-')
+                    .next()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
+                serde_json::json!({
+                    "index": i + 1,
+                    "filename": name,
+                    "millis": millis,
+                    "app_count": app_count,
+                    "valid": valid,
+                })
+            })
+            .collect();
+        let payload = serde_json::json!({ "count": items.len(), "snapshots": items });
+        let Some(dir) = moonpool_dir(app).map(|d| d.join("dumps")) else {
+            return ("error", "no config directory".into());
+        };
+        if let Err(e) = std::fs::create_dir_all(&dir) {
+            return ("error", format!("cannot create {}: {e}", dir.display()));
+        }
+        let out = dir.join("restore-config.json");
+        return match std::fs::write(&out, payload.to_string()) {
+            Ok(()) => ("ok", out.display().to_string()),
+            Err(e) => ("error", format!("cannot write {}: {e}", out.display())),
+        };
+    };
+
+    // Restore mode: resolve, read, validate, commit.
+    if snaps.is_empty() {
+        return (
+            "error",
+            "no known-good snapshots yet: the ring fills as validated manifest changes are made".into(),
+        );
+    }
+    let idx = match resolve_snapshot(&names, selector) {
+        Ok(i) => i,
+        Err(e) => return ("error", e),
+    };
+    let text = match std::fs::read_to_string(&snaps[idx]) {
+        Ok(t) => t,
+        Err(e) => return ("error", format!("cannot read snapshot {}: {e}", names[idx])),
+    };
+    let Some(path) = manifest_path(app) else {
+        return ("error", "no config directory".into());
+    };
+    // Validate the snapshot before committing (a corrupt one must not brick apps.json).
+    // No expected-token: restore intentionally overwrites the current file.
+    let json = match plan_config_write(&[], None, &text) {
+        Ok(j) => j,
+        Err(e) => {
+            return (
+                "error",
+                format!("snapshot {} is not a valid manifest, not restoring: {e}", names[idx]),
+            )
+        }
+    };
+    if let Err(e) = commit_manifest_json(app, &path, &json) {
+        return ("error", e);
+    }
+    let count = serde_json::from_str::<Vec<AppEntry>>(&json)
+        .map(|v| v.len())
+        .unwrap_or(0);
+    (
+        "ok",
+        format!(
+            "restored {} ({count} apps); new version token {}",
+            names[idx],
+            manifest_token(json.as_bytes())
+        ),
+    )
 }
 
 /// Milliseconds since the Unix epoch (0 if the clock is somehow before it).
@@ -2544,7 +2713,7 @@ mod url_tests {
 
 #[cfg(test)]
 mod config_token_tests {
-    use super::{manifest_token, plan_config_write};
+    use super::{manifest_token, plan_config_write, resolve_snapshot};
 
     #[test]
     fn token_is_deterministic_and_change_sensitive() {
@@ -2592,6 +2761,40 @@ mod config_token_tests {
     fn write_plan_skips_cas_when_no_token_given() {
         // First-write / force case: no expected token -> only validation gates.
         plan_config_write(b"", None, GOOD).expect("no-token write validates and commits");
+    }
+
+    // Newest-first, as known_good_snapshots returns them.
+    fn ring() -> Vec<String> {
+        vec![
+            "1700000003000-cccccccc.json".to_string(),
+            "1700000002000-bbbbbbbb.json".to_string(),
+            "1700000001000-aaaaaaaa.json".to_string(),
+        ]
+    }
+
+    #[test]
+    fn restore_selector_index_is_one_based_newest_first() {
+        let r = ring();
+        assert_eq!(resolve_snapshot(&r, "1").unwrap(), 0); // newest
+        assert_eq!(resolve_snapshot(&r, "3").unwrap(), 2); // oldest
+    }
+
+    #[test]
+    fn restore_selector_rejects_out_of_range_and_zero() {
+        let r = ring();
+        assert!(resolve_snapshot(&r, "0").is_err());
+        assert!(resolve_snapshot(&r, "4").is_err());
+        assert!(resolve_snapshot(&[], "1").is_err());
+    }
+
+    #[test]
+    fn restore_selector_matches_an_exact_filename() {
+        let r = ring();
+        assert_eq!(
+            resolve_snapshot(&r, "1700000002000-bbbbbbbb.json").unwrap(),
+            1
+        );
+        assert!(resolve_snapshot(&r, "nope.json").is_err());
     }
 }
 
