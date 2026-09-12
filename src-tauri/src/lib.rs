@@ -760,6 +760,12 @@ fn reload_manifest(app: AppHandle, state: State<HubState>) -> Result<Vec<AppEntr
     };
     *lock(&state.manifest) = m.clone();
     *lock(&state.manifest_error) = None;
+    // Capture a known-good snapshot of what we just loaded, so a hand-edit made
+    // outside the app (then reloaded) enters the rollback ring too. Dedup in
+    // snapshot_known_good keeps an unchanged reload from churning it.
+    if let Ok(pretty) = serde_json::to_string_pretty(&m) {
+        snapshot_known_good(&app, &pretty);
+    }
     Ok(m)
 }
 
@@ -1057,6 +1063,7 @@ fn save_manifest(
     persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
     *lock(&state.manifest) = entries;
     *lock(&state.manifest_error) = None;
+    snapshot_known_good(&app, &json);
     Ok(())
 }
 
@@ -1823,6 +1830,53 @@ fn plan_config_write(
     serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())
 }
 
+/// How many known-good manifests to retain in the rollback ring.
+const KNOWN_GOOD_KEEP: usize = 10;
+
+/// Keep a ring of the last [`KNOWN_GOOD_KEEP`] VALIDATED manifests under
+/// `apps.json.history\` so a bad edit can be rolled back. `pretty` must be the
+/// normalized, already-validated manifest JSON. No-ops (no new file) when it matches
+/// the newest snapshot, so an unchanged reload never churns the ring. Best-effort:
+/// any IO error is logged-by-omission and never blocks the write that triggered it.
+fn snapshot_known_good(app: &AppHandle, pretty: &str) {
+    let Some(dir) = moonpool_dir(app).map(|d| d.join("apps.json.history")) else {
+        return;
+    };
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    // Existing snapshots, oldest-first: the fixed-width millis name prefix sorts
+    // lexically in time order.
+    let mut snaps: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("json"))
+        .collect();
+    snaps.sort();
+    // Dedup against the newest snapshot so a reload that pulled no change is a no-op.
+    if let Some(newest) = snaps.last() {
+        if std::fs::read_to_string(newest).ok().as_deref() == Some(pretty) {
+            return;
+        }
+    }
+    let token = manifest_token(pretty.as_bytes());
+    let name = format!("{}-{}.json", now_millis(), &token[..8]);
+    let path = dir.join(&name);
+    if std::fs::write(&path, pretty).is_err() {
+        return;
+    }
+    snaps.push(path);
+    // Prune the oldest beyond the keep count.
+    if snaps.len() > KNOWN_GOOD_KEEP {
+        for old in &snaps[..snaps.len() - KNOWN_GOOD_KEEP] {
+            let _ = std::fs::remove_file(old);
+        }
+    }
+    log_line(app, &format!("known-good manifest snapshot -> {name}"));
+}
+
 /// Back the `write-config <src-file> [expected-token]` control command. Replaces
 /// apps.json with the JSON in `src-file` after two guards (see `plan_config_write`):
 /// a compare-and-swap on `expected-token` and full validation. On success writes
@@ -1856,6 +1910,7 @@ fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, Stri
         *lock(&state.manifest) = entries;
         *lock(&state.manifest_error) = None;
     }
+    snapshot_known_good(app, &json);
     // Nudge the UI to re-pull so the grid reflects the change (mirrors a `reload`).
     let _ = app.emit(
         "control://command",
