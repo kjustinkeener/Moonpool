@@ -22,6 +22,7 @@ const MANIFEST_URL: &str =
 /// The minisign public key, committed base64 (same value tauri.conf.json used for
 /// the old updater plugin). It's the base64 of the whole minisign pubkey *file*
 /// (comment line + key line); we decode it and keep the key line.
+#[cfg(windows)]
 const PUBKEY_B64: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBRkE1M0EzNkUyQzI3MkMKUldRc0p5eHVvMVA2dW1WbUlZSzFPOGY1UjNWQUwvNnFCTmtncmNYeWcvUjZrQllPTER4QUliY00K";
 
 /// 200 MB hard cap on a downloaded binary, so a bad/hostile manifest can't make us
@@ -109,9 +110,7 @@ pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
     #[cfg(not(windows))]
     {
         let _ = &app;
-        return Err(
-            "automatic update is Windows-only; download the latest release manually".to_string(),
-        );
+        Err("automatic update is Windows-only; download the latest release manually".to_string())
     }
     #[cfg(windows)]
     {
