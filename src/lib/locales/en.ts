@@ -110,7 +110,7 @@ export const en = {
   "about.updateInstalled": "Update installed. Restarting...",
   "about.checkFailed": "Update check failed: {error}",
   "about.builtWith": "Built with",
-  "about.byLine": "MIT License · by {author}",
+  "about.byLine": "Made by {author}",
 
   // -- settings -------------------------------------------------------------
   "settings.title": "Settings",

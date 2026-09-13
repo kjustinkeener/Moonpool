@@ -1,3 +1,11 @@
+/* Registered so the hover-wake fade in App.svelte can transition this
+   custom property directly (unregistered custom properties don't animate). */
+@property --app-alpha {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 :root {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   /* Dark is the default; theme.ts sets data-theme="light" to switch. "auto"

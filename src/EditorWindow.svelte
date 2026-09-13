@@ -1,12 +1,22 @@
 <script lang="ts">
   import AppEditor from "./lib/AppEditor.svelte";
-  import { getApps } from "./lib/api";
+  import { getApps, getSettings } from "./lib/api";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { ask } from "@tauri-apps/plugin-dialog";
-  import { emit } from "@tauri-apps/api/event";
+  import { emit, listen } from "@tauri-apps/api/event";
   import { t } from "./lib/i18n.svelte";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import type { AppEntry } from "./lib/types";
+  import type { UnlistenFn } from "@tauri-apps/api/event";
+
+  // Same formula as App.svelte / SettingsControls.svelte: each detached window
+  // reads --app-alpha off its own document, so it must apply the persisted
+  // setting itself rather than inheriting it from the hub.
+  function applyTransparency(pct: number) {
+    const alpha = Math.max(0.1, 1 - Math.min(90, Math.max(0, pct)) / 100);
+    document.documentElement.style.setProperty("--app-alpha", String(alpha));
+  }
+  let unlistenTransparency: UnlistenFn | null = null;
 
   // The app id to edit is carried in the hash after a colon (#editor:<id>);
   // a bare #editor means "add a new app".
@@ -23,6 +33,14 @@
     entry = editId ? (apps.find((a) => a.id === editId) ?? null) : null;
     ready = true;
 
+    getSettings()
+      .then((s) => applyTransparency(s.transparency ?? 0))
+      .catch(() => {});
+    // The detached Settings window broadcasts changes so this window updates live.
+    unlistenTransparency = await listen<number>("settings:transparency", (e) =>
+      applyTransparency(e.payload),
+    );
+
     // Native close button (X) respects unsaved-change confirmation. The webview's
     // blocking window.confirm() is suppressed in a Tauri child window, so use the
     // async dialog plugin: always preventDefault, then destroy() on confirm
@@ -37,6 +55,8 @@
       }
     });
   });
+
+  onDestroy(() => unlistenTransparency?.());
 
   function close() {
     // Clear dirty first so the onCloseRequested guard passes without re-prompting;
@@ -80,5 +100,12 @@
     padding: 20px 22px;
     background: color-mix(in srgb, var(--bg-panel) calc(var(--app-alpha) * 100%), transparent);
     color: var(--text);
+    /* Wakes this window to full opacity on hover, then eases back to the
+       configured transparency once the pointer leaves. Matches Settings/hub. */
+    transition: --app-alpha 2s ease;
+  }
+  .page:hover {
+    --app-alpha: 1;
+    transition: --app-alpha 0s;
   }
 </style>

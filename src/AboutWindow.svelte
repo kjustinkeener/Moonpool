@@ -2,17 +2,39 @@
   import { onMount, onDestroy } from "svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { openUrl, updateCheck, updateApply, setupState } from "./lib/api";
+  import { openUrl, updateCheck, updateApply, setupState, getSettings } from "./lib/api";
+  import { listen } from "@tauri-apps/api/event";
+  import type { UnlistenFn } from "@tauri-apps/api/event";
   import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
   import appIcon from "./assets/app-icon.png";
 
+  // Same formula as App.svelte / SettingsControls.svelte: each detached window
+  // reads --app-alpha off its own document, so it must apply the persisted
+  // setting itself rather than inheriting it from the hub.
+  function applyTransparency(pct: number) {
+    const alpha = Math.max(0.1, 1 - Math.min(90, Math.max(0, pct)) / 100);
+    document.documentElement.style.setProperty("--app-alpha", String(alpha));
+  }
+  let unlistenTransparency: UnlistenFn | null = null;
+
   const credits = [
+    { name: "Rust", url: "https://www.rust-lang.org" },
     { name: "Tauri", url: "https://tauri.app" },
     { name: "Svelte", url: "https://svelte.dev" },
     { name: "Vite", url: "https://vite.dev" },
     { name: "xterm.js", url: "https://xtermjs.org" },
     { name: "portable-pty", url: "https://crates.io/crates/portable-pty" },
   ];
+
+  let rippling = $state(false);
+  let lastRipple = 0;
+
+  function onIconHover() {
+    const now = Date.now();
+    if (now - lastRipple < 5000) return;
+    lastRipple = now;
+    rippling = true;
+  }
 
   let version = $state("");
   // Build date (UTC, YYYY-MM-DD) stamped into the exe at compile time. A version
@@ -36,6 +58,13 @@
       Boolean,
     ) as HTMLElement[];
     for (const e of els) e.style.background = "transparent";
+    getSettings()
+      .then((s) => applyTransparency(s.transparency ?? 0))
+      .catch(() => {});
+    // The detached Settings window broadcasts changes so this window updates live.
+    unlistenTransparency = await listen<number>("settings:transparency", (e) =>
+      applyTransparency(e.payload),
+    );
     try {
       version = await getVersion();
     } catch {
@@ -51,7 +80,10 @@
     // cleanup function in Svelte 5 (the return value is a promise, not the fn).
     unlistenLocale = await watchLocale();
   });
-  onDestroy(() => unlistenLocale?.());
+  onDestroy(() => {
+    unlistenLocale?.();
+    unlistenTransparency?.();
+  });
 
   async function checkUpdates() {
     checking = true;
@@ -83,7 +115,10 @@
   <div class="about" data-tauri-drag-region>
     <button class="xclose" onclick={close} aria-label={t("common.close")}>✕</button>
     <div class="head">
-      <img class="moon" src={appIcon} alt="" width="56" height="56" />
+      <div class="moon-wrap" role="presentation" onmouseenter={onIconHover}>
+        <img class="moon" src={appIcon} alt="" width="56" height="56" />
+        <span class="ripple" class:active={rippling} onanimationend={() => (rippling = false)}></span>
+      </div>
       <h1>Moonpool</h1>
       <div class="ver">{t("about.version", { version })}{#if built}&nbsp;· {built}{/if}</div>
       <p class="desc">{t("about.tagline")}</p>
@@ -107,13 +142,13 @@
 
     <div class="credits">
       <span class="txt">{t("about.builtWith")}</span>
-      {#each credits as c, i (c.name)}<button class="link" onclick={() => openUrl(c.url)}
+      {#each credits as c, i (c.name)}<button class="link" title={c.url} onclick={() => openUrl(c.url)}
           >{c.name}</button
         >{#if i < credits.length - 1}<span class="dot">·</span>{/if}{/each}
     </div>
     <div class="foot">
       {#each tSplit("about.byLine") as c}{#if "text" in c}<span class="txt">{c.text}</span
-        >{:else}<button class="link" onclick={() => openUrl("https://fasterdb.com")}
+        >{:else}<button class="link" title="https://fasterdb.com" onclick={() => openUrl("https://fasterdb.com")}
           >Justin Keener</button
         >{/if}{/each}
     </div>
@@ -142,6 +177,13 @@
       color-mix(in srgb, var(--bg-panel) calc(var(--app-alpha) * 100%), transparent);
     border: 1px solid var(--border);
     overflow: hidden;
+    /* Wakes this window to full opacity on hover, then eases back to the
+       configured transparency once the pointer leaves. Matches Settings/hub/editor. */
+    transition: --app-alpha 2s ease;
+  }
+  .about:hover {
+    --app-alpha: 1;
+    transition: --app-alpha 0s;
   }
   /* Frameless window has no native title bar, so supply a close affordance in the
      corner (the Close button below can scroll out of view on a short window). */
@@ -171,14 +213,49 @@
     pointer-events: none;
     width: 100%;
   }
+  .moon-wrap {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto;
+    /* The rest of .head is pointer-events:none so it drags the window; this one
+       spot opts back in to catch hover for the glow bump and ripple below. */
+    pointer-events: auto;
+  }
   .moon {
     display: block;
-    margin: 0 auto;
     width: 56px;
     height: 56px;
     /* Glow in the icon's own center color (#61FCED), matching the intro/titlebar. */
     filter: drop-shadow(0 0 10px rgba(97, 252, 237, 0.49))
       drop-shadow(0 0 22px rgba(97, 252, 237, 0.28));
+    transition: filter 0.2s ease;
+  }
+  .moon-wrap:hover .moon {
+    filter: brightness(1.25) drop-shadow(0 0 14px rgba(97, 252, 237, 0.7))
+      drop-shadow(0 0 30px rgba(97, 252, 237, 0.42));
+  }
+  /* One-shot ring on hover, debounced to once every 5s in onIconHover(). */
+  .ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--dot-run);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ripple.active {
+    animation: moon-ripple 0.8s ease-out;
+  }
+  @keyframes moon-ripple {
+    from {
+      transform: scale(0.8);
+      opacity: 0.6;
+    }
+    to {
+      transform: scale(1.9);
+      opacity: 0;
+    }
   }
   h1 {
     margin: 6px 0 2px;
@@ -211,8 +288,8 @@
     font-size: 13px;
   }
   .btn.primary {
-    background: var(--accent);
-    border-color: var(--accent);
+    background: #007eb9;
+    border-color: #007eb9;
     color: var(--on-accent);
   }
   .btn:disabled {
