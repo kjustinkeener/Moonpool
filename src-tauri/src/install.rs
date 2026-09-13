@@ -322,6 +322,7 @@ fn register_uninstall(dir: &Path, exe: &Path) -> Result<(), String> {
 /// at whatever version first installed. Best-effort and a no-op when not installed
 /// (portable / dev / run-in-place), where the key does not exist and must not be
 /// created. `version` is the plain semver, no leading `v`.
+#[cfg(windows)]
 pub fn update_display_version(version: &str) {
     if !is_installed() {
         return;
