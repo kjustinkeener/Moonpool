@@ -1368,7 +1368,10 @@ fn tcp_alive(port: u16) -> bool {
     // port, so without the v6 attempt an IPv6-only app would always read as "down".
     // On loopback a closed port refuses immediately, so the second probe only costs
     // real time in the rare case something filters loopback.
-    for ip in [IpAddr::V4(Ipv4Addr::LOCALHOST), IpAddr::V6(Ipv6Addr::LOCALHOST)] {
+    for ip in [
+        IpAddr::V4(Ipv4Addr::LOCALHOST),
+        IpAddr::V6(Ipv6Addr::LOCALHOST),
+    ] {
         let addr = SocketAddr::new(ip, port);
         if TcpStream::connect_timeout(&addr, Duration::from_millis(250)).is_ok() {
             return true;
@@ -1620,7 +1623,10 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
     // snapshot and commits it. Answered here like the other config verbs.
     if action == "restore-config" {
         let (status, detail) = restore_config_cmd(app, &positional);
-        log_line(app, &format!("control: restore-config -> {status}: {detail}"));
+        log_line(
+            app,
+            &format!("control: restore-config -> {status}: {detail}"),
+        );
         if let Some(t) = &ticket {
             record_ticket(
                 app,
@@ -1846,7 +1852,8 @@ fn plan_config_write(
             ));
         }
     }
-    let entries = parse_manifest_text(new_text).map_err(|e| format!("rejected invalid manifest: {e}"))?;
+    let entries =
+        parse_manifest_text(new_text).map_err(|e| format!("rejected invalid manifest: {e}"))?;
     serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())
 }
 
@@ -1987,10 +1994,11 @@ fn resolve_snapshot(names: &[String], selector: &str) -> Result<usize, String> {
             }
         ));
     }
-    names
-        .iter()
-        .position(|f| f == selector)
-        .ok_or_else(|| format!("no snapshot named '{selector}': list them with moonpool_restore_config (no argument)"))
+    names.iter().position(|f| f == selector).ok_or_else(|| {
+        format!(
+            "no snapshot named '{selector}': list them with moonpool_restore_config (no argument)"
+        )
+    })
 }
 
 /// Back the `restore-config [selector]` control command. With no selector, write the
@@ -2052,7 +2060,8 @@ fn restore_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, St
     if snaps.is_empty() {
         return (
             "error",
-            "no known-good snapshots yet: the ring fills as validated manifest changes are made".into(),
+            "no known-good snapshots yet: the ring fills as validated manifest changes are made"
+                .into(),
         );
     }
     let idx = match resolve_snapshot(&names, selector) {
@@ -2073,7 +2082,10 @@ fn restore_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, St
         Err(e) => {
             return (
                 "error",
-                format!("snapshot {} is not a valid manifest, not restoring: {e}", names[idx]),
+                format!(
+                    "snapshot {} is not a valid manifest, not restoring: {e}",
+                    names[idx]
+                ),
             )
         }
     };
@@ -2728,8 +2740,7 @@ mod config_token_tests {
         assert_ne!(manifest_token(b""), "none");
     }
 
-    const GOOD: &str =
-        r#"[{"id":"x","name":"X","group":"Dev","type":"cli","command":"echo hi"}]"#;
+    const GOOD: &str = r#"[{"id":"x","name":"X","group":"Dev","type":"cli","command":"echo hi"}]"#;
 
     #[test]
     fn write_plan_commits_when_token_matches() {

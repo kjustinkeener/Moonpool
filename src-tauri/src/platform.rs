@@ -252,11 +252,7 @@ mod job_object_tests {
         sys.refresh_processes_specifics(sysinfo::ProcessRefreshKind::everything());
         sys.processes()
             .iter()
-            .filter(|(_, p)| {
-                p.cmd()
-                    .iter()
-                    .any(|a| a.to_ascii_uppercase().contains(sig))
-            })
+            .filter(|(_, p)| p.cmd().iter().any(|a| a.to_ascii_uppercase().contains(sig)))
             .map(|(pid, _)| pid.as_u32())
             .collect()
     }
@@ -281,8 +277,7 @@ mod job_object_tests {
         // snapshot `taskkill /T` by PID misses. The top cmd stays alive on its own ping
         // so the run still looks running while we probe. Top + both detached carry `sig`
         // (via the script path on their command line), so the before-kill count is >= 2.
-        let cmd_line =
-            format!("start /b {sp} & start /b {sp} & ping -n 60 -w 1000 127.0.0.1 >nul");
+        let cmd_line = format!("start /b {sp} & start /b {sp} & ping -n 60 -w 1000 127.0.0.1 >nul");
 
         let pty = native_pty_system();
         let pair = pty
