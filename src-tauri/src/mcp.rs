@@ -364,9 +364,8 @@ fn restore_config(selector: Option<&str>) -> Result<String, String> {
     match selector {
         None => {
             let path = control("restore-config", &[])?;
-            std::fs::read_to_string(&path).map_err(|e| {
-                format!("restore-config wrote {path} but it could not be read: {e}")
-            })
+            std::fs::read_to_string(&path)
+                .map_err(|e| format!("restore-config wrote {path} but it could not be read: {e}"))
         }
         Some(sel) => control("restore-config", &[sel]),
     }
@@ -441,10 +440,14 @@ fn sandbox_reason() -> Option<String> {
         is_container_overlay_path(&s).then_some(s)
     };
     if let Some(p) = overlay(crate::portable::data_dir()) {
-        return Some(format!("config dir canonicalizes into a Store-container overlay ({p})"));
+        return Some(format!(
+            "config dir canonicalizes into a Store-container overlay ({p})"
+        ));
     }
     if let Some(p) = overlay(std::env::current_exe().ok()) {
-        return Some(format!("exe canonicalizes into a Store-container overlay ({p})"));
+        return Some(format!(
+            "exe canonicalizes into a Store-container overlay ({p})"
+        ));
     }
 
     // Signal 2 (divergence fallback): a hub is resident yet this process cannot read
@@ -664,7 +667,9 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
                 "expected_token is required - call moonpool_read_config first and pass back its token".to_string()
             })?;
             if token.is_empty() {
-                return Err("expected_token must not be empty; get it from moonpool_read_config".into());
+                return Err(
+                    "expected_token must not be empty; get it from moonpool_read_config".into(),
+                );
             }
             write_config(manifest, token)
         }
