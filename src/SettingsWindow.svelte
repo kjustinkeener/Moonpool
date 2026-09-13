@@ -31,5 +31,13 @@
     padding: 20px 22px;
     background: color-mix(in srgb, var(--bg-panel) calc(var(--app-alpha) * 100%), transparent);
     color: var(--text);
+    /* Wakes this window to full opacity on hover, then eases back to the
+       configured transparency once the pointer leaves. Matches the hub
+       window's hover-fade in App.svelte; each window fades independently. */
+    transition: --app-alpha 2s ease;
+  }
+  .page:hover {
+    --app-alpha: 1;
+    transition: --app-alpha 0s;
   }
 </style>

@@ -866,6 +866,14 @@
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    /* Wakes the whole window (every tinted region reads --app-alpha) to full
+       opacity on hover, then eases back to the configured transparency once
+       the pointer leaves. Instant on the way in, gradual on the way out. */
+    transition: --app-alpha 2s ease;
+  }
+  .app:hover {
+    --app-alpha: 1;
+    transition: --app-alpha 0s;
   }
   .body {
     flex: 1;
