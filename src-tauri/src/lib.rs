@@ -30,6 +30,7 @@ use tauri_plugin_opener::OpenerExt;
 mod dashboards;
 mod i18n;
 mod install;
+mod control_pipe;
 mod mcp;
 mod persistence;
 mod platform;
@@ -235,6 +236,12 @@ struct HubState {
     /// size when a Win+D restore of the borderless window brings it back as the
     /// ~215x26 minimized-placeholder sliver.
     last_good_size: Mutex<Option<(u32, u32)>>,
+    /// Wakers for pipe-originated UI-owned actions (`launch`/`stop`/`restart`/`reload`/
+    /// `refresh-icons`), keyed by ticket. `control_pipe::run_ui_action` registers one before
+    /// emitting `control://command`; `record_ticket` fires it the moment that ticket's status
+    /// leaves "pending" (i.e. when the frontend calls `report_outcome`), so the pipe reply
+    /// returns immediately instead of polling state.json.
+    pipe_waiters: Mutex<HashMap<String, tokio::sync::oneshot::Sender<()>>>,
 }
 
 // R1 poison policy
@@ -2245,6 +2252,14 @@ fn record_ticket(
             Some(existing) => *existing = rec,
             None => tickets.push(rec),
         }
+        // Wake a pipe caller waiting on this ticket the moment it settles. Pending
+        // updates (the initial record written before the UI acts) must NOT wake it -
+        // only the final ok/error report should.
+        if status != "pending" {
+            if let Some(tx) = lock(&state.pipe_waiters).remove(ticket) {
+                let _ = tx.send(());
+            }
+        }
     }
     write_state(app);
 }
@@ -2456,6 +2471,7 @@ pub fn run() {
             state_write: Mutex::new(()),
             term_logs: Mutex::new(HashMap::new()),
             last_good_size: Mutex::new(None),
+            pipe_waiters: Mutex::new(HashMap::new()),
         })
         .setup(|app| {
             let handle = app.handle().clone();
@@ -2517,6 +2533,7 @@ pub fn run() {
                     }
                 }
             }
+            control_pipe::spawn(handle.clone());
             spawn_status_poller(handle);
             Ok(())
         })

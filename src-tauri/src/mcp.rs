@@ -135,9 +135,14 @@ fn new_ticket() -> String {
     )
 }
 
-/// Fire one control command at the resident instance and block until its ticket
-/// resolves. Returns `Ok(detail)` on success (detail is whatever the handler
-/// reported - for `dump`, the file path it wrote) or `Err(message)`.
+/// Fire one control command at the resident instance and block until it resolves. Returns
+/// `Ok(detail)` on success (detail is whatever the handler reported - for `dump`, the file path
+/// it wrote) or `Err(message)`.
+///
+/// Tries the named-pipe control surface (`control_pipe.rs`) first - one request, one reply, no
+/// spawn and no poll. Falls back to the old argv-spawn + `state.json`-poll path (below) if the
+/// pipe cannot be reached (e.g. an older resident hub build with no pipe listener yet), per the
+/// migration plan's "keep the argv path until the pipe path is proven" belt-and-suspenders rule.
 fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if !hub_running() {
         return Err("Moonpool is not running - call moonpool_bootup_launcher first".into());
@@ -149,6 +154,86 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if action.starts_with('-') || args.iter().any(|a| a.starts_with('-')) {
         return Err("refusing to forward a flag-like control argument".into());
     }
+    match pipe_call(action, args) {
+        Ok(reply) => return pipe_reply_to_result(action, reply),
+        // A transport-level failure (pipe missing, busy past the retry budget, closed
+        // mid-read) falls back; an application-level `ok:false` frame does not reach here -
+        // `pipe_reply_to_result` already turned that into `Err` above.
+        Err(e) => {
+            let _ = e; // best-effort fallback; nothing to log a stdio-only process could see
+        }
+    }
+    control_via_argv(action, args)
+}
+
+/// Send one request over the control pipe and parse its single reply line. `Err` here means a
+/// transport failure (pipe not present/reachable), not an application-level error - those come
+/// back as `{"ok":false,"error":...}` and are handled by the caller.
+fn pipe_call(action: &str, args: &[&str]) -> Result<Value, String> {
+    const ERROR_PIPE_BUSY: i32 = 231;
+    let mut file = None;
+    let mut last_err = None;
+    for _ in 0..10 {
+        match std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(crate::control_pipe::PIPE_NAME)
+        {
+            Ok(f) => {
+                file = Some(f);
+                break;
+            }
+            Err(e) if e.raw_os_error() == Some(ERROR_PIPE_BUSY) => {
+                last_err = Some(e);
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    let mut pipe = file.ok_or_else(|| {
+        last_err
+            .map(|e| e.to_string())
+            .unwrap_or_else(|| "pipe unavailable".into())
+    })?;
+
+    let mut line = serde_json::to_vec(&json!({ "cmd": action, "args": args }))
+        .map_err(|e| e.to_string())?;
+    line.push(b'\n');
+    pipe.write_all(&line).map_err(|e| e.to_string())?;
+    pipe.flush().map_err(|e| e.to_string())?;
+
+    let mut reader = std::io::BufReader::new(pipe);
+    let mut buf = String::new();
+    reader.read_line(&mut buf).map_err(|e| e.to_string())?;
+    if buf.trim().is_empty() {
+        return Err("empty reply from control pipe".into());
+    }
+    serde_json::from_str(buf.trim()).map_err(|e| format!("bad reply: {e}"))
+}
+
+/// Turn a `control.rs`-shaped reply (`{"ok":true,"result":...}` / `{"ok":false,"error":...}`)
+/// into the same `Result<String, String>` shape `control_via_argv` returns, so callers cannot
+/// tell which transport served the request.
+fn pipe_reply_to_result(action: &str, reply: Value) -> Result<String, String> {
+    if reply.get("ok").and_then(Value::as_bool) == Some(true) {
+        Ok(reply
+            .get("result")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string())
+    } else {
+        let msg = reply.get("error").and_then(Value::as_str).unwrap_or("");
+        Err(if msg.is_empty() {
+            format!("{action} failed")
+        } else {
+            msg.to_string()
+        })
+    }
+}
+
+/// The original argv-spawn + `state.json`-poll implementation of `control()`. Kept as the
+/// fallback transport until the pipe path above is proven live; see the migration plan.
+fn control_via_argv(action: &str, args: &[&str]) -> Result<String, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let ticket = new_ticket();
 
