@@ -799,7 +799,7 @@ mod app_id_tests {
     fn flags_store_container_overlay_paths() {
         // The canonicalized redirect that bit us on 2026-09-11.
         assert!(is_container_overlay_path(
-            r"\\?\C:\Users\justin\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Moonpool\state.json"
+            r"\\?\C:\Users\user\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Moonpool\state.json"
         ));
         // Case-insensitive.
         assert!(is_container_overlay_path(
@@ -807,7 +807,7 @@ mod app_id_tests {
         ));
         // A normal install path must not trip it.
         assert!(!is_container_overlay_path(
-            r"\\?\C:\Users\justin\AppData\Roaming\Moonpool\state.json"
+            r"\\?\C:\Users\user\AppData\Roaming\Moonpool\state.json"
         ));
         // LocalCache without a Packages segment (or vice versa) is not the overlay.
         assert!(!is_container_overlay_path(r"C:\foo\LocalCache\bar"));
