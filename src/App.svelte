@@ -14,6 +14,7 @@
     setUiScale,
     onControl,
     reportOutcome,
+    frontendReady,
     openSettingsWindow,
     openAboutWindow,
     openEditorWindow,
@@ -489,6 +490,10 @@
       for (const s of list) m[s.id] = s;
       statuses = m;
     });
+
+    // Tell Rust the real UI is up so a pipe-originated UI-owned action can fail
+    // fast instead of hanging on a frontend that never loaded (see frontend_ready).
+    frontendReady().catch(() => {});
 
     // External control channel (a second `moonpool.exe launch/stop/... <id>` run).
     // When the caller tagged the command with `--ticket <key>`, we wait for the

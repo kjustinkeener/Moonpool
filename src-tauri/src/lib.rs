@@ -242,6 +242,13 @@ struct HubState {
     /// leaves "pending" (i.e. when the frontend calls `report_outcome`), so the pipe reply
     /// returns immediately instead of polling state.json.
     pipe_waiters: Mutex<HashMap<String, tokio::sync::oneshot::Sender<()>>>,
+    /// Set once by the `frontend_ready` command, which App.svelte calls from `onMount`. A
+    /// UI-owned pipe action (`launch`/`stop`/`restart`/`reload`/`refresh-icons`) checks this
+    /// before waiting on `report_outcome`, so a broken/unloaded frontend (e.g. a binary wired to
+    /// a devUrl with no dev server behind it - see the 2026-09-15 incident) fails immediately
+    /// with a clear error instead of hanging for the full 45s action timeout looking like a
+    /// pipe/backend bug.
+    frontend_ready: std::sync::atomic::AtomicBool,
 }
 
 // R1 poison policy
@@ -2264,6 +2271,15 @@ fn record_ticket(
     write_state(app);
 }
 
+/// Called once by App.svelte's `onMount`, marking that the real frontend has loaded and is
+/// listening for `control://command`. See `HubState::frontend_ready` for why this exists.
+#[tauri::command]
+fn frontend_ready(state: State<HubState>) {
+    state
+        .frontend_ready
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Called by the UI once it has acted on a ticketed control command, reporting
 /// the final outcome ("ok" / "error") so it lands in state.json for the caller.
 #[tauri::command]
@@ -2472,6 +2488,7 @@ pub fn run() {
             term_logs: Mutex::new(HashMap::new()),
             last_good_size: Mutex::new(None),
             pipe_waiters: Mutex::new(HashMap::new()),
+            frontend_ready: std::sync::atomic::AtomicBool::new(false),
         })
         .setup(|app| {
             let handle = app.handle().clone();
@@ -2687,6 +2704,7 @@ pub fn run() {
             stop_app,
             open_url,
             report_outcome,
+            frontend_ready,
             install::setup_state,
             install::perform_install,
             install::launch_installed_and_exit,

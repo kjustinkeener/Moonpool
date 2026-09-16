@@ -174,6 +174,14 @@ async fn run_ui_action(app: &AppHandle, action: &str, arg: Option<String>) -> Va
     let Some(state) = app.try_state::<HubState>() else {
         return json!({ "ok": false, "error": "hub state unavailable" });
     };
+    if !state.frontend_ready.load(std::sync::atomic::Ordering::Relaxed) {
+        return json!({
+            "ok": false,
+            "error": "frontend not loaded - the hub window has no UI to act on this command \
+                      (check for a devUrl/bundling build mistake, see \
+                      tauri-cargo-build-is-dev-frontend memory)"
+        });
+    }
     let ticket = new_ticket();
     let (tx, rx) = oneshot::channel();
     lock(&state.pipe_waiters).insert(ticket.clone(), tx);

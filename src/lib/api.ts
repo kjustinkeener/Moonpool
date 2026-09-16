@@ -291,6 +291,11 @@ export interface ControlCommand {
   ticket: string | null;
 }
 
+// Tells the Rust side the real UI has mounted and is listening for
+// control://command, so a pipe-originated UI-owned action can fail fast
+// instead of hanging until its timeout when the frontend never loaded.
+export const frontendReady = (): Promise<void> => invoke("frontend_ready");
+
 export const onControl = (
   cb: (c: ControlCommand) => void,
 ): Promise<UnlistenFn> =>
