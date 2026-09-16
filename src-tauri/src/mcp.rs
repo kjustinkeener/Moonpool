@@ -946,3 +946,45 @@ mod app_id_tests {
         assert_eq!(value["tickets"].as_array().unwrap().len(), 0);
     }
 }
+
+#[cfg(test)]
+mod pipe_reply_tests {
+    use super::pipe_reply_to_result;
+    use serde_json::json;
+
+    #[test]
+    fn ok_reply_with_string_result_passes_through() {
+        let r = pipe_reply_to_result("dump", json!({ "ok": true, "result": "wrote file.log" }));
+        assert_eq!(r, Ok("wrote file.log".to_string()));
+    }
+
+    #[test]
+    fn ok_reply_with_null_result_becomes_empty_string() {
+        // launch/stop/restart/reload/refresh-icons report no detail on success.
+        let r = pipe_reply_to_result("reload", json!({ "ok": true, "result": null }));
+        assert_eq!(r, Ok(String::new()));
+    }
+
+    #[test]
+    fn error_reply_surfaces_the_message() {
+        let r = pipe_reply_to_result(
+            "restart",
+            json!({ "ok": false, "error": "app not found: bogus" }),
+        );
+        assert_eq!(r, Err("app not found: bogus".to_string()));
+    }
+
+    #[test]
+    fn error_reply_with_no_message_falls_back_to_a_generic_one() {
+        let r = pipe_reply_to_result("restart", json!({ "ok": false }));
+        assert_eq!(r, Err("restart failed".to_string()));
+    }
+
+    #[test]
+    fn malformed_reply_missing_ok_field_is_treated_as_failure() {
+        // Guards against a future control_pipe.rs change that forgets `ok` - silently
+        // treating it as success would surface a wrong result to an MCP caller.
+        let r = pipe_reply_to_result("ping", json!({ "result": "pong" }));
+        assert_eq!(r, Err("ping failed".to_string()));
+    }
+}

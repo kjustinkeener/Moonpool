@@ -243,3 +243,55 @@ async fn write_frame<W: AsyncWrite + Unpin>(w: &mut W, v: &Value) -> std::io::Re
     w.write_all(&buf).await?;
     w.flush().await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{reply, Request, UI_OWNED_ACTIONS};
+
+    #[test]
+    fn request_without_args_defaults_to_empty_vec() {
+        let req: Request = serde_json::from_str(r#"{"cmd":"ping"}"#).unwrap();
+        assert_eq!(req.cmd, "ping");
+        assert!(req.args.is_empty());
+    }
+
+    #[test]
+    fn request_ignores_unknown_fields() {
+        // The MCP client and any future field additions shouldn't break parsing.
+        let req: Request =
+            serde_json::from_str(r#"{"cmd":"restart","args":["fasterdb"],"ticket":"x"}"#)
+                .unwrap();
+        assert_eq!(req.cmd, "restart");
+        assert_eq!(req.args, vec!["fasterdb".to_string()]);
+    }
+
+    #[test]
+    fn reply_ok_wraps_detail_as_result() {
+        assert_eq!(
+            reply("ok", "hello".into()),
+            serde_json::json!({ "ok": true, "result": "hello" })
+        );
+    }
+
+    #[test]
+    fn reply_error_wraps_detail_as_error() {
+        assert_eq!(
+            reply("error", "boom".into()),
+            serde_json::json!({ "ok": false, "error": "boom" })
+        );
+    }
+
+    #[test]
+    fn ui_owned_actions_matches_the_verbs_dispatch_control_treats_as_ui_owned() {
+        // If this list and lib.rs's argv-path handling of the same verbs ever diverge,
+        // the pipe and argv transports would disagree on which actions go through the
+        // UI at all - a silent behavior split between the two control channels.
+        for action in ["launch", "stop", "restart", "reload", "refresh-icons"] {
+            assert!(
+                UI_OWNED_ACTIONS.contains(&action),
+                "{action} must be UI-owned"
+            );
+        }
+        assert!(!UI_OWNED_ACTIONS.contains(&"ping"));
+    }
+}
