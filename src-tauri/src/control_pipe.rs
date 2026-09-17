@@ -6,8 +6,8 @@
 //!
 //! Two dispatch shapes, matching what `dispatch_control` already does for the same actions:
 //!
-//! - `ping`, `show`, `quit`, `dump`, `paths`, `screenshot`, `stop-mcp`, `read-config`,
-//!   `write-config`, `restore-config`:
+//! - `ping`, `show`, `quit`, `dump`, `paths`, `screenshot`, `stop-mcp`, `window-state`,
+//!   `reset-mcp-seen`, `read-config`, `write-config`, `restore-config`:
 //!   answered directly here, calling the SAME functions `dispatch_control` calls - one code
 //!   path, no drift from the argv path or from what a click does.
 //! - `launch`, `stop`, `restart`, `reload`, `refresh-icons`: these are UI-owned today (terminal
@@ -36,9 +36,12 @@ use tokio::io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use tokio::sync::oneshot;
 
+use windows::Win32::Foundation::RECT;
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, IsIconic, IsWindowVisible, IsZoomed};
+
 use crate::{
-    dump_term_log, hub_paths_report, kill_mcp_shim, lock, read_config_cmd, restore_config_cmd,
-    show_main, write_config_cmd, ControlCommand, HubState, ALL_WINDOWS,
+    dump_term_log, hub_paths_report, kill_mcp_shim, lock, read_config_cmd, reset_mcp_seen,
+    restore_config_cmd, show_main, write_config_cmd, ControlCommand, HubState, ALL_WINDOWS,
 };
 
 /// Fixed pipe name. A pipe is a kernel NAMESPACE object, not a file under AppData, so the MSIX
@@ -145,6 +148,8 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
         "paths" => json!({ "ok": true, "result": hub_paths_report(app) }),
         "screenshot" => screenshot(app, arg.as_deref()),
         "stop-mcp" => stop_mcp(app, arg.as_deref()),
+        "window-state" => window_state(app, arg.as_deref()),
+        "reset-mcp-seen" => reset_mcp_seen_cmd(app, arg.as_deref()),
         "read-config" => {
             let (status, detail) = read_config_cmd(app);
             reply(status, detail)
@@ -199,6 +204,58 @@ fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
         }),
         Err(e) => json!({ "ok": false, "error": e }),
     }
+}
+
+/// Report one of Moonpool's OWN windows' geometry and visibility state (never an arbitrary
+/// HWND/PID from the wire - same `ALL_WINDOWS` allowlist as `screenshot`). Built for tests: lets
+/// a test assert window position/minimized/maximized state directly instead of eyeballing a
+/// screenshot, e.g. to guard the minimize/restore collapse bug (see
+/// moonpool-window-minimize memory) without a human watching.
+fn window_state(app: &AppHandle, label: Option<&str>) -> Value {
+    let label = label.unwrap_or("main");
+    if !ALL_WINDOWS.contains(&label) {
+        return json!({
+            "ok": false,
+            "error": format!("unknown window '{label}' - expected one of {ALL_WINDOWS:?}")
+        });
+    }
+    let Some(window) = app.get_webview_window(label) else {
+        // Not an error: "not open" is itself a useful, expected state for windows like
+        // installer/editor/settings/about that only exist while shown.
+        return json!({ "ok": true, "result": json!({ "open": false }).to_string() });
+    };
+    let hwnd = match window.hwnd() {
+        Ok(h) => h,
+        Err(e) => return json!({ "ok": false, "error": format!("hwnd: {e}") }),
+    };
+    let mut rect = RECT::default();
+    if let Err(e) = unsafe { GetWindowRect(hwnd, &mut rect) } {
+        return json!({ "ok": false, "error": format!("GetWindowRect: {e}") });
+    }
+    let state = json!({
+        "open": true,
+        "visible": unsafe { IsWindowVisible(hwnd) }.as_bool(),
+        "minimized": unsafe { IsIconic(hwnd) }.as_bool(),
+        "maximized": unsafe { IsZoomed(hwnd) }.as_bool(),
+        "x": rect.left,
+        "y": rect.top,
+        "width": rect.right - rect.left,
+        "height": rect.bottom - rect.top,
+    });
+    // Same plain-string `result` requirement as every other verb here - nest the geometry as a
+    // JSON string rather than a JSON object.
+    json!({ "ok": true, "result": state.to_string() })
+}
+
+/// Clear the sticky "ever seen" record for app `id`'s MCP shim (or every app's, if no id is
+/// given). Test-only knob: normal operation never clears `mcp_seen` (see `AppStatus.mcp_seen`),
+/// so a test suite that wants to re-observe the "not yet seen" sidebar state needs an explicit
+/// way back to it between runs.
+fn reset_mcp_seen_cmd(app: &AppHandle, id: Option<&str>) -> Value {
+    let Some(state) = app.try_state::<HubState>() else {
+        return json!({ "ok": false, "error": "hub state unavailable" });
+    };
+    json!({ "ok": true, "result": reset_mcp_seen(app, &state, id) })
 }
 
 /// Kill app `id`'s attached MCP shim process (see `kill_mcp_shim`), leaving the app itself
