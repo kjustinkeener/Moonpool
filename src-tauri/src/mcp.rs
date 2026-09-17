@@ -374,11 +374,26 @@ fn list_apps() -> Result<String, String> {
             .and_then(|s| s.get("managed"))
             .and_then(Value::as_bool)
             .unwrap_or(false);
+        let mcp_running = st
+            .and_then(|s| s.get("mcpRunning"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let mcp_seen = st
+            .and_then(|s| s.get("mcpSeen"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         out.push_str(&format!(
-            "{id}  [{}]{}  {name}\n",
+            "{id}  [{}]{}  {name}{}\n",
             if running { "running" } else { "stopped" },
             if managed {
                 " (managed by Moonpool)"
+            } else {
+                ""
+            },
+            if mcp_running {
+                "  [mcp: running]"
+            } else if mcp_seen {
+                "  [mcp: stopped]"
             } else {
                 ""
             },
@@ -614,6 +629,11 @@ fn tool_list() -> Value {
             "inputSchema": app_id_schema("stop")
         },
         {
+            "name": "moonpool_stop_mcp_server",
+            "description": "Kill the app's attached MCP shim process (a `<processName> mcp` subprocess an MCP host spawned to reach this app's own tools), leaving the app itself untouched. There is no matching 'start' - the shim isn't something Moonpool launches; the MCP host that owns it respawns it on its own next tool call.",
+            "inputSchema": app_id_schema("stop the MCP shim for")
+        },
+        {
             "name": "moonpool_restart_app",
             "description": "Stop an app, wait for its port and process to free, then start it again. Prefer this over a stop followed by a start - it does the waiting for you. Use it after changing the app's code or config.",
             "inputSchema": app_id_schema("restart")
@@ -743,6 +763,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
         "moonpool_start_app" => control("launch", &[&id()?]).map(|_| "launched".into()),
         "moonpool_stop_app" => control("stop", &[&id()?]).map(|_| "stopped".into()),
         "moonpool_restart_app" => control("restart", &[&id()?]).map(|_| "restarted".into()),
+        "moonpool_stop_mcp_server" => control("stop-mcp", &[&id()?]).map(|_| "stopped".into()),
         "moonpool_app_output" => {
             let tail = args
                 .get("tail_lines")

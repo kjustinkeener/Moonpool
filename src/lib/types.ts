@@ -24,6 +24,9 @@ export interface AppStatus {
   managed: boolean;
   /** Whether a `<processName> mcp` shim is currently attached for this app. */
   mcpRunning: boolean;
+  /** Whether an MCP shim has EVER been observed for this app - stays true after it
+   *  stops, so the sidebar's MCP sub-row doesn't vanish the moment it exits. */
+  mcpSeen: boolean;
 }
 
 export interface SysStats {
