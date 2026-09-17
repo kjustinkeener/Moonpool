@@ -15,6 +15,7 @@
     onControl,
     reportOutcome,
     frontendReady,
+    stopMcpShim,
     openSettingsWindow,
     openAboutWindow,
     openEditorWindow,
@@ -30,6 +31,7 @@
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
   import Titlebar from "./lib/Titlebar.svelte";
+  import StatusBar from "./lib/StatusBar.svelte";
   import brandIcon from "./assets/app-icon.png";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { open } from "@tauri-apps/plugin-dialog";
@@ -50,6 +52,10 @@
   let unlistenTransparency: UnlistenFn | null = null;
   let unlistenTheme: UnlistenFn | null = null;
   let unlistenLocale: UnlistenFn | null = null;
+  let unlistenShowStatusbar: UnlistenFn | null = null;
+  let unlistenShowMcpProcesses: UnlistenFn | null = null;
+  let showStatusbar = $state(true);
+  let showMcpProcesses = $state(true);
   // Save/delete pushed from the detached app-editor window.
   let unlistenEditorSave: UnlistenFn | null = null;
   let unlistenEditorDelete: UnlistenFn | null = null;
@@ -438,6 +444,8 @@
         // Scale only. The saved window size is already the zoomed size, so
         // re-applying the ratio to the window would compound it every launch.
         applyZoom(s.uiScale ?? 1);
+        showStatusbar = s.showStatusbar ?? true;
+        showMcpProcesses = s.showMcpProcesses ?? true;
         if (s.checkOnStartup) return updateCheck();
         return null;
       })
@@ -457,6 +465,11 @@
       setTheme(e.payload),
     );
     unlistenLocale = await watchLocale();
+    unlistenShowStatusbar = await listen<boolean>("settings:show-statusbar", (e) => (showStatusbar = e.payload));
+    unlistenShowMcpProcesses = await listen<boolean>(
+      "settings:show-mcp-processes",
+      (e) => (showMcpProcesses = e.payload),
+    );
 
     // The detached editor window persists nothing itself; it emits the edited
     // entry back here so the hub keeps ownership of the merge/dedup and refresh.
@@ -567,6 +580,8 @@
     unlistenTransparency?.();
     unlistenTheme?.();
     unlistenLocale?.();
+    unlistenShowStatusbar?.();
+    unlistenShowMcpProcesses?.();
     unlistenEditorSave?.();
     unlistenEditorDelete?.();
     window.removeEventListener("resize", revealCliIfRoom);
@@ -671,6 +686,10 @@
     await stopApp(app.id);
   }
 
+  async function handleStopMcp(app: AppEntry) {
+    await stopMcpShim(app.id).catch(() => {});
+  }
+
   async function handleRestart(app: AppEntry) {
     if (app.type === "static" && !app.command) {
       if (app.url) await openUrl(app.url);
@@ -737,6 +756,7 @@
       onSelect={handleSelect}
       onStop={handleStop}
       onRestart={handleRestart}
+      onStopMcp={handleStopMcp}
       onEdit={openEdit}
       onDelete={handleDelete}
       onRename={handleRename}
@@ -749,6 +769,7 @@
       cliHidden={showExpand}
       onExpandCli={expandCli}
       updateWaiting={!!update && !updateDone}
+      {showMcpProcesses}
       {clashes}
     />
   </div>
@@ -844,6 +865,9 @@
     </section>
   </main>
   </div>
+  {#if showStatusbar}
+    <StatusBar />
+  {/if}
 
 </div>
 

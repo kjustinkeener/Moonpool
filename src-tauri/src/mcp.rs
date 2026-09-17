@@ -673,6 +673,16 @@ fn tool_list() -> Value {
             "inputSchema": no_args_schema()
         },
         {
+            "name": "moonpool_screenshot",
+            "description": "Capture Moonpool's own window content (not the screen) as a base64 BMP image, e.g. to check that a UI change actually rendered. Scoped to Moonpool's own windows only - it cannot capture any other app.",
+            "inputSchema": json!({
+                "type": "object",
+                "properties": {
+                    "window": { "type": "string", "enum": crate::ALL_WINDOWS, "description": "Which Moonpool window to capture. Defaults to \"main\" (the hub) if omitted." }
+                }
+            })
+        },
+        {
             "name": "moonpool_launcher_paths",
             "description": "Report the full filesystem paths Moonpool is using - config dir, apps.json, state.json, log, dumps - for BOTH the resident launcher (the authoritative one that launches apps) and this MCP process. Use it when an edit to apps.json is not taking effect, to confirm which file the launcher actually reads.",
             "inputSchema": no_args_schema()
@@ -764,6 +774,16 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
                 .and_then(Value::as_str)
                 .filter(|s| !s.is_empty());
             restore_config(sel)
+        }
+        "moonpool_screenshot" => {
+            let window = args.get("window").and_then(Value::as_str).unwrap_or("main");
+            if !crate::ALL_WINDOWS.contains(&window) {
+                return Err(format!(
+                    "unknown window '{window}' - expected one of {:?}",
+                    crate::ALL_WINDOWS
+                ));
+            }
+            control("screenshot", &[window])
         }
         "moonpool_launcher_paths" => paths_report(),
         "moonpool_refresh_app_icons" => {

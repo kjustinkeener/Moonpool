@@ -45,6 +45,10 @@ tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macro
 # to a job at spawn, so Stop kills every descendant by membership - immune to the
 # PID recycling and re-parenting that make a snapshot `taskkill /T` miss grandchildren.
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+# Window-content capture for the pipe `screenshot` verb (control_pipe.rs / screenshot.rs).
+# Matches the `windows` crate version Tauri itself resolves to (see Cargo.lock) so we reuse
+# its HWND type (WebviewWindow::hwnd()) instead of pulling in a second, incompatible one.
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
 
 # line-tables-only keeps panic backtraces/line numbers but avoids the multi-GB PDBs
 # that full debug info generates over repeated incremental builds.

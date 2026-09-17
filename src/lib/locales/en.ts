@@ -134,6 +134,27 @@ export const en = {
   "settings.debugLogging": "Log debug info to a file",
   "settings.debugLoggingHint": "Records manifest loads, launches, and errors to {file}.",
   "settings.openLog": "Open log",
+  "settings.showInTray": "Show in tray",
+  "settings.showInTrayHint": "Keep the Moonpool tray icon visible.",
+  "settings.showInTaskbar": "Show in taskbar",
+  "settings.showInTaskbarHint": "Keep Moonpool's taskbar button visible.",
+  "settings.lockoutTip": "At least one of tray icon / taskbar button must stay on, or there's no way back in.",
+  "settings.showStatusbar": "Show CPU/memory status bar",
+  "settings.showStatusbarHint": "Show a live CPU and memory bar at the bottom of the main window.",
+  "settings.showMcpProcesses": "Show MCP processes",
+  "settings.showMcpProcessesHint":
+    "When an app's MCP tools are in use, show its MCP process as a sub-item in the sidebar.",
+  "settings.resetTip": "Right-click to reset to default",
+
+  // -- status bar (main window) ----------------------------------------------
+  "status.cpu": "CPU",
+  "status.cpuTip": "Per-core CPU usage",
+  "status.mem": "MEM",
+  "status.memTip": "{used} / {total} GB used",
+
+  // -- sidebar: MCP sub-item --------------------------------------------------
+  "sidebar.mcpProcess": "MCP server",
+  "sidebar.mcpRunning": "MCP client attached",
 
   // -- theme picker (only the generic three; named palettes are proper nouns) -
   "theme.dark": "Dark",

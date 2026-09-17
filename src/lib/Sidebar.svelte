@@ -19,6 +19,7 @@
     onSelect,
     onStop,
     onRestart,
+    onStopMcp,
     onEdit,
     onDelete,
     onRename,
@@ -31,6 +32,7 @@
     cliHidden = false,
     onExpandCli,
     updateWaiting = false,
+    showMcpProcesses = true,
     clashes,
   }: {
     apps: AppEntry[];
@@ -45,6 +47,7 @@
     onSelect: (app: AppEntry) => void;
     onStop: (app: AppEntry) => void;
     onRestart: (app: AppEntry) => void;
+    onStopMcp: (app: AppEntry) => void;
     onEdit: (app: AppEntry) => void;
     onDelete: (app: AppEntry) => void;
     onRename: (app: AppEntry, name: string) => void;
@@ -57,6 +60,7 @@
     cliHidden?: boolean;
     onExpandCli?: () => void;
     updateWaiting?: boolean;
+    showMcpProcesses?: boolean;
     clashes: { port: number; names: string[] }[];
   } = $props();
 
@@ -231,12 +235,12 @@
       </button>
       {#if !collapsed.has(g.group)}
         {#each g.apps as a (a.id)}
+        <div class="app-block" animate:flip={{ duration: slowReorder ? 500 : 250 }}>
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="row"
           class:running={isRunning(a)}
           class:glowing={highlight.has(a.id)}
-          animate:flip={{ duration: slowReorder ? 500 : 250 }}
           oncontextmenu={(e) => openCtx(e, a)}
         >
           <span
@@ -278,15 +282,27 @@
               {#if a.port}<span class="port">:{a.port}</span>{/if}
             </button>
           {/if}
-          <button class="action edit" title={t("common.edit")} onclick={() => onEdit(a)}>&#9998;</button>
           {#if pending.has(a.id)}
             <span class="action spinner" title={t("sidebar.working")}></span>
-          {:else if isActive(a)}
-            <button class="action restart" title={t("sidebar.restart")} onclick={() => onRestart(a)}>&#8635;</button>
-            <button class="action stop" title={t("sidebar.stop")} onclick={() => onStop(a)}>&#9632;</button>
           {:else}
-            <button class="action go" title={t("sidebar.launch")} onclick={() => onLaunch(a)}>&#9654;</button>
+            <!-- Always available: a restart on a stopped app just launches it,
+                 so there's one control that works no matter the app's state. -->
+            <button class="action restart" title={t("sidebar.restart")} onclick={() => onRestart(a)}>&#8635;</button>
+            {#if isActive(a)}
+              <button class="action stop" title={t("sidebar.stop")} onclick={() => onStop(a)}>&#9632;</button>
+            {:else}
+              <button class="action go" title={t("sidebar.launch")} onclick={() => onLaunch(a)}>&#9654;</button>
+            {/if}
           {/if}
+        </div>
+        {#if showMcpProcesses && statuses[a.id]?.mcpRunning}
+          <div class="row mcp-row">
+            <span class="dot on" title={t("sidebar.mcpRunning")}></span>
+            <span class="type mcp-type" title={t("sidebar.mcpProcess")}>&#9492;</span>
+            <span class="name mcp-name">{t("sidebar.mcpProcess")}</span>
+            <button class="action stop" title={t("sidebar.stop")} onclick={() => onStopMcp(a)}>&#9632;</button>
+          </div>
+        {/if}
         </div>
         {/each}
       {/if}
@@ -506,6 +522,9 @@
     font-size: 10px;
     color: var(--text-faint);
   }
+  .app-block {
+    display: block;
+  }
   .row {
     display: flex;
     align-items: center;
@@ -652,17 +671,27 @@
     color: var(--link);
     background: var(--info-bg);
   }
-  .action.edit {
-    opacity: 0;
-    transition: opacity 0.1s;
-  }
-  .row:hover .action.edit {
+  /* Reads as a child of the row above it: same left padding (so the dot and
+     stop button land in the same columns as a normal row's), no top border, a
+     faint connector glyph in the icon slot, and a dimmer/smaller label. */
+  .mcp-row {
+    padding-top: 0;
+    margin-top: -2px;
     opacity: 0.7;
   }
-  .action.edit:hover {
-    opacity: 1;
-    color: var(--link);
-    background: var(--info-bg);
+  .mcp-row .dot {
+    width: 6px;
+    height: 6px;
+  }
+  .mcp-type {
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+  .mcp-name {
+    cursor: default;
+    font-size: 11.5px;
+    font-style: italic;
+    color: var(--text-dim);
   }
   .action.spinner {
     box-sizing: border-box;
