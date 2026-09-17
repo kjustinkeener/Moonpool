@@ -295,12 +295,18 @@
             {/if}
           {/if}
         </div>
-        {#if showMcpProcesses && statuses[a.id]?.mcpRunning}
+        {#if showMcpProcesses && statuses[a.id]?.mcpSeen}
           <div class="row mcp-row">
-            <span class="dot on" title={t("sidebar.mcpRunning")}></span>
+            <span
+              class="dot"
+              class:on={statuses[a.id]?.mcpRunning}
+              title={statuses[a.id]?.mcpRunning ? t("sidebar.mcpRunning") : t("sidebar.statusStopped")}
+            ></span>
             <span class="type mcp-type" title={t("sidebar.mcpProcess")}>&#9492;</span>
             <span class="name mcp-name">{t("sidebar.mcpProcess")}</span>
-            <button class="action stop" title={t("sidebar.stop")} onclick={() => onStopMcp(a)}>&#9632;</button>
+            {#if statuses[a.id]?.mcpRunning}
+              <button class="action stop" title={t("sidebar.stop")} onclick={() => onStopMcp(a)}>&#9632;</button>
+            {/if}
           </div>
         {/if}
         </div>

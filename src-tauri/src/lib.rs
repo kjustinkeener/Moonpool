@@ -87,6 +87,13 @@ struct AppStatus {
     /// the app itself. Shown as a sub-item, not folded into `running`.
     #[serde(rename = "mcpRunning")]
     mcp_running: bool,
+    /// Whether an MCP shim has EVER been observed for this app (persisted in
+    /// `mcp_seen.json`, see `load_mcp_seen`), so the sidebar sub-row survives the
+    /// shim exiting instead of vanishing the instant `mcp_running` goes false -
+    /// a killed/dead shim should stay visible as evidence it existed, even though
+    /// nothing in Moonpool can bring it back (the MCP host owns its lifecycle).
+    #[serde(rename = "mcpSeen")]
+    mcp_seen: bool,
 }
 
 /// Outcome record for one control command the caller tagged with a ticket.
@@ -275,6 +282,11 @@ struct HubState {
     /// with a clear error instead of hanging for the full 45s action timeout looking like a
     /// pipe/backend bug.
     frontend_ready: std::sync::atomic::AtomicBool,
+    /// App ids for which an MCP shim has EVER been observed running, persisted to
+    /// `mcp_seen.json` so the sidebar's MCP sub-row survives a shim exiting (and a
+    /// Moonpool restart). Write-through: `spawn_status_poller` persists on first
+    /// sight of a given id, never removes one (a stopped shim is still "seen").
+    mcp_seen: Mutex<HashSet<String>>,
 }
 
 // R1 poison policy
@@ -604,6 +616,29 @@ fn settings_path(app: &AppHandle) -> Option<PathBuf> {
 
 fn log_path(app: &AppHandle) -> Option<PathBuf> {
     moonpool_dir(app).map(|d| d.join("moonpool.log"))
+}
+
+fn mcp_seen_path(app: &AppHandle) -> Option<PathBuf> {
+    moonpool_dir(app).map(|d| d.join("mcp_seen.json"))
+}
+
+/// Best-effort load of app ids that have ever had an MCP shim observed. Unlike
+/// settings/manifest this is disposable UI state (worst case a row that should
+/// still show as "seen" doesn't, until the shim is next seen) - missing/corrupt
+/// file just means an empty set, no recovery-error surfaced to the user.
+fn load_mcp_seen(app: &AppHandle) -> HashSet<String> {
+    mcp_seen_path(app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|text| serde_json::from_str(&text).ok())
+        .unwrap_or_default()
+}
+
+fn save_mcp_seen(app: &AppHandle, seen: &HashSet<String>) {
+    if let Some(path) = mcp_seen_path(app) {
+        if let Ok(text) = serde_json::to_string_pretty(seen) {
+            let _ = std::fs::write(path, text);
+        }
+    }
 }
 
 fn load_settings(app: &AppHandle) -> Result<Settings, String> {
@@ -949,6 +984,13 @@ fn set_show_mcp_processes(
 /// so this can't take down a real running instance that shares the same image.
 #[tauri::command]
 fn stop_mcp_shim(id: String, state: State<HubState>) -> Result<(), String> {
+    kill_mcp_shim(&state, &id)
+}
+
+/// Shared body of `stop_mcp_shim`, taking a plain `&HubState` rather than Tauri's
+/// injected `State` wrapper so `control_pipe.rs`'s pipe verb can call it too
+/// without going through a `#[tauri::command]`.
+pub(crate) fn kill_mcp_shim(state: &HubState, id: &str) -> Result<(), String> {
     let entry = lock(&state.manifest).iter().find(|e| e.id == id).cloned();
     let Some(entry) = entry else {
         return Err(format!("unknown app id: {id}"));
@@ -1570,6 +1612,7 @@ fn spawn_status_poller(app: AppHandle) {
                 None => break,
             };
 
+            let hub_state = app.try_state::<HubState>();
             let mut statuses = Vec::with_capacity(entries.len());
             for e in &entries {
                 let is_managed = managed.contains(&e.id);
@@ -1579,6 +1622,22 @@ fn spawn_status_poller(app: AppHandle) {
                     detected = process_running(&sys, pn);
                     mcp_running = mcp_shim_running(&sys, pn);
                 }
+                // A shim that has EVER been observed stays "seen" even after it exits -
+                // see `AppStatus::mcp_seen`. Only a newly-seen id triggers a disk write.
+                let mcp_seen = match &hub_state {
+                    Some(state) => {
+                        if mcp_running {
+                            let mut seen = lock(&state.mcp_seen);
+                            if seen.insert(e.id.clone()) {
+                                save_mcp_seen(&app, &seen);
+                            }
+                            true
+                        } else {
+                            lock(&state.mcp_seen).contains(&e.id)
+                        }
+                    }
+                    None => mcp_running,
+                };
                 if !detected {
                     if let Some(port) = e.port {
                         detected = tcp_alive(port);
@@ -1610,6 +1669,7 @@ fn spawn_status_poller(app: AppHandle) {
                     running,
                     managed: is_managed,
                     mcp_running,
+                    mcp_seen,
                 });
             }
             if let Some(state) = app.try_state::<HubState>() {
@@ -2617,6 +2677,9 @@ pub fn run() {
             last_good_size: Mutex::new(None),
             pipe_waiters: Mutex::new(HashMap::new()),
             frontend_ready: std::sync::atomic::AtomicBool::new(false),
+            // Populated from disk in `.setup()`, once an AppHandle exists to resolve
+            // the config dir - see `load_mcp_seen`.
+            mcp_seen: Mutex::new(HashSet::new()),
         })
         .setup(|app| {
             let handle = app.handle().clone();
@@ -2645,6 +2708,7 @@ pub fn run() {
             let locale = settings.locale_resolved.clone();
             *lock(&handle.state::<HubState>().settings) = settings;
             *lock(&handle.state::<HubState>().settings_error) = settings_error;
+            *lock(&handle.state::<HubState>().mcp_seen) = load_mcp_seen(&handle);
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
             let (manifest, manifest_error) = match load_manifest(&handle) {

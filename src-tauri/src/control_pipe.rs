@@ -6,7 +6,8 @@
 //!
 //! Two dispatch shapes, matching what `dispatch_control` already does for the same actions:
 //!
-//! - `ping`, `show`, `quit`, `dump`, `paths`, `read-config`, `write-config`, `restore-config`:
+//! - `ping`, `show`, `quit`, `dump`, `paths`, `screenshot`, `stop-mcp`, `read-config`,
+//!   `write-config`, `restore-config`:
 //!   answered directly here, calling the SAME functions `dispatch_control` calls - one code
 //!   path, no drift from the argv path or from what a click does.
 //! - `launch`, `stop`, `restart`, `reload`, `refresh-icons`: these are UI-owned today (terminal
@@ -36,8 +37,8 @@ use tokio::net::windows::named_pipe::{NamedPipeServer, ServerOptions};
 use tokio::sync::oneshot;
 
 use crate::{
-    dump_term_log, hub_paths_report, lock, read_config_cmd, restore_config_cmd, show_main,
-    write_config_cmd, ControlCommand, HubState, ALL_WINDOWS,
+    dump_term_log, hub_paths_report, kill_mcp_shim, lock, read_config_cmd, restore_config_cmd,
+    show_main, write_config_cmd, ControlCommand, HubState, ALL_WINDOWS,
 };
 
 /// Fixed pipe name. A pipe is a kernel NAMESPACE object, not a file under AppData, so the MSIX
@@ -143,6 +144,7 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
         }
         "paths" => json!({ "ok": true, "result": hub_paths_report(app) }),
         "screenshot" => screenshot(app, arg.as_deref()),
+        "stop-mcp" => stop_mcp(app, arg.as_deref()),
         "read-config" => {
             let (status, detail) = read_config_cmd(app);
             reply(status, detail)
@@ -195,6 +197,23 @@ fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
             "ok": true,
             "result": base64::engine::general_purpose::STANDARD.encode(bmp)
         }),
+        Err(e) => json!({ "ok": false, "error": e }),
+    }
+}
+
+/// Kill app `id`'s attached MCP shim process (see `kill_mcp_shim`), leaving the app itself
+/// untouched. Only kills the process by name+shim-check, never anything the MCP host would
+/// need to respawn on its own - there is no "restart" verb because Moonpool never owned
+/// spawning the shim in the first place (its MCP host does, on next tool call).
+fn stop_mcp(app: &AppHandle, id: Option<&str>) -> Value {
+    let Some(id) = id else {
+        return json!({ "ok": false, "error": "missing app id" });
+    };
+    let Some(state) = app.try_state::<HubState>() else {
+        return json!({ "ok": false, "error": "hub state unavailable" });
+    };
+    match kill_mcp_shim(&state, id) {
+        Ok(()) => json!({ "ok": true, "result": "stopped" }),
         Err(e) => json!({ "ok": false, "error": e }),
     }
 }
