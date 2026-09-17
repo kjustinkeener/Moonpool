@@ -703,6 +703,26 @@ fn tool_list() -> Value {
             })
         },
         {
+            "name": "moonpool_window_state",
+            "description": "Report one of Moonpool's own windows' geometry and visibility (open, visible, minimized, maximized, x/y/width/height), as JSON text. For asserting window state in tests without eyeballing a screenshot - e.g. confirming a window did not collapse to a sliver, or that it actually opened.",
+            "inputSchema": json!({
+                "type": "object",
+                "properties": {
+                    "window": { "type": "string", "enum": crate::ALL_WINDOWS, "description": "Which Moonpool window to inspect. Defaults to \"main\" (the hub) if omitted." }
+                }
+            })
+        },
+        {
+            "name": "moonpool_reset_mcp_seen",
+            "description": "Clear the sticky 'this app's MCP shim has been seen' record, so the sidebar's MCP row goes back to not showing for that app until its shim is observed again. Test-only: normal operation never clears this. Omit app_id to clear every app's record.",
+            "inputSchema": json!({
+                "type": "object",
+                "properties": {
+                    "app_id": { "type": "string", "description": "The app's `id` from apps.json. Omit to clear every app's seen record." }
+                }
+            })
+        },
+        {
             "name": "moonpool_launcher_paths",
             "description": "Report the full filesystem paths Moonpool is using - config dir, apps.json, state.json, log, dumps - for BOTH the resident launcher (the authoritative one that launches apps) and this MCP process. Use it when an edit to apps.json is not taking effect, to confirm which file the launcher actually reads.",
             "inputSchema": no_args_schema()
@@ -805,6 +825,23 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
                 ));
             }
             control("screenshot", &[window])
+        }
+        "moonpool_window_state" => {
+            let window = args.get("window").and_then(Value::as_str).unwrap_or("main");
+            if !crate::ALL_WINDOWS.contains(&window) {
+                return Err(format!(
+                    "unknown window '{window}' - expected one of {:?}",
+                    crate::ALL_WINDOWS
+                ));
+            }
+            control("window-state", &[window])
+        }
+        "moonpool_reset_mcp_seen" => {
+            let app_id = args.get("app_id").and_then(Value::as_str).filter(|s| !s.is_empty());
+            match app_id {
+                Some(id) => control("reset-mcp-seen", &[id]),
+                None => control("reset-mcp-seen", &[]),
+            }
         }
         "moonpool_launcher_paths" => paths_report(),
         "moonpool_refresh_app_icons" => {

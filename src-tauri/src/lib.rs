@@ -990,6 +990,27 @@ fn stop_mcp_shim(id: String, state: State<HubState>) -> Result<(), String> {
 /// Shared body of `stop_mcp_shim`, taking a plain `&HubState` rather than Tauri's
 /// injected `State` wrapper so `control_pipe.rs`'s pipe verb can call it too
 /// without going through a `#[tauri::command]`.
+/// Clear the sticky "ever seen" record for one app's MCP shim (or, with `id` omitted, every
+/// app's) and persist the change. Exists for test repeatability: `mcp_seen` is deliberately
+/// never cleared by normal operation (see `AppStatus.mcp_seen`), so a test run that wants to
+/// re-observe the sidebar's "not yet seen" state needs an explicit way back to it.
+pub(crate) fn reset_mcp_seen(app: &AppHandle, state: &HubState, id: Option<&str>) -> String {
+    let mut seen = lock(&state.mcp_seen);
+    let msg = match id {
+        Some(id) => {
+            let removed = seen.remove(id);
+            format!("{id}: {}", if removed { "cleared" } else { "was not marked seen" })
+        }
+        None => {
+            let n = seen.len();
+            seen.clear();
+            format!("cleared {n} entr{}", if n == 1 { "y" } else { "ies" })
+        }
+    };
+    save_mcp_seen(app, &seen);
+    msg
+}
+
 pub(crate) fn kill_mcp_shim(state: &HubState, id: &str) -> Result<(), String> {
     let entry = lock(&state.manifest).iter().find(|e| e.id == id).cloned();
     let Some(entry) = entry else {
