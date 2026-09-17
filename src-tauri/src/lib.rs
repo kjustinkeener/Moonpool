@@ -35,6 +35,9 @@ mod mcp;
 mod persistence;
 mod platform;
 mod portable;
+#[cfg(windows)]
+mod screenshot;
+mod stats;
 mod update;
 mod winstate;
 
@@ -79,6 +82,11 @@ struct AppStatus {
     id: String,
     running: bool,
     managed: bool,
+    /// Whether a `<processName> mcp` shim (see moonpool-mcp-server.md) is
+    /// currently attached for this app - a short-lived MCP client bridge, not
+    /// the app itself. Shown as a sub-item, not folded into `running`.
+    #[serde(rename = "mcpRunning")]
+    mcp_running: bool,
 }
 
 /// Outcome record for one control command the caller tagged with a ticket.
@@ -117,6 +125,20 @@ struct Settings {
     /// Keep the hub (and its detached windows) above other windows.
     #[serde(default, rename = "alwaysOnTop")]
     always_on_top: bool,
+    /// Show the tray icon. Locked together with `show_in_taskbar` in the UI so
+    /// the two can never both go off (that would leave no way back in).
+    #[serde(default = "default_true", rename = "showInTray")]
+    show_in_tray: bool,
+    /// Show the main window in the taskbar.
+    #[serde(default = "default_true", rename = "showInTaskbar")]
+    show_in_taskbar: bool,
+    /// Show the CPU/memory status bar at the bottom of the main window.
+    #[serde(default = "default_true", rename = "showStatusbar")]
+    show_statusbar: bool,
+    /// Show a running app's MCP shim (see `AppStatus::mcp_running`) as a
+    /// sub-item in the sidebar.
+    #[serde(default = "default_true", rename = "showMcpProcesses")]
+    show_mcp_processes: bool,
     /// UI zoom factor set by Ctrl+wheel, 0.5 to 3.0. View state rather than a
     /// settings field: there is no control for it, it just has to survive a
     /// restart alongside the rest of the config.
@@ -158,6 +180,10 @@ impl Default for Settings {
             check_on_startup: true,
             transparency: default_transparency(),
             always_on_top: false,
+            show_in_tray: true,
+            show_in_taskbar: true,
+            show_statusbar: true,
+            show_mcp_processes: true,
             ui_scale: default_ui_scale(),
             locale: default_locale(),
             locale_resolved: default_locale_resolved(),
@@ -364,6 +390,17 @@ fn matches_process_name(p: &Process, name: &str) -> bool {
     let target = name.to_lowercase();
     let n = p.name().to_lowercase();
     n == target || n == format!("{target}.exe")
+}
+
+/// Whether process `p` looks like it's running as an `<exe> mcp` shim (see
+/// `moonpool-mcp-server.md`): a short-lived stdio client bridge an MCP session
+/// spawns, sharing the same exe as the real app but with `mcp` as its first
+/// argument. Counting it as "the app is running" is a false positive - it was
+/// mistaken for Destiny-AMP/FasterDB/TidyStax actually running on 2026-09-16.
+fn is_mcp_shim(p: &Process) -> bool {
+    p.cmd()
+        .get(1)
+        .is_some_and(|a| a.eq_ignore_ascii_case("mcp"))
 }
 
 /// Path of the running process whose name matches `pn` (with or without .exe).
@@ -846,7 +883,7 @@ fn set_check_on_startup(
 /// detached Settings/About windows stay in the same z-band as the hub; otherwise
 /// turning the setting on sinks the Settings window (the one you're using) behind
 /// the hub, where it's hard to move or close.
-const ALL_WINDOWS: [&str; 5] = ["main", "settings", "about", "installer", "editor"];
+pub(crate) const ALL_WINDOWS: [&str; 5] = ["main", "settings", "about", "installer", "editor"];
 
 fn apply_always_on_top(app: &AppHandle, on: bool) {
     for label in ALL_WINDOWS {
@@ -860,6 +897,74 @@ fn apply_always_on_top(app: &AppHandle, on: bool) {
 fn set_always_on_top(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
     update_settings(&app, &state, |settings| settings.always_on_top = enabled)?;
     apply_always_on_top(&app, enabled);
+    Ok(())
+}
+
+fn apply_tray_visible(app: &AppHandle, on: bool) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_visible(on);
+    }
+}
+
+fn apply_taskbar_visible(app: &AppHandle, on: bool) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.set_skip_taskbar(!on);
+    }
+}
+
+#[tauri::command]
+fn set_show_in_tray(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    update_settings(&app, &state, |settings| settings.show_in_tray = enabled)?;
+    apply_tray_visible(&app, enabled);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_show_in_taskbar(
+    enabled: bool,
+    app: AppHandle,
+    state: State<HubState>,
+) -> Result<(), String> {
+    update_settings(&app, &state, |settings| settings.show_in_taskbar = enabled)?;
+    apply_taskbar_visible(&app, enabled);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_show_statusbar(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    update_settings(&app, &state, |settings| settings.show_statusbar = enabled).map(|_| ())
+}
+
+#[tauri::command]
+fn set_show_mcp_processes(
+    enabled: bool,
+    app: AppHandle,
+    state: State<HubState>,
+) -> Result<(), String> {
+    update_settings(&app, &state, |settings| settings.show_mcp_processes = enabled).map(|_| ())
+}
+
+/// Kill app `id`'s attached MCP shim process(es) (see `is_mcp_shim`), leaving the
+/// app itself untouched. Only the shim - not the whole exe by name - is signaled,
+/// so this can't take down a real running instance that shares the same image.
+#[tauri::command]
+fn stop_mcp_shim(id: String, state: State<HubState>) -> Result<(), String> {
+    let entry = lock(&state.manifest).iter().find(|e| e.id == id).cloned();
+    let Some(entry) = entry else {
+        return Err(format!("unknown app id: {id}"));
+    };
+    let Some(pn) = entry.process_name else {
+        return Ok(());
+    };
+    let mut sys = System::new();
+    // Bare refresh_processes() leaves cmd() empty on Windows (sysinfo 0.30 gotcha, see
+    // moonpool-conpty-process-testing memory) - is_mcp_shim needs cmd(), so ask for it.
+    sys.refresh_processes_specifics(sysinfo::ProcessRefreshKind::everything());
+    for p in sys.processes().values() {
+        if matches_process_name(p, &pn) && is_mcp_shim(p) {
+            p.kill();
+        }
+    }
     Ok(())
 }
 
@@ -1397,13 +1502,21 @@ fn tcp_alive(port: u16) -> bool {
 fn process_running(sys: &System, target: &str) -> bool {
     sys.processes()
         .values()
-        .any(|p| matches_process_name(p, target))
+        .any(|p| matches_process_name(p, target) && !is_mcp_shim(p))
+}
+
+/// Whether an MCP shim for `target` is currently attached (see `is_mcp_shim`).
+fn mcp_shim_running(sys: &System, target: &str) -> bool {
+    sys.processes()
+        .values()
+        .any(|p| matches_process_name(p, target) && is_mcp_shim(p))
 }
 
 /// Background poller: emits `status://update` every ~2s.
 fn spawn_status_poller(app: AppHandle) {
     std::thread::spawn(move || {
         let mut sys = System::new();
+        let mut sampler = stats::StatsSampler::new();
         // Apps we've already auto-opened a browser for this run (once per launch).
         let mut opened: HashSet<String> = HashSet::new();
         loop {
@@ -1413,7 +1526,10 @@ fn spawn_status_poller(app: AppHandle) {
                     None => break,
                 }
             };
-            sys.refresh_processes();
+            // Bare refresh_processes() leaves cmd() empty on Windows (sysinfo 0.30 gotcha, see
+            // moonpool-conpty-process-testing memory) - process_running/mcp_shim_running need
+            // cmd() to tell a real app apart from its own `<exe> mcp` shim, so ask for it.
+            sys.refresh_processes_specifics(sysinfo::ProcessRefreshKind::everything());
 
             // Reap exited PTY children. The reader thread clears the map on EOF, but a
             // lingering grandchild can hold the PTY open so EOF never fires - which would
@@ -1458,8 +1574,10 @@ fn spawn_status_poller(app: AppHandle) {
             for e in &entries {
                 let is_managed = managed.contains(&e.id);
                 let mut detected = false;
+                let mut mcp_running = false;
                 if let Some(pn) = &e.process_name {
                     detected = process_running(&sys, pn);
+                    mcp_running = mcp_shim_running(&sys, pn);
                 }
                 if !detected {
                     if let Some(port) = e.port {
@@ -1491,6 +1609,7 @@ fn spawn_status_poller(app: AppHandle) {
                     id: e.id.clone(),
                     running,
                     managed: is_managed,
+                    mcp_running,
                 });
             }
             if let Some(state) = app.try_state::<HubState>() {
@@ -1498,6 +1617,15 @@ fn spawn_status_poller(app: AppHandle) {
             }
             write_state(&app);
             let _ = app.emit("status://update", statuses);
+            // Only sample + emit system stats when the status bar is on, so the
+            // extra sysinfo refresh costs nothing for users who keep it hidden.
+            let show_statusbar = app
+                .try_state::<HubState>()
+                .map(|s| lock(&s.settings).show_statusbar)
+                .unwrap_or(true);
+            if show_statusbar {
+                let _ = app.emit("sysstats", sampler.sample());
+            }
             std::thread::sleep(Duration::from_millis(2000));
         }
     });
@@ -2512,6 +2640,8 @@ pub fn run() {
                 Err(error) => (Settings::default(), Some(error)),
             };
             let always_on_top = settings.always_on_top;
+            let show_in_tray = settings.show_in_tray;
+            let show_in_taskbar = settings.show_in_taskbar;
             let locale = settings.locale_resolved.clone();
             *lock(&handle.state::<HubState>().settings) = settings;
             *lock(&handle.state::<HubState>().settings_error) = settings_error;
@@ -2531,11 +2661,13 @@ pub fn run() {
             // run (skips files that already exist, so user edits are preserved).
             dashboards::seed(&handle);
             build_tray(&handle, &locale)?;
+            apply_tray_visible(&handle, show_in_tray);
             // Belt-and-braces: strip the native title bar on the main window even if
             // the config value didn't take (the frontend draws its own title bar).
             if let Some(win) = handle.get_webview_window("main") {
                 let _ = win.set_decorations(false);
                 let _ = win.set_always_on_top(always_on_top);
+                let _ = win.set_skip_taskbar(!show_in_taskbar);
                 // Restore the saved geometry (no-op -> config default on a missing or
                 // corrupt file). Do this before seeding last-good size below.
                 winstate::restore(&win);
@@ -2694,6 +2826,11 @@ pub fn run() {
             set_minimize_to_tray,
             set_check_on_startup,
             set_always_on_top,
+            set_show_in_tray,
+            set_show_in_taskbar,
+            set_show_statusbar,
+            set_show_mcp_processes,
+            stop_mcp_shim,
             set_locale,
             set_transparency,
             set_ui_scale,

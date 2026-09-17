@@ -22,4 +22,15 @@ export interface AppStatus {
   id: string;
   running: boolean;
   managed: boolean;
+  /** Whether a `<processName> mcp` shim is currently attached for this app. */
+  mcpRunning: boolean;
+}
+
+export interface SysStats {
+  /** Per-core CPU usage, 0..100, in core order. */
+  cpus: number[];
+  memUsed: number;
+  memTotal: number;
+  /** Used / total, 0..1. */
+  memPct: number;
 }

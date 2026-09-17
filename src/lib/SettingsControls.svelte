@@ -8,21 +8,58 @@
     setCheckOnStartup,
     setTransparency,
     setAlwaysOnTop,
+    setShowInTray,
+    setShowInTaskbar,
+    setShowStatusbar,
+    setShowMcpProcesses,
     openLog,
     manifestDir,
   } from "./api";
   import { getTheme, setTheme, THEMES, type Theme } from "./theme";
-  import { t, tSplit, LOCALES, localeChoice, setLocale } from "./i18n.svelte";
+  import { t, localeChoice, LOCALES, setLocale } from "./i18n.svelte";
   import { emit } from "@tauri-apps/api/event";
+  import brandIcon from "../assets/app-icon.png";
+  import Icon from "./Icon.svelte";
+  import { scrollFade } from "./scrollfade";
 
   let { onClose }: { onClose: () => void } = $props();
 
-  let debugLogging = $state(false);
-  let closeToTray = $state(false);
-  let minimizeToTray = $state(true);
-  let checkOnStartup = $state(true);
-  let transparency = $state(0);
-  let alwaysOnTop = $state(false);
+  // Defaults (mirror Settings::default() in src-tauri/src/lib.rs). Right-click
+  // any control below to reset just that field.
+  const DEFAULTS: {
+    closeToTray: boolean;
+    minimizeToTray: boolean;
+    checkOnStartup: boolean;
+    transparency: number;
+    alwaysOnTop: boolean;
+    showInTray: boolean;
+    showInTaskbar: boolean;
+    showStatusbar: boolean;
+    showMcpProcesses: boolean;
+    debugLogging: boolean;
+  } = {
+    closeToTray: false,
+    minimizeToTray: true,
+    checkOnStartup: true,
+    transparency: 0,
+    alwaysOnTop: false,
+    showInTray: true,
+    showInTaskbar: true,
+    showStatusbar: true,
+    showMcpProcesses: true,
+    debugLogging: false,
+  };
+
+  let debugLogging = $state(DEFAULTS.debugLogging);
+  let closeToTray = $state(DEFAULTS.closeToTray);
+  let minimizeToTray = $state(DEFAULTS.minimizeToTray);
+  let checkOnStartup = $state(DEFAULTS.checkOnStartup);
+  let transparency = $state(DEFAULTS.transparency);
+  let alwaysOnTop = $state(DEFAULTS.alwaysOnTop);
+  let showInTray = $state(DEFAULTS.showInTray);
+  let showInTaskbar = $state(DEFAULTS.showInTaskbar);
+  let showStatusbar = $state(DEFAULTS.showStatusbar);
+  let showMcpProcesses = $state(DEFAULTS.showMcpProcesses);
   let saveError = $state("");
   let dir = $state("");
 
@@ -70,6 +107,12 @@
       200,
     );
   }
+  function resetTransparency() {
+    transparency = DEFAULTS.transparency;
+    applyTransparency(transparency);
+    emit("settings:transparency", transparency).catch(() => {});
+    setTransparency(transparency).catch(() => {});
+  }
 
   onMount(async () => {
     try {
@@ -80,6 +123,10 @@
       checkOnStartup = s.checkOnStartup;
       transparency = s.transparency ?? 0;
       alwaysOnTop = !!s.alwaysOnTop;
+      showInTray = s.showInTray ?? true;
+      showInTaskbar = s.showInTaskbar ?? true;
+      showStatusbar = s.showStatusbar ?? true;
+      showMcpProcesses = s.showMcpProcesses ?? true;
       applyTransparency(transparency);
     } catch (e) {
       saveError = `Could not load settings.json: ${String(e)}`;
@@ -92,171 +139,360 @@
   // Cancel a pending debounced transparency save if the window closes first.
   onDestroy(() => clearTimeout(saveTimer));
 
-  async function toggle() {
-    const previous = debugLogging;
-    debugLogging = !debugLogging;
-    try {
-      await setDebugLogging(debugLogging);
-      saveError = "";
-    } catch (e) {
-      debugLogging = previous;
-      saveError = `Could not save settings.json: ${String(e)}`;
+  // Every boolean setting follows the same save/rollback/reset shape; this one
+  // helper drives all of them instead of a hand-rolled toggle+reset pair per row.
+  function boolSetting(
+    get: () => boolean,
+    set: (v: boolean) => void,
+    save: (v: boolean) => Promise<void>,
+    fallback: boolean,
+  ) {
+    async function commit(value: boolean) {
+      const previous = get();
+      set(value);
+      try {
+        await save(value);
+        saveError = "";
+      } catch (e) {
+        set(previous);
+        saveError = `Could not save settings.json: ${String(e)}`;
+      }
     }
+    return {
+      toggle: () => commit(!get()),
+      reset: (ev: Event) => {
+        ev.preventDefault();
+        commit(fallback);
+      },
+    };
   }
-  async function toggleCloseToTray() {
-    const previous = closeToTray;
-    closeToTray = !closeToTray;
-    try {
-      await setCloseToTray(closeToTray);
-      saveError = "";
-    } catch (e) {
-      closeToTray = previous;
-      saveError = `Could not save settings.json: ${String(e)}`;
-    }
-  }
-  async function toggleMinimizeToTray() {
-    const previous = minimizeToTray;
-    minimizeToTray = !minimizeToTray;
-    try {
-      await setMinimizeToTray(minimizeToTray);
-      saveError = "";
-    } catch (e) {
-      minimizeToTray = previous;
-      saveError = `Could not save settings.json: ${String(e)}`;
-    }
-  }
-  async function toggleCheckOnStartup() {
-    const previous = checkOnStartup;
-    checkOnStartup = !checkOnStartup;
-    try {
-      await setCheckOnStartup(checkOnStartup);
-      saveError = "";
-    } catch (e) {
-      checkOnStartup = previous;
-      saveError = `Could not save settings.json: ${String(e)}`;
-    }
-  }
-  async function toggleAlwaysOnTop() {
-    const previous = alwaysOnTop;
-    alwaysOnTop = !alwaysOnTop;
-    try {
-      await setAlwaysOnTop(alwaysOnTop);
-      saveError = "";
-    } catch (e) {
-      alwaysOnTop = previous;
-      saveError = `Could not save settings.json: ${String(e)}`;
-    }
-  }
+
+  const debugLoggingCtl = boolSetting(
+    () => debugLogging,
+    (v) => (debugLogging = v),
+    async (v) => {
+      await setDebugLogging(v);
+      if (v) {
+        // no-op; backend logs its own "enabled" line
+      }
+    },
+    DEFAULTS.debugLogging,
+  );
+  const closeToTrayCtl = boolSetting(
+    () => closeToTray,
+    (v) => (closeToTray = v),
+    setCloseToTray,
+    DEFAULTS.closeToTray,
+  );
+  const minimizeToTrayCtl = boolSetting(
+    () => minimizeToTray,
+    (v) => (minimizeToTray = v),
+    setMinimizeToTray,
+    DEFAULTS.minimizeToTray,
+  );
+  const checkOnStartupCtl = boolSetting(
+    () => checkOnStartup,
+    (v) => (checkOnStartup = v),
+    setCheckOnStartup,
+    DEFAULTS.checkOnStartup,
+  );
+  const alwaysOnTopCtl = boolSetting(
+    () => alwaysOnTop,
+    (v) => (alwaysOnTop = v),
+    setAlwaysOnTop,
+    DEFAULTS.alwaysOnTop,
+  );
+  const showStatusbarCtl = boolSetting(
+    () => showStatusbar,
+    (v) => (showStatusbar = v),
+    async (v) => {
+      await setShowStatusbar(v);
+      emit("settings:show-statusbar", v).catch(() => {});
+    },
+    DEFAULTS.showStatusbar,
+  );
+  const showMcpProcessesCtl = boolSetting(
+    () => showMcpProcesses,
+    (v) => (showMcpProcesses = v),
+    async (v) => {
+      await setShowMcpProcesses(v);
+      emit("settings:show-mcp-processes", v).catch(() => {});
+    },
+    DEFAULTS.showMcpProcesses,
+  );
+
+  // Show-in-tray / show-in-taskbar lock together: turning off the one still-on
+  // control would leave no way back into a hidden, taskbar-less window.
+  const trayLockout = $derived(showInTray && !showInTaskbar);
+  const taskbarLockout = $derived(showInTaskbar && !showInTray);
+  const showInTrayCtl = boolSetting(
+    () => showInTray,
+    (v) => (showInTray = v),
+    setShowInTray,
+    DEFAULTS.showInTray,
+  );
+  const showInTaskbarCtl = boolSetting(
+    () => showInTaskbar,
+    (v) => (showInTaskbar = v),
+    setShowInTaskbar,
+    DEFAULTS.showInTaskbar,
+  );
 </script>
 
-<h2>{t("settings.title")}</h2>
+<!-- Escape closes the window, the same as the X button. This is a
+     decorationless window, so without it the only way out is the button. -->
+<svelte:window onkeydown={(e) => e.key === "Escape" && onClose()} />
 
-{#if saveError}<div class="save-error" role="alert">{saveError}</div>{/if}
-
-<div class="setting">
-  <div class="title">{t("settings.language")}</div>
-  <div class="sub">{t("settings.languageHint")}</div>
-  <select
-    class="theme-select"
-    aria-label={t("settings.language")}
-    value={locale}
-    onchange={(e) => pickLocale((e.target as HTMLSelectElement).value)}
-  >
-    <option value="auto">{t("common.autoSystem")}</option>
-    <!-- Language names stay in their own language: someone stuck in the wrong
-         one cannot read "Japanese" but can always find "日本語". -->
-    {#each LOCALES as l (l.id)}
-      <option value={l.id}>{l.label}</option>
-    {/each}
-  </select>
+<div class="wrap">
+<div class="bar" data-tauri-drag-region>
+  <img class="brandicon" src={brandIcon} alt="" aria-hidden="true" draggable="false" />
+  <span class="title" data-tauri-drag-region>{t("settings.title")}</span>
+  <span class="spacer" data-tauri-drag-region></span>
+  <button class="x" onclick={onClose} title={t("common.close")} aria-label={t("common.close")}>
+    <Icon name="close" size={11} width={2.4} />
+  </button>
 </div>
 
-<div class="setting">
-  <div class="title">{t("settings.theme")}</div>
-  <select
-    class="theme-select"
-    aria-label={t("settings.theme")}
-    value={theme}
-    onchange={(e) => pickTheme((e.target as HTMLSelectElement).value)}
-  >
-    {#each THEMES as th (th.id)}
-      <option value={th.id}>{themeLabel(th.id, th.label)}</option>
-    {/each}
-  </select>
-</div>
+<div class="content" use:scrollFade>
+  {#if saveError}<div class="save-error" role="alert">{saveError}</div>{/if}
 
-<label class="row">
-  <input type="checkbox" checked={closeToTray} onchange={toggleCloseToTray} />
-  <div class="text">
-    <div class="title">{t("settings.closeToTray")}</div>
-    <div class="sub">{t("settings.closeToTrayHint")}</div>
+  <div class="setting">
+    <div class="title">{t("settings.language")}</div>
+    <select
+      class="theme-select"
+      title={t("settings.languageHint")}
+      aria-label={t("settings.language")}
+      value={locale}
+      onchange={(e) => pickLocale((e.target as HTMLSelectElement).value)}
+    >
+      <option value="auto">{t("common.autoSystem")}</option>
+      <!-- Language names stay in their own language: someone stuck in the wrong
+           one cannot read "Japanese" but can always find "日本語". -->
+      {#each LOCALES as l (l.id)}
+        <option value={l.id}>{l.label}</option>
+      {/each}
+    </select>
   </div>
-</label>
 
-<label class="row">
-  <input type="checkbox" checked={minimizeToTray} onchange={toggleMinimizeToTray} />
-  <div class="text">
-    <div class="title">{t("settings.minimizeToTray")}</div>
-    <div class="sub">{t("settings.minimizeToTrayHint")}</div>
+  <div class="setting">
+    <div class="title">{t("settings.theme")}</div>
+    <select
+      class="theme-select"
+      aria-label={t("settings.theme")}
+      value={theme}
+      onchange={(e) => pickTheme((e.target as HTMLSelectElement).value)}
+    >
+      {#each THEMES as th (th.id)}
+        <option value={th.id}>{themeLabel(th.id, th.label)}</option>
+      {/each}
+    </select>
   </div>
-</label>
 
-<label class="row">
-  <input type="checkbox" checked={alwaysOnTop} onchange={toggleAlwaysOnTop} />
-  <div class="text">
-    <div class="title">{t("settings.alwaysOnTop")}</div>
-    <div class="sub">{t("settings.alwaysOnTopHint")}</div>
-  </div>
-</label>
-
-<div class="setting">
-  <div class="title">{t("settings.transparency")}</div>
-  <div class="sub">{t("settings.transparencyHint")}</div>
-  <div class="slider-row">
+  <label class="row" title={t("settings.closeToTrayHint") + " " + t("settings.resetTip")}>
     <input
-      type="range"
-      min="0"
-      max="90"
-      step="5"
-      value={transparency}
-      oninput={onTransparencyInput}
-      aria-label={t("settings.transparency")}
+      type="checkbox"
+      checked={closeToTray}
+      onchange={closeToTrayCtl.toggle}
+      oncontextmenu={closeToTrayCtl.reset}
     />
-    <span class="pct">{transparency}%</span>
-  </div>
-</div>
+    <span>{t("settings.closeToTray")}</span>
+  </label>
 
-<label class="row">
-  <input type="checkbox" checked={checkOnStartup} onchange={toggleCheckOnStartup} />
-  <div class="text">
-    <div class="title">{t("settings.checkOnStartup")}</div>
-    <div class="sub">{t("settings.checkOnStartupHint")}</div>
-  </div>
-</label>
+  <label class="row" title={t("settings.minimizeToTrayHint") + " " + t("settings.resetTip")}>
+    <input
+      type="checkbox"
+      checked={minimizeToTray}
+      onchange={minimizeToTrayCtl.toggle}
+      oncontextmenu={minimizeToTrayCtl.reset}
+    />
+    <span>{t("settings.minimizeToTray")}</span>
+  </label>
 
-<label class="row">
-  <input type="checkbox" checked={debugLogging} onchange={toggle} />
-  <div class="text">
-    <div class="title">{t("settings.debugLogging")}</div>
-    <div class="sub">
-      {#each tSplit("settings.debugLoggingHint") as c}{#if "text" in c}{c.text}{:else}<code
-            >moonpool.log</code
-          >{/if}{/each}
+  <label class="row" title={t("settings.alwaysOnTopHint") + " " + t("settings.resetTip")}>
+    <input
+      type="checkbox"
+      checked={alwaysOnTop}
+      onchange={alwaysOnTopCtl.toggle}
+      oncontextmenu={alwaysOnTopCtl.reset}
+    />
+    <span>{t("settings.alwaysOnTop")}</span>
+  </label>
+
+  <label
+    class="row"
+    title={(trayLockout ? t("settings.lockoutTip") + " " : "") +
+      t("settings.showInTrayHint") +
+      " " +
+      t("settings.resetTip")}
+  >
+    <input
+      type="checkbox"
+      checked={showInTray}
+      disabled={trayLockout}
+      onchange={showInTrayCtl.toggle}
+      oncontextmenu={showInTrayCtl.reset}
+    />
+    <span>{t("settings.showInTray")}</span>
+  </label>
+
+  <label
+    class="row"
+    title={(taskbarLockout ? t("settings.lockoutTip") + " " : "") +
+      t("settings.showInTaskbarHint") +
+      " " +
+      t("settings.resetTip")}
+  >
+    <input
+      type="checkbox"
+      checked={showInTaskbar}
+      disabled={taskbarLockout}
+      onchange={showInTaskbarCtl.toggle}
+      oncontextmenu={showInTaskbarCtl.reset}
+    />
+    <span>{t("settings.showInTaskbar")}</span>
+  </label>
+
+  <label class="row" title={t("settings.showStatusbarHint") + " " + t("settings.resetTip")}>
+    <input
+      type="checkbox"
+      checked={showStatusbar}
+      onchange={showStatusbarCtl.toggle}
+      oncontextmenu={showStatusbarCtl.reset}
+    />
+    <span>{t("settings.showStatusbar")}</span>
+  </label>
+
+  <label class="row" title={t("settings.showMcpProcessesHint") + " " + t("settings.resetTip")}>
+    <input
+      type="checkbox"
+      checked={showMcpProcesses}
+      onchange={showMcpProcessesCtl.toggle}
+      oncontextmenu={showMcpProcessesCtl.reset}
+    />
+    <span>{t("settings.showMcpProcesses")}</span>
+  </label>
+
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="setting"
+    role="group"
+    title={t("settings.transparencyHint") + " " + t("settings.resetTip")}
+    oncontextmenu={(e) => {
+      e.preventDefault();
+      resetTransparency();
+    }}
+  >
+    <div class="title">{t("settings.transparency")}</div>
+    <div class="slider-row">
+      <input
+        type="range"
+        min="0"
+        max="90"
+        step="5"
+        value={transparency}
+        oninput={onTransparencyInput}
+        aria-label={t("settings.transparency")}
+      />
+      <span class="pct">{transparency}%</span>
     </div>
   </div>
-</label>
 
-{#if dir}
-  <div class="path">{dir}{dir.includes("\\") ? "\\" : "/"}moonpool.log</div>
-{/if}
+  <label class="row" title={t("settings.checkOnStartupHint") + " " + t("settings.resetTip")}>
+    <input
+      type="checkbox"
+      checked={checkOnStartup}
+      onchange={checkOnStartupCtl.toggle}
+      oncontextmenu={checkOnStartupCtl.reset}
+    />
+    <span>{t("settings.checkOnStartup")}</span>
+  </label>
 
-<div class="actions">
-  <button class="btn" onclick={() => openLog()}>{t("settings.openLog")}</button>
-  <div class="spacer"></div>
-  <button class="btn primary" onclick={onClose}>{t("common.close")}</button>
+  <label
+    class="row"
+    title={t("settings.debugLoggingHint", { file: "moonpool.log" }) + " " + t("settings.resetTip")}
+  >
+    <input
+      type="checkbox"
+      checked={debugLogging}
+      onchange={debugLoggingCtl.toggle}
+      oncontextmenu={debugLoggingCtl.reset}
+    />
+    <span>{t("settings.debugLogging")}</span>
+  </label>
+
+  {#if dir}
+    <div class="path">{dir}{dir.includes("\\") ? "\\" : "/"}moonpool.log</div>
+  {/if}
+
+  <div class="actions">
+    <button class="btn" onclick={() => openLog()}>{t("settings.openLog")}</button>
+  </div>
+</div>
 </div>
 
 <style>
+  :global(html),
+  :global(body) {
+    background: transparent;
+  }
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    flex: none;
+    padding-left: 10px;
+    background: color-mix(in srgb, var(--bg) calc(var(--app-alpha) * 100%), transparent);
+    border-bottom: 1px solid var(--border-muted);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .bar .title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+  .brandicon {
+    height: 16px;
+    width: 16px;
+    pointer-events: none;
+    filter: drop-shadow(0 0 4px rgba(97, 252, 237, 0.455))
+      drop-shadow(0 0 8px rgba(97, 252, 237, 0.28));
+  }
+  .spacer {
+    flex: 1;
+  }
+  .x {
+    width: 30px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .x:hover {
+    background: #e81123;
+    color: #fff;
+  }
+  .content {
+    box-sizing: border-box;
+    padding: 16px 22px 20px;
+    color: var(--text);
+  }
   .save-error {
     margin-bottom: 10px;
     padding: 7px 9px;
@@ -265,35 +501,30 @@
     border-radius: 4px;
     font-size: 11px;
   }
-  h2 {
-    margin: 0 0 16px;
-    font-size: 16px;
-    color: var(--text-strong);
-  }
   .row {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
     cursor: pointer;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
-  .row input {
-    margin-top: 2px;
-  }
-  .title {
+  .row span {
     font-size: 13px;
     color: var(--text);
   }
-  .sub {
-    font-size: 11px;
+  .row input:disabled {
+    cursor: not-allowed;
+  }
+  .row:has(input:disabled) span {
     color: var(--text-dim);
-    margin-top: 2px;
   }
   .setting {
     margin-bottom: 16px;
   }
   .setting > .title {
     margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text);
   }
   .slider-row {
     display: flex;
@@ -334,7 +565,7 @@
     border: 1px solid var(--border-muted);
     border-radius: 6px;
     padding: 7px 9px;
-    margin-top: 14px;
+    margin-top: 4px;
     word-break: break-all;
   }
   .actions {
@@ -342,9 +573,6 @@
     align-items: center;
     gap: 8px;
     margin-top: 18px;
-  }
-  .spacer {
-    flex: 1;
   }
   .btn {
     background: var(--bg-elevated);
@@ -354,10 +582,5 @@
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
-  }
-  .btn.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--on-accent);
   }
 </style>

@@ -27,6 +27,7 @@
 
 use std::time::Duration;
 
+use base64::Engine as _;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
@@ -36,7 +37,7 @@ use tokio::sync::oneshot;
 
 use crate::{
     dump_term_log, hub_paths_report, lock, read_config_cmd, restore_config_cmd, show_main,
-    write_config_cmd, ControlCommand, HubState,
+    write_config_cmd, ControlCommand, HubState, ALL_WINDOWS,
 };
 
 /// Fixed pipe name. A pipe is a kernel NAMESPACE object, not a file under AppData, so the MSIX
@@ -141,6 +142,7 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
             reply(status, detail)
         }
         "paths" => json!({ "ok": true, "result": hub_paths_report(app) }),
+        "screenshot" => screenshot(app, arg.as_deref()),
         "read-config" => {
             let (status, detail) = read_config_cmd(app);
             reply(status, detail)
@@ -163,6 +165,37 @@ fn reply(status: &str, detail: String) -> Value {
         json!({ "ok": true, "result": detail })
     } else {
         json!({ "ok": false, "error": detail })
+    }
+}
+
+/// Capture one of Moonpool's OWN windows (never an arbitrary HWND/PID from the wire) and return
+/// it as base64-encoded BMP bytes. `label` defaults to `"main"`; any value outside `ALL_WINDOWS`
+/// is rejected before a window lookup even happens, so this can never be pointed at another
+/// process's window. See `screenshot.rs` for why `PrintWindow` is safe to use this way.
+fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
+    let label = label.unwrap_or("main");
+    if !ALL_WINDOWS.contains(&label) {
+        return json!({
+            "ok": false,
+            "error": format!("unknown window '{label}' - expected one of {ALL_WINDOWS:?}")
+        });
+    }
+    let Some(window) = app.get_webview_window(label) else {
+        return json!({ "ok": false, "error": format!("window '{label}' is not open") });
+    };
+    let hwnd = match window.hwnd() {
+        Ok(h) => h,
+        Err(e) => return json!({ "ok": false, "error": format!("hwnd: {e}") }),
+    };
+    // `result` must stay a plain string: `pipe_reply_to_result` (mcp.rs) reads it via
+    // `Value::as_str`, the same shape every other verb here returns (dump's file path, etc).
+    // BMP bytes, base64-encoded; callers decode knowing the format is always BMP.
+    match crate::screenshot::capture_hwnd(hwnd) {
+        Ok(bmp) => json!({
+            "ok": true,
+            "result": base64::engine::general_purpose::STANDARD.encode(bmp)
+        }),
+        Err(e) => json!({ "ok": false, "error": e }),
     }
 }
 

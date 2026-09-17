@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { AppEntry, AppStatus } from "./types";
+import type { AppEntry, AppStatus, SysStats } from "./types";
 
 export const getApps = () => invoke<AppEntry[]>("get_apps");
 
@@ -23,6 +23,10 @@ export interface Settings {
   checkOnStartup: boolean;
   transparency: number;
   alwaysOnTop: boolean;
+  showInTray: boolean;
+  showInTaskbar: boolean;
+  showStatusbar: boolean;
+  showMcpProcesses: boolean;
   /** Ctrl+wheel zoom factor, 0.5 to 3.0. No settings control; view state. */
   uiScale: number;
   /** UI language: "auto" or a tag from LOCALES in i18n.svelte.ts. */
@@ -43,6 +47,20 @@ export const setUiScale = (scale: number) =>
   invoke<void>("set_ui_scale", { scale });
 export const setAlwaysOnTop = (enabled: boolean) =>
   invoke<void>("set_always_on_top", { enabled });
+export const setShowInTray = (enabled: boolean) =>
+  invoke<void>("set_show_in_tray", { enabled });
+export const setShowInTaskbar = (enabled: boolean) =>
+  invoke<void>("set_show_in_taskbar", { enabled });
+export const setShowStatusbar = (enabled: boolean) =>
+  invoke<void>("set_show_statusbar", { enabled });
+export const setShowMcpProcesses = (enabled: boolean) =>
+  invoke<void>("set_show_mcp_processes", { enabled });
+
+export const onSysStats = (cb: (s: SysStats) => void): Promise<UnlistenFn> =>
+  listen<SysStats>("sysstats", (e) => cb(e.payload));
+
+// Kill an app's attached MCP shim process(es) without touching the app itself.
+export const stopMcpShim = (id: string) => invoke<void>("stop_mcp_shim", { id });
 
 // Detached windows are created with the hub's current always-on-top state so
 // they open in the same z-band (the Rust setter keeps them in sync afterwards).
@@ -78,6 +96,10 @@ export async function openSettingsWindow(): Promise<void> {
     minHeight: 460,
     resizable: true,
     center: true,
+    // Frameless, like the other detached windows: SettingsControls draws its
+    // own title bar (brand + X) so Escape/the X button both route through the
+    // same close handler regardless of platform chrome.
+    decorations: false,
     transparent: true,
     alwaysOnTop: await alwaysOnTopNow(),
   });
