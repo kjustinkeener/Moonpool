@@ -29,6 +29,7 @@
     onReload,
     onAbout,
     onSettings,
+    onHelp,
     cliHidden = false,
     onExpandCli,
     updateWaiting = false,
@@ -57,6 +58,7 @@
     onReload: () => void;
     onAbout: () => void;
     onSettings: () => void;
+    onHelp: () => void;
     cliHidden?: boolean;
     onExpandCli?: () => void;
     updateWaiting?: boolean;
@@ -195,6 +197,7 @@
           <button onclick={() => pick(onEditFile)}><span class="mi"><Icon name="pencil" /></span>{t("sidebar.editJson")}</button>
           <button onclick={() => pick(onReload)}><span class="mi"><Icon name="refresh" /></span>{t("common.reload")}</button>
           <button onclick={() => pick(onSettings)}><span class="mi"><Icon name="sliders" /></span>{t("common.settings")}</button>
+          <button onclick={() => pick(onHelp)}><span class="mi"><Icon name="help" /></span>{t("common.help")}</button>
           <button onclick={() => pick(onAbout)}><span class="mi"><Icon name="info" /></span>{t("common.about")}</button>
           <button onclick={() => pick(openInstallerWindow)}>
             <span class="mi"><Icon name="monitor" /></span>{t("sidebar.installMoonpool")}

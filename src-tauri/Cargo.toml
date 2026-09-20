@@ -35,6 +35,8 @@ include_dir = "0.7"
 ureq = "2"
 minisign-verify = "0.2"
 semver = "1"
+# Extract the downloaded help-docs bundle (a ZIP) in update::help_apply.
+zip = "2"
 # Agent control surface (control_pipe.rs): tokio is otherwise only transitive through Tauri;
 # the Windows named-pipe async API needs it named explicitly. Mirrors FasterDB's control.rs.
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros", "time"] }

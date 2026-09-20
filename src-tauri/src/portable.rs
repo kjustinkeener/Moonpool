@@ -21,6 +21,13 @@ pub const FLAG_FILE: &str = "moonpool.portable";
 /// bundle root.
 pub const DATA_SUBDIR: &str = "moonpool-config";
 
+/// The single dotted folder that holds an entire Moonpool: the exe, its config, and its
+/// bundled help/data. A portable install stamps this inside the folder the user picks, so
+/// the whole app is one movable `.moonpool\` directory. This mirrors the INSTALLED layout
+/// (`%USERPROFILE%\.moonpool`), so portable and installed differ only in where `.moonpool`
+/// lives, not in what's inside it.
+pub const APP_DIR: &str = ".moonpool";
+
 /// Human-readable note written into the flag file when portable mode is established,
 /// so anyone poking at the bundle understands what the file does.
 pub const FLAG_NOTE: &str = "\
@@ -28,9 +35,9 @@ This file switches MoonPool into PORTABLE mode.
 
 While it sits next to Moonpool.exe, MoonPool keeps all of its data
 (apps.json, state.json, AI-README.md, logs) in the \"moonpool-config\"
-folder beside the exe instead of in your Windows AppData. Nothing is
-written outside this folder, so you can move or copy the whole folder
-to another PC or a USB stick and run it there.
+folder beside the exe instead of in your Windows AppData. Everything
+lives inside this \".moonpool\" folder, so you can move or copy the
+whole \".moonpool\" folder to another PC or a USB stick and run it there.
 
 Paths in apps.json can use {MP_HOME} (this folder) so your apps and
 dashboards travel with it. Absolute paths still work but won't move
@@ -161,17 +168,47 @@ pub fn portable_state() -> PortableState {
     }
 }
 
-/// Establish portable mode from the installer: drop the flag file (with note) beside
-/// the current exe, then relaunch that exe so a fresh process boots portable and quit
-/// this one. Mirrors `install::launch_installed_and_exit`.
+/// The `.moonpool` app folder to stamp inside a chosen root. If the running exe is already
+/// inside a `.moonpool` folder (re-establishing an existing portable copy), that folder is
+/// the app dir; otherwise create `<root>\.moonpool`.
+fn app_dir_in(root: &Path) -> PathBuf {
+    if root.file_name().and_then(|n| n.to_str()) == Some(APP_DIR) {
+        root.to_path_buf()
+    } else {
+        root.join(APP_DIR)
+    }
+}
+
+/// Stamp a portable Moonpool into `<root>\.moonpool\`: create the folder, copy this exe in,
+/// drop the flag file (with note), and make an empty config folder. Returns the path of the
+/// exe to launch. Never writes outside the `.moonpool` folder. Copying is skipped when the
+/// running exe is already the target (re-establishing in place), so a running exe is never
+/// copied onto itself.
+fn stamp_portable(root: &Path) -> Result<PathBuf, String> {
+    let app_dir = app_dir_in(root);
+    std::fs::create_dir_all(&app_dir).map_err(|e| format!("create {APP_DIR}: {e}"))?;
+
+    let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_name = src_exe.file_name().ok_or("exe has no file name")?;
+    let exe_target = app_dir.join(exe_name);
+    if src_exe.canonicalize().ok() != exe_target.canonicalize().ok() {
+        std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
+    }
+
+    std::fs::write(app_dir.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
+    std::fs::create_dir_all(app_dir.join(DATA_SUBDIR))
+        .map_err(|e| format!("create config dir: {e}"))?;
+    Ok(exe_target)
+}
+
+/// Establish portable mode from the installer, in place: stamp a `.moonpool\` folder in the
+/// folder the exe currently sits in, moving the app into it, then relaunch the stamped exe
+/// so a fresh process boots portable and quit this one. Mirrors
+/// `install::launch_installed_and_exit`.
 #[tauri::command]
 pub fn establish_portable(app: AppHandle) -> Result<(), String> {
     let dir = exe_dir().ok_or("cannot locate exe folder")?;
-    std::fs::write(dir.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
-    // Make sure the data folder exists so the first boot has somewhere to seed into.
-    let _ = std::fs::create_dir_all(dir.join(DATA_SUBDIR));
-
-    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe = stamp_portable(&dir)?;
     crate::install::relaunch_and_exit(&app, &exe);
     Ok(())
 }
@@ -184,38 +221,20 @@ pub fn establish_portable(app: AppHandle) -> Result<(), String> {
 /// first-run install starts fresh (the example manifest seeds on first boot).
 #[tauri::command]
 pub fn establish_portable_at(app: AppHandle, target_dir: String) -> Result<(), String> {
-    let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let src_dir = src_exe
-        .parent()
-        .ok_or("cannot locate exe folder")?
-        .to_path_buf();
-
-    let same = target_dir.trim().is_empty() || {
+    // Empty target means "here" (the exe's current folder); otherwise the chosen folder,
+    // which must exist. Either way a `.moonpool\` is stamped inside it.
+    let root = if target_dir.trim().is_empty() {
+        exe_dir().ok_or("cannot locate exe folder")?
+    } else {
         let t = PathBuf::from(&target_dir);
         if !t.is_dir() {
             return Err("target folder does not exist".into());
         }
-        t.canonicalize().ok() == src_dir.canonicalize().ok()
+        t
     };
 
-    let exe_to_launch = if same {
-        std::fs::write(src_dir.join(FLAG_FILE), FLAG_NOTE)
-            .map_err(|e| format!("write flag: {e}"))?;
-        let _ = std::fs::create_dir_all(src_dir.join(DATA_SUBDIR));
-        src_exe.clone()
-    } else {
-        let target = PathBuf::from(&target_dir);
-        let exe_name = src_exe.file_name().ok_or("exe has no file name")?;
-        let exe_target = target.join(exe_name);
-        std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
-        std::fs::write(target.join(FLAG_FILE), FLAG_NOTE)
-            .map_err(|e| format!("write flag: {e}"))?;
-        std::fs::create_dir_all(target.join(DATA_SUBDIR))
-            .map_err(|e| format!("create config dir: {e}"))?;
-        exe_target
-    };
-
-    crate::install::relaunch_and_exit(&app, &exe_to_launch);
+    let exe = stamp_portable(&root)?;
+    crate::install::relaunch_and_exit(&app, &exe);
     Ok(())
 }
 
@@ -234,27 +253,26 @@ pub fn export_portable(_app: AppHandle, target_dir: String, clone: bool) -> Resu
     if !target.is_dir() {
         return Err("target folder does not exist".into());
     }
+    let app_dir = app_dir_in(&target);
+
     let src_exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
     let exe_name = src_exe.file_name().ok_or("exe has no file name")?;
-    let exe_target = target.join(exe_name);
+    let exe_target = app_dir.join(exe_name);
 
-    // Don't stamp a copy onto the running exe's own folder.
+    // Don't export onto the running exe's own folder.
     if src_exe.canonicalize().ok() == exe_target.canonicalize().ok() {
         return Err("pick a different folder - that's this exe's own folder".into());
     }
 
     // Don't silently clobber an unrelated file: only overwrite a dest exe that's already
-    // part of a portable Moonpool (flag file beside it). A same-named exe with no flag is
-    // something else - refuse rather than replace it.
-    if exe_target.exists() && !target.join(FLAG_FILE).exists() {
-        return Err("that folder already has an exe of this name that isn't a portable Moonpool - pick an empty folder".into());
+    // part of a portable Moonpool (flag file beside it in the .moonpool folder). A
+    // same-named exe with no flag is something else - refuse rather than replace it.
+    if exe_target.exists() && !app_dir.join(FLAG_FILE).exists() {
+        return Err("that folder already has a .moonpool with an exe of this name that isn't a portable Moonpool - pick an empty folder".into());
     }
 
-    std::fs::copy(&src_exe, &exe_target).map_err(|e| format!("copy exe: {e}"))?;
-    std::fs::write(target.join(FLAG_FILE), FLAG_NOTE).map_err(|e| format!("write flag: {e}"))?;
-
-    let cfg = target.join(DATA_SUBDIR);
-    std::fs::create_dir_all(&cfg).map_err(|e| format!("create config dir: {e}"))?;
+    let exe_target = stamp_portable(&target)?;
+    let cfg = app_dir.join(DATA_SUBDIR);
 
     if clone {
         if let Some(src_cfg) = data_dir() {

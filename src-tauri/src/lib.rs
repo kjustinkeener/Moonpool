@@ -27,10 +27,11 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
+mod control_pipe;
 mod dashboards;
+mod help;
 mod i18n;
 mod install;
-mod control_pipe;
 mod mcp;
 mod persistence;
 mod platform;
@@ -918,7 +919,8 @@ fn set_check_on_startup(
 /// detached Settings/About windows stay in the same z-band as the hub; otherwise
 /// turning the setting on sinks the Settings window (the one you're using) behind
 /// the hub, where it's hard to move or close.
-pub(crate) const ALL_WINDOWS: [&str; 5] = ["main", "settings", "about", "installer", "editor"];
+pub(crate) const ALL_WINDOWS: [&str; 6] =
+    ["main", "settings", "about", "installer", "editor", "help"];
 
 fn apply_always_on_top(app: &AppHandle, on: bool) {
     for label in ALL_WINDOWS {
@@ -976,7 +978,10 @@ fn set_show_mcp_processes(
     app: AppHandle,
     state: State<HubState>,
 ) -> Result<(), String> {
-    update_settings(&app, &state, |settings| settings.show_mcp_processes = enabled).map(|_| ())
+    update_settings(&app, &state, |settings| {
+        settings.show_mcp_processes = enabled
+    })
+    .map(|_| ())
 }
 
 /// Kill app `id`'s attached MCP shim process(es) (see `is_mcp_shim`), leaving the
@@ -999,7 +1004,14 @@ pub(crate) fn reset_mcp_seen(app: &AppHandle, state: &HubState, id: Option<&str>
     let msg = match id {
         Some(id) => {
             let removed = seen.remove(id);
-            format!("{id}: {}", if removed { "cleared" } else { "was not marked seen" })
+            format!(
+                "{id}: {}",
+                if removed {
+                    "cleared"
+                } else {
+                    "was not marked seen"
+                }
+            )
         }
         None => {
             let n = seen.len();
@@ -2682,6 +2694,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
+        // Serve the embedded/updatable help site from {MP_HOME}/help over a custom
+        // `help` scheme so the docs work fully offline (Windows reaches it at
+        // http://help.localhost/).
+        .register_uri_scheme_protocol("help", |_ctx, request| help::handle_request(request))
         .manage(HubState {
             apps: Mutex::new(HashMap::new()),
             next_generation: AtomicU64::new(1),
@@ -2745,6 +2761,9 @@ pub fn run() {
             // Write the embedded example dashboards to {MP_HOME}/dashboards on first
             // run (skips files that already exist, so user edits are preserved).
             dashboards::seed(&handle);
+            // Write the embedded baseline help site to {MP_HOME}/help on first run
+            // (version-gated: skipped once a version.txt stamp is present).
+            help::seed(&handle);
             build_tray(&handle, &locale)?;
             apply_tray_visible(&handle, show_in_tray);
             // Belt-and-braces: strip the native title bar on the main window even if
@@ -2937,7 +2956,9 @@ pub fn run() {
             portable::export_portable,
             portable::reveal_path,
             update::update_check,
-            update::update_apply
+            update::update_apply,
+            update::help_apply,
+            help::open_help
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");

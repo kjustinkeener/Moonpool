@@ -4,9 +4,11 @@
 # then publishes a DRAFT GitHub Release containing the per-OS bundles. On Windows it also
 # publishes the CUSTOM updater artifacts that Moonpool's in-app self-updater reads:
 #   - moonpool.exe   the raw, self-installing/self-updating executable (the download)
-#   - update.json    { version, notes, url, signature } read from Releases/latest
-# The signature is a minisign signature of moonpool.exe, verified in-app against the
-# committed public key (src-tauri/src/update.rs). This replaces tauri-plugin-updater +
+#   - help.zip       the built Starlight help site, delivered as a second update component
+#   - update.json    { version, notes, url, signature, help:{version,url,signature} }
+# Both signatures are minisign signatures verified in-app against the committed public
+# key (src-tauri/src/update.rs). The help component lets help content refresh through the
+# normal update flow between binary releases. This replaces tauri-plugin-updater +
 # latest.json; the NSIS/MSI bundles are still built but are no longer the update path.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
@@ -78,6 +80,13 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # Build the Starlight help site into help/dist BEFORE the Tauri build: the Rust
+      # crate embeds that folder with include_dir!, so it must exist on every platform.
+      - name: Build help site
+        run: |
+          npm --prefix help ci
+          npm --prefix help run build
+
       # Fail fast if the tag and the three version sources disagree: a mismatched
       # release ships an exe stamped with one version while update.json advertises
       # another, so clients either never see the update or reject it. node is already
@@ -145,7 +154,30 @@ jobs:
 
           $version = "${{ github.ref_name }}".TrimStart("v")
           $url = "https://github.com/kjustinkeener/Moonpool/releases/download/${{ github.ref_name }}/moonpool.exe"
-          $manifest = [ordered]@{ version = $version; notes = ""; url = $url; signature = $minisig }
-          $manifest | ConvertTo-Json -Depth 3 | Set-Content -Path update.json -Encoding utf8
 
-          gh release upload ${{ github.ref_name }} $exe update.json --clobber
+          # Help content bundle: zip the built Starlight site, sign it with the SAME key,
+          # and advertise it as a second component so the in-app updater refreshes help
+          # through the normal update flow. Its version comes from help/version.txt (the
+          # single source the Rust baseline also reads), so a help-only fix ships by
+          # bumping that file without bumping the app version.
+          $helpDist = "help/dist"
+          if (-not (Test-Path $helpDist)) { throw "help dist not found at $helpDist" }
+          $helpVersion = (Get-Content "help/version.txt" -Raw).Trim()
+          $helpZip = "help.zip"
+          if (Test-Path $helpZip) { Remove-Item $helpZip }
+          Compress-Archive -Path "$helpDist/*" -DestinationPath $helpZip
+          npx tauri signer sign --private-key "$env:TAURI_SIGNING_PRIVATE_KEY" --password "$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD" $helpZip
+          $helpSigB64 = (Get-Content "$helpZip.sig" -Raw).Trim()
+          $helpMinisig = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($helpSigB64))
+          $helpUrl = "https://github.com/kjustinkeener/Moonpool/releases/download/${{ github.ref_name }}/help.zip"
+
+          $manifest = [ordered]@{
+            version   = $version
+            notes     = ""
+            url       = $url
+            signature = $minisig
+            help      = [ordered]@{ version = $helpVersion; url = $helpUrl; signature = $helpMinisig }
+          }
+          $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path update.json -Encoding utf8
+
+          gh release upload ${{ github.ref_name }} $exe help.zip update.json --clobber

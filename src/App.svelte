@@ -21,7 +21,10 @@
     openEditorWindow,
     updateCheck,
     updateApply,
+    helpApply,
+    openHelp,
     type UpdateInfo,
+    type HelpComponent,
   } from "./lib/api";
   import { listen } from "@tauri-apps/api/event";
   import { setTheme, type Theme } from "./lib/theme";
@@ -89,18 +92,30 @@
   // On-startup update check (gated by the checkOnStartup setting). If a newer
   // release is found, `update` drives the banner in the terminal area.
   let update = $state<UpdateInfo | null>(null);
+  // A newer help-content bundle offered by the same manifest. Ships through the same
+  // banner and button so it just looks like a normal update to the user.
+  let helpUpdate = $state<HelpComponent | null>(null);
   let currentVersion = $state("");
   let updateStatus = $state("");
   let updating = $state(false);
   let updateDone = $state(false);
 
   async function installUpdate() {
-    if (!update || updating || updateDone) return;
+    if ((!update && !helpUpdate) || updating || updateDone) return;
     updating = true;
-    updateStatus = t("app.downloading", { version: update.version });
+    updateStatus = t("app.downloading", {
+      version: update?.version ?? helpUpdate?.version ?? "",
+    });
     try {
-      // On success the backend relaunches and exits, so this call never returns.
-      await updateApply(update);
+      // Apply help first: it doesn't relaunch, whereas the app self-replace relaunches
+      // and exits, so this call never returns once the app component runs.
+      if (helpUpdate) {
+        await helpApply(helpUpdate);
+        helpUpdate = null;
+      }
+      if (update) {
+        await updateApply(update);
+      }
       updateStatus = t("app.updateInstalled");
       updateDone = true;
     } catch (e) {
@@ -453,6 +468,7 @@
         if (r) {
           currentVersion = r.current;
           if (r.available) update = r.available;
+          if (r.help_available) helpUpdate = r.help_available;
         }
       })
       .catch(() => {});
@@ -766,9 +782,10 @@
       onReload={handleReload}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
+      onHelp={() => openHelp()}
       cliHidden={showExpand}
       onExpandCli={expandCli}
-      updateWaiting={!!update && !updateDone}
+      updateWaiting={!!(update || helpUpdate) && !updateDone}
       {showMcpProcesses}
       {clashes}
     />
@@ -814,14 +831,14 @@
           <img class="ph-moon" src={brandIcon} alt="" aria-hidden="true" width="48" height="48" />
           <p class="ph-title">{t("app.pickApp")}</p>
 
-          {#if update}
+          {#if update || helpUpdate}
             <div class="update-banner" class:done={updateDone}>
               <span class="ub-icon"><Icon name={updateDone ? "check" : "arrow-up"} size={15} /></span>
               <span class="ub-text">
                 {#if updateStatus}
                   {updateStatus}
                 {:else}
-                  {t("app.updateAvailable", { version: update.version, current: currentVersion })}
+                  {t("app.updateAvailable", { version: update?.version ?? helpUpdate?.version ?? "", current: currentVersion })}
                 {/if}
               </span>
               {#if !updateDone}
@@ -829,7 +846,7 @@
                   {updating ? t("app.installing") : t("app.downloadInstall")}
                 </button>
                 {#if !updating}
-                  <button class="ub-x" title={t("common.dismiss")} aria-label={t("common.dismiss")} onclick={() => (update = null)}>&times;</button>
+                  <button class="ub-x" title={t("common.dismiss")} aria-label={t("common.dismiss")} onclick={() => { update = null; helpUpdate = null; }}>&times;</button>
                 {/if}
               {/if}
             </div>
