@@ -21,8 +21,9 @@ const MANIFEST_URL: &str =
 
 /// The minisign public key, committed base64 (same value tauri.conf.json used for
 /// the old updater plugin). It's the base64 of the whole minisign pubkey *file*
-/// (comment line + key line); we decode it and keep the key line.
-#[cfg(windows)]
+/// (comment line + key line); we decode it and keep the key line. Not Windows-gated:
+/// `verify_signature` runs on every platform for the help component (see `help_apply`);
+/// only the self-replace exe path is Windows-only.
 const PUBKEY_B64: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBRkE1M0EzNkUyQzI3MkMKUldRc0p5eHVvMVA2dW1WbUlZSzFPOGY1UjNWQUwvNnFCTmtncmNYeWcvUjZrQllPTER4QUliY00K";
 
 /// 200 MB hard cap on a downloaded binary, so a bad/hostile manifest can't make us
@@ -39,12 +40,37 @@ pub struct UpdateInfo {
     pub signature: String,
 }
 
+/// The updatable help-docs component of the multi-component manifest. Signed with the
+/// SAME committed minisign key and published on the same cadence as the app exe, but
+/// carried in the manifest's optional `help` object (see `Manifest`).
+#[derive(Clone, Serialize, Deserialize)]
+pub struct HelpComponent {
+    pub version: String,
+    pub url: String,
+    /// The full contents of the `.minisig` file for `url`.
+    pub signature: String,
+}
+
+/// The parsed `update.json`. The app fields live at the top level (flattened) so old
+/// single-component manifests still parse unchanged; `help` is an optional add-on.
+#[derive(Deserialize)]
+struct Manifest {
+    #[serde(flatten)]
+    app: UpdateInfo,
+    #[serde(default)]
+    help: Option<HelpComponent>,
+}
+
 /// Result of a check: `available` plus the current running version so the UI can
-/// show "you're on X, Y is out".
+/// show "you're on X, Y is out". The `help_*` fields mirror this for the help
+/// component: the installed help version and, when the manifest offers a different
+/// one, the component to apply.
 #[derive(Clone, Serialize)]
 pub struct CheckResult {
     pub current: String,
     pub available: Option<UpdateInfo>,
+    pub help_current: Option<String>,
+    pub help_available: Option<HelpComponent>,
 }
 
 fn current_version() -> &'static str {
@@ -75,16 +101,42 @@ fn is_newer(current: &str, candidate: &str) -> Result<bool, String> {
     Ok(new > cur)
 }
 
-/// Fetch and parse the manifest. Returns whether a newer version is offered.
+/// The installed help version: `{MP_HOME}/help/version.txt` (trimmed), or the bundled
+/// baseline when that file is absent (a fresh install before its first seed, or a
+/// seed that failed to stamp).
+fn installed_help_version() -> Option<String> {
+    let path = crate::portable::mp_home()?.join("help/version.txt");
+    match std::fs::read_to_string(&path) {
+        Ok(s) => Some(s.trim().to_string()),
+        Err(_) => Some(crate::help::HELP_BASELINE_VERSION.to_string()),
+    }
+}
+
+/// Fetch and parse the manifest. Returns whether a newer app version is offered, plus
+/// the help component's installed version and any differing offer.
 #[tauri::command]
 pub fn update_check() -> Result<CheckResult, String> {
     let current = current_version().to_string();
     let body = http_get_string(MANIFEST_URL)?;
-    let info: UpdateInfo =
+    let manifest: Manifest =
         serde_json::from_str(&body).map_err(|e| format!("bad update manifest: {e}"))?;
 
-    let available = is_newer(&current, &info.version)?.then_some(info);
-    Ok(CheckResult { current, available })
+    let help_current = installed_help_version();
+    // Offer the help component whenever the manifest names a version different from
+    // what's installed (any change, not just newer: the docs bundle has no semver and
+    // may be republished at the same or a corrected version).
+    let help_available = match &manifest.help {
+        Some(h) if help_current.as_deref() != Some(h.version.as_str()) => Some(h.clone()),
+        _ => None,
+    };
+
+    let available = is_newer(&current, &manifest.app.version)?.then_some(manifest.app);
+    Ok(CheckResult {
+        current,
+        available,
+        help_current,
+        help_available,
+    })
 }
 
 /// Download, verify, and apply an update, then relaunch. On success this never
@@ -121,8 +173,76 @@ pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
     }
 }
 
+/// Download, verify, and apply a help-docs update: fetch the ZIP, verify its minisign
+/// signature against the SAME committed key as the app, extract it into a staging dir,
+/// stamp the new `version.txt`, then atomically swap it in for the live `help/` dir.
+///
+/// Robust to partial failure: the live `help/` dir is not touched until the new bundle
+/// is fully staged, so any verify/extract error leaves the existing docs intact. Runs
+/// on every platform (only the app exe self-replace is Windows-only).
+#[tauri::command]
+pub fn help_apply(app: AppHandle, help: HelpComponent) -> Result<(), String> {
+    let _ = &app;
+    let home = crate::portable::mp_home().ok_or("cannot resolve MP_HOME")?;
+    let live = home.join("help");
+    let staging = home.join("help.new");
+
+    // Clear any leftover staging from a prior aborted run, then stage the new bundle
+    // fully before touching the live dir.
+    let _ = std::fs::remove_dir_all(&staging);
+    let staged = (|| -> Result<(), String> {
+        let bytes = http_get_bytes(&help.url)?;
+        verify_signature(&bytes, &help.signature)?;
+        std::fs::create_dir_all(&staging).map_err(|e| format!("create staging dir: {e}"))?;
+        extract_zip(&bytes, &staging)?;
+        // Stamp the version so `installed_help_version` reports it and the seed no
+        // longer clobbers the downloaded bundle.
+        std::fs::write(staging.join("version.txt"), &help.version)
+            .map_err(|e| format!("write version.txt: {e}"))?;
+        Ok(())
+    })();
+    if let Err(e) = staged {
+        let _ = std::fs::remove_dir_all(&staging);
+        return Err(e);
+    }
+
+    // Swap: drop the live dir and rename the staged one into place. Only reached once
+    // the new bundle is complete on disk.
+    let _ = std::fs::remove_dir_all(&live);
+    std::fs::rename(&staging, &live).map_err(|e| format!("replace help dir: {e}"))?;
+    Ok(())
+}
+
+/// Extract a ZIP archive's bytes into `dest`. `enclosed_name` rejects entries whose
+/// path would escape `dest` (absolute or `..`), so a hostile archive can't write
+/// outside the staging dir.
+fn extract_zip(bytes: &[u8], dest: &Path) -> Result<(), String> {
+    let cursor = std::io::Cursor::new(bytes);
+    let mut zip = zip::ZipArchive::new(cursor).map_err(|e| format!("open zip: {e}"))?;
+    for i in 0..zip.len() {
+        let mut entry = zip.by_index(i).map_err(|e| format!("zip entry {i}: {e}"))?;
+        let Some(rel) = entry.enclosed_name() else {
+            return Err(format!("zip entry {i} has an unsafe path"));
+        };
+        let out = dest.join(&rel);
+        if entry.is_dir() {
+            std::fs::create_dir_all(&out).map_err(|e| format!("mkdir {}: {e}", out.display()))?;
+            continue;
+        }
+        if let Some(parent) = out.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+        }
+        let mut f =
+            std::fs::File::create(&out).map_err(|e| format!("create {}: {e}", out.display()))?;
+        std::io::copy(&mut entry, &mut f).map_err(|e| format!("write {}: {e}", out.display()))?;
+    }
+    Ok(())
+}
+
 /// Verify `data` against `sig_text` (a full .minisig file) using the committed key.
-#[cfg(windows)]
+/// Cross-platform: the app self-replace is Windows-only, but the help component's
+/// download is verified and extracted on every platform.
 fn verify_signature(data: &[u8], sig_text: &str) -> Result<(), String> {
     use base64::Engine as _;
     let pubkey_file = base64::engine::general_purpose::STANDARD

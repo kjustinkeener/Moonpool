@@ -267,13 +267,27 @@ export interface UpdateInfo {
   url: string;
   signature: string;
 }
+export interface HelpComponent {
+  version: string;
+  url: string;
+  signature: string;
+}
 export interface CheckResult {
   current: string;
   available: UpdateInfo | null;
+  /** Installed help content version (null if unknown). */
+  help_current: string | null;
+  /** Newer help bundle offered by the manifest, or null when help is up to date. */
+  help_available: HelpComponent | null;
 }
 export const updateCheck = () => invoke<CheckResult>("update_check");
 export const updateApply = (info: UpdateInfo) =>
   invoke<void>("update_apply", { info });
+/** Download, verify, and swap in a newer help content bundle. */
+export const helpApply = (help: HelpComponent) =>
+  invoke<void>("help_apply", { help });
+/** Open (or focus) the offline help window. */
+export const openHelp = () => invoke<void>("open_help");
 
 export const launchApp = (id: string, cols: number, rows: number) =>
   invoke<void>("launch_app", { id, cols, rows });

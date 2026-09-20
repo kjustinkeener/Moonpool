@@ -45,6 +45,7 @@ export const en = {
   "common.reload": "Reload",
   "common.settings": "Settings",
   "common.about": "About",
+  "common.help": "Help",
   "common.tryAgain": "Try again",
   "common.dismiss": "Dismiss",
   "common.copied": "Copied!",
