@@ -283,7 +283,10 @@ async fn run_ui_action(app: &AppHandle, action: &str, arg: Option<String>) -> Va
     let Some(state) = app.try_state::<HubState>() else {
         return json!({ "ok": false, "error": "hub state unavailable" });
     };
-    if !state.frontend_ready.load(std::sync::atomic::Ordering::Relaxed) {
+    if !state
+        .frontend_ready
+        .load(std::sync::atomic::Ordering::Relaxed)
+    {
         return json!({
             "ok": false,
             "error": "frontend not loaded - the hub window has no UI to act on this command \
@@ -368,8 +371,7 @@ mod tests {
     fn request_ignores_unknown_fields() {
         // The MCP client and any future field additions shouldn't break parsing.
         let req: Request =
-            serde_json::from_str(r#"{"cmd":"restart","args":["fasterdb"],"ticket":"x"}"#)
-                .unwrap();
+            serde_json::from_str(r#"{"cmd":"restart","args":["fasterdb"],"ticket":"x"}"#).unwrap();
         assert_eq!(req.cmd, "restart");
         assert_eq!(req.args, vec!["fasterdb".to_string()]);
     }
