@@ -87,6 +87,7 @@ jobs:
           npm --prefix help ci
           npm --prefix help run build
 
+
       # Fail fast if the tag and the three version sources disagree: a mismatched
       # release ships an exe stamped with one version while update.json advertises
       # another, so clients either never see the update or reject it. node is already

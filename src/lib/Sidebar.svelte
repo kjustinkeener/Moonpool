@@ -285,6 +285,7 @@
               {#if a.port}<span class="port">:{a.port}</span>{/if}
             </button>
           {/if}
+          <button class="action edit" title={t("common.edit")} onclick={() => onEdit(a)}>&#9998;</button>
           {#if pending.has(a.id)}
             <span class="action spinner" title={t("sidebar.working")}></span>
           {:else}
