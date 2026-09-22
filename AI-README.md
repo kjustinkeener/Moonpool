@@ -109,7 +109,7 @@ just opens it).
 
 `dump` writes the app's recent terminal output (ANSI stripped, last ~512 KB, the current
 run only) to `%APPDATA%\Moonpool\dumps\<app-id>.log`, or to a path you pass as a third
-argument: `& $mp dump my-app C:	mp\out.log`. Read that file to see what an app printed
+argument: `& $mp dump my-app C:\tmp\out.log`. Read that file to see what an app printed
 without opening the window. Tag it with `--ticket` and the ticket's `detail` is the file
 path it wrote (or why it couldn't - e.g. the app hasn't been launched this session).
 

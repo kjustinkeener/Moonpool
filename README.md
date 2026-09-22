@@ -10,11 +10,6 @@ every app you register, shows live status, and launches each one inside an **emb
 terminal** so you see its console output as if you'd opened the CLI yourself, bidirectional
 (you can type into it too).
 
-<!--
-  HERO IMAGE: drop a real screenshot at assets/screenshot.png (it does not exist yet).
-  A window shot showing the grouped sidebar on the left and an app's embedded terminal on
-  the right works best. See assets/README.md.
--->
 ![Moonpool main window](assets/screenshot.png)
 
 <!--
