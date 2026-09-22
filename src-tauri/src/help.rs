@@ -23,8 +23,11 @@ static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
 /// Bump when the bundled baseline help content changes.
 pub const HELP_BASELINE_VERSION: &str = "2026.09.20";
 
-/// The Windows label for a custom URI scheme is `http://<scheme>.localhost/`;
-/// elsewhere it is `<scheme>://localhost/`.
+/// The URL passed to `WebviewUrl::CustomProtocol`. Tauri does NOT remap this - the
+/// webview navigates to it verbatim. On Windows a custom scheme handler is installed
+/// against `http://<scheme>.localhost/*` (WebView2 AddWebResourceRequestedFilter), so
+/// on Windows the URL MUST be `http://help.localhost/` for the handler to fire; the
+/// `help://` form matches no filter and yields a blank window. Elsewhere it is `help://`.
 #[cfg(windows)]
 const HELP_ROOT_URL: &str = "http://help.localhost/";
 #[cfg(not(windows))]
@@ -41,8 +44,19 @@ pub fn seed(app: &AppHandle) {
     };
     let dest = home.join("help");
     let version_file = dest.join("version.txt");
-    if version_file.exists() {
+    // Version-gated, but also guard against a stamped-but-empty tree: an earlier
+    // build whose `help/dist` had not been built yet could write `version.txt` over
+    // an empty directory, and the gate would then skip forever, leaving the help
+    // window blank. Only skip when the stamp AND the entry point actually exist.
+    let index_file = dest.join("index.html");
+    if version_file.exists() && index_file.exists() {
         return; // baseline or a newer bundle is already staged; leave it alone
+    }
+    if version_file.exists() {
+        crate::log_line(
+            app,
+            "help: version.txt present but index.html missing; re-seeding baseline",
+        );
     }
     let mut written = 0usize;
     write_dir(app, &HELP, &dest, &mut written);
@@ -141,8 +155,10 @@ fn content_type(path: &Path) -> &'static str {
 }
 
 /// Serve one `help://` request from the on-disk help tree. 404 for a missing or
-/// out-of-bounds path.
-pub fn handle_request(request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
+/// out-of-bounds path. Logs the request path, the resolved file, and hit/miss via
+/// `crate::log_line` (a no-op unless Debug logging is on) so a blank help window is
+/// diagnosable from the log.
+pub fn handle_request(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
     let path = request.uri().path().to_string();
     let not_found = || {
         Response::builder()
@@ -152,15 +168,32 @@ pub fn handle_request(request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>>
             .expect("static 404 response is valid")
     };
     let Some(target) = resolve(&path) else {
+        crate::log_line(app, &format!("help: {path} -> rejected (out of bounds)"));
         return not_found();
     };
     match std::fs::read(&target) {
-        Ok(bytes) => Response::builder()
-            .status(200)
-            .header("Content-Type", content_type(&target))
-            .body(Cow::from(bytes))
-            .expect("help response is valid"),
-        Err(_) => not_found(),
+        Ok(bytes) => {
+            crate::log_line(
+                app,
+                &format!(
+                    "help: {path} -> {} ({} bytes)",
+                    target.display(),
+                    bytes.len()
+                ),
+            );
+            Response::builder()
+                .status(200)
+                .header("Content-Type", content_type(&target))
+                .body(Cow::from(bytes))
+                .expect("help response is valid")
+        }
+        Err(e) => {
+            crate::log_line(
+                app,
+                &format!("help: {path} -> MISS {}: {e}", target.display()),
+            );
+            not_found()
+        }
     }
 }
 
@@ -212,10 +245,16 @@ pub fn open_help(app: AppHandle) -> Result<(), String> {
         .try_state::<crate::HubState>()
         .map(|s| crate::lock(&s.settings).always_on_top)
         .unwrap_or(false);
+    // Native OS decorations (a real titlebar with a working X). The hub's own windows
+    // are borderless and draw a Svelte titlebar, but the help window shows external
+    // Starlight HTML that has no such control, so without a native frame there is no
+    // way to close it. The close-to-tray / minimize-to-tray handlers in `lib.rs` only
+    // act on the "main" window, so this X closes and destroys the help window normally.
     WebviewWindowBuilder::new(&app, "help", WebviewUrl::CustomProtocol(url))
         .title("Moonpool Help")
         .inner_size(1000.0, 720.0)
         .resizable(true)
+        .decorations(true)
         .always_on_top(on_top)
         .build()
         .map_err(|e| format!("build help window: {e}"))?;

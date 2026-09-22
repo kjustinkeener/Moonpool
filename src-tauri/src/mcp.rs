@@ -154,6 +154,9 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if action.starts_with('-') || args.iter().any(|a| a.starts_with('-')) {
         return Err("refusing to forward a flag-like control argument".into());
     }
+    // The named-pipe control surface is Windows-only (see `control_pipe.rs`). On other
+    // platforms there is no pipe to try, so fall straight through to the argv channel.
+    #[cfg(windows)]
     match pipe_call(action, args) {
         Ok(reply) => return pipe_reply_to_result(action, reply),
         // A transport-level failure (pipe missing, busy past the retry budget, closed
@@ -169,6 +172,7 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
 /// Send one request over the control pipe and parse its single reply line. `Err` here means a
 /// transport failure (pipe not present/reachable), not an application-level error - those come
 /// back as `{"ok":false,"error":...}` and are handled by the caller.
+#[cfg(windows)]
 fn pipe_call(action: &str, args: &[&str]) -> Result<Value, String> {
     const ERROR_PIPE_BUSY: i32 = 231;
     let mut file = None;
@@ -196,8 +200,8 @@ fn pipe_call(action: &str, args: &[&str]) -> Result<Value, String> {
             .unwrap_or_else(|| "pipe unavailable".into())
     })?;
 
-    let mut line = serde_json::to_vec(&json!({ "cmd": action, "args": args }))
-        .map_err(|e| e.to_string())?;
+    let mut line =
+        serde_json::to_vec(&json!({ "cmd": action, "args": args })).map_err(|e| e.to_string())?;
     line.push(b'\n');
     pipe.write_all(&line).map_err(|e| e.to_string())?;
     pipe.flush().map_err(|e| e.to_string())?;
@@ -214,6 +218,7 @@ fn pipe_call(action: &str, args: &[&str]) -> Result<Value, String> {
 /// Turn a `control.rs`-shaped reply (`{"ok":true,"result":...}` / `{"ok":false,"error":...}`)
 /// into the same `Result<String, String>` shape `control_via_argv` returns, so callers cannot
 /// tell which transport served the request.
+#[cfg(windows)]
 fn pipe_reply_to_result(action: &str, reply: Value) -> Result<String, String> {
     if reply.get("ok").and_then(Value::as_bool) == Some(true) {
         Ok(reply
@@ -837,7 +842,10 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
             control("window-state", &[window])
         }
         "moonpool_reset_mcp_seen" => {
-            let app_id = args.get("app_id").and_then(Value::as_str).filter(|s| !s.is_empty());
+            let app_id = args
+                .get("app_id")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty());
             match app_id {
                 Some(id) => control("reset-mcp-seen", &[id]),
                 None => control("reset-mcp-seen", &[]),

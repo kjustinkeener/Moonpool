@@ -67,11 +67,25 @@ pub fn is_portable() -> bool {
 }
 
 /// The `{MP_HOME}` anchor: the bundle root in portable mode, the install dir otherwise.
+/// `install_dir()` is Windows-only (USERPROFILE-based), so non-Windows falls back to the
+/// same XDG_CONFIG_HOME/$HOME/.config pattern `data_dir()` uses - without this, `mp_home()`
+/// silently returned `None` on Linux, which made `help::seed()`'s early-return guard skip
+/// writing the help tree entirely (404 on every help:// request).
 pub fn mp_home() -> Option<PathBuf> {
     if is_portable() {
-        exe_dir()
-    } else {
+        return exe_dir();
+    }
+    #[cfg(windows)]
+    {
         crate::install::install_dir()
+    }
+    #[cfg(not(windows))]
+    {
+        let base = std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .filter(|p| !p.as_os_str().is_empty())
+            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
+        Some(base.join("Moonpool"))
     }
 }
 
@@ -99,14 +113,24 @@ pub fn data_dir() -> Option<PathBuf> {
     }
 }
 
-/// Portable-only: where WebView2 should keep its browser profile (cache, cookies,
-/// GPU/shader caches) so it lands inside the bundle instead of
-/// `%LOCALAPPDATA%\<identifier>\EBWebView`. None in installed mode (leave WebView2's
-/// default). Doesn't need an `AppHandle`: portable data always lives beside the exe.
+/// Where WebView2 should keep its browser profile (cache, cookies, GPU/shader caches)
+/// so it lands under `{MP_DATA}` instead of `%LOCALAPPDATA%\<identifier>\EBWebView`.
+/// Set in BOTH modes on Windows so a Moonpool keeps everything inside its `.moonpool`
+/// folder and nothing lives in AppData: portable -> beside the exe, installed ->
+/// `%USERPROFILE%\.moonpool\moonpool-config\webview`. On non-Windows WebView2 isn't
+/// used (WebKitGTK/WKWebView) and the env var is ignored, so only portable redirects
+/// there (keeping a portable bundle self-contained); installed leaves the default.
+/// Doesn't need an `AppHandle`: the data root is resolvable handle-free.
 pub fn webview_data_dir() -> Option<PathBuf> {
     if is_portable() {
-        exe_dir().map(|d| d.join(DATA_SUBDIR).join("webview"))
-    } else {
+        return exe_dir().map(|d| d.join(DATA_SUBDIR).join("webview"));
+    }
+    #[cfg(windows)]
+    {
+        data_dir().map(|d| d.join("webview"))
+    }
+    #[cfg(not(windows))]
+    {
         None
     }
 }

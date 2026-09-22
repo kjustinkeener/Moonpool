@@ -42,7 +42,9 @@ pub fn capture_hwnd(hwnd: HWND) -> Result<Vec<u8>, String> {
     let width = rect.right - rect.left;
     let height = rect.bottom - rect.top;
     if width <= 0 || height <= 0 {
-        return Err(format!("window has no visible client area ({width}x{height})"));
+        return Err(format!(
+            "window has no visible client area ({width}x{height})"
+        ));
     }
 
     unsafe {
@@ -84,7 +86,8 @@ pub fn capture_hwnd(hwnd: HWND) -> Result<Vec<u8>, String> {
 
         let row_bytes = (width as usize) * 4;
         let pixels = if painted.as_bool() {
-            let src = std::slice::from_raw_parts(bits_ptr as *const u8, row_bytes * height as usize);
+            let src =
+                std::slice::from_raw_parts(bits_ptr as *const u8, row_bytes * height as usize);
             Some(src.to_vec())
         } else {
             None
@@ -95,7 +98,8 @@ pub fn capture_hwnd(hwnd: HWND) -> Result<Vec<u8>, String> {
         let _ = DeleteDC(mem_dc);
         ReleaseDC(Some(hwnd), window_dc);
 
-        let top_down = pixels.ok_or_else(|| "PrintWindow failed to render the window".to_string())?;
+        let top_down =
+            pixels.ok_or_else(|| "PrintWindow failed to render the window".to_string())?;
         Ok(to_bmp(width as u32, height as u32, &top_down))
     }
 }
@@ -113,7 +117,7 @@ fn to_bmp(width: u32, height: u32, top_down: &[u8]) -> Vec<u8> {
     out.extend_from_slice(&0u16.to_le_bytes()); // reserved1
     out.extend_from_slice(&0u16.to_le_bytes()); // reserved2
     out.extend_from_slice(&(FILE_HEADER_SIZE + INFO_HEADER_SIZE).to_le_bytes()); // bfOffBits
-    // BITMAPINFOHEADER
+                                                                                 // BITMAPINFOHEADER
     out.extend_from_slice(&INFO_HEADER_SIZE.to_le_bytes());
     out.extend_from_slice(&(width as i32).to_le_bytes());
     out.extend_from_slice(&(height as i32).to_le_bytes()); // positive: bottom-up

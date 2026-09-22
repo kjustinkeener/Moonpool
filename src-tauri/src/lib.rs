@@ -27,6 +27,10 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
+// Windows-only: the control surface is a Win32 named-pipe server (tokio named_pipe,
+// hwnd/screenshot via the `windows` crate). The argv + state.json channel remains the
+// cross-platform path; on non-Windows the pipe surface is simply absent.
+#[cfg(windows)]
 mod control_pipe;
 mod dashboards;
 mod help;
@@ -1789,6 +1793,12 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         show_main(app);
         return;
     }
+    // `help` opens the offline help window, same as the ... menu's Help item. Answered
+    // here so the window can be opened without a UI click (used for headless testing).
+    if action == "help" {
+        let _ = help::open_help(app.clone());
+        return;
+    }
     // `quit` shuts the hub down, same as the tray Quit item. Answered here so the
     // MCP `moonpool_shutdown_launcher` tool can boot the hub back down; the caller
     // confirms by watching the process leave, so no ticket flush is needed first.
@@ -2668,11 +2678,11 @@ pub fn run() {
     // Remove a leftover `moonpool.old` from a prior self-update.
     update::cleanup_old();
 
-    // Portable: keep WebView2's browser profile inside the bundle too. WebView2 reads
-    // WEBVIEW2_USER_DATA_FOLDER when it creates its environment, so this must be set
-    // before any window is built. Otherwise it defaults to
-    // %LOCALAPPDATA%\<identifier>\EBWebView - the last thing that would land outside a
-    // portable folder.
+    // Keep WebView2's browser profile inside the .moonpool folder (portable: beside the
+    // exe; installed: ~/.moonpool\moonpool-config\webview) so nothing lands in AppData.
+    // WebView2 reads WEBVIEW2_USER_DATA_FOLDER when it creates its environment, so this
+    // must be set before any window is built. Otherwise it defaults to
+    // %LOCALAPPDATA%\<identifier>\EBWebView.
     if let Some(dir) = portable::webview_data_dir() {
         let _ = std::fs::create_dir_all(&dir);
         std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &dir);
@@ -2697,7 +2707,9 @@ pub fn run() {
         // Serve the embedded/updatable help site from {MP_HOME}/help over a custom
         // `help` scheme so the docs work fully offline (Windows reaches it at
         // http://help.localhost/).
-        .register_uri_scheme_protocol("help", |_ctx, request| help::handle_request(request))
+        .register_uri_scheme_protocol("help", |ctx, request| {
+            help::handle_request(ctx.app_handle(), request)
+        })
         .manage(HubState {
             apps: Mutex::new(HashMap::new()),
             next_generation: AtomicU64::new(1),
@@ -2786,6 +2798,7 @@ pub fn run() {
                     }
                 }
             }
+            #[cfg(windows)]
             control_pipe::spawn(handle.clone());
             spawn_status_poller(handle);
             Ok(())
