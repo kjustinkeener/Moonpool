@@ -1033,7 +1033,7 @@ mod app_id_tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, windows))]
 mod pipe_reply_tests {
     use super::pipe_reply_to_result;
     use serde_json::json;

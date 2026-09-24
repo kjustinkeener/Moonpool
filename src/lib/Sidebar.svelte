@@ -181,17 +181,25 @@
     node.focus();
     node.select();
   }
+
+  function dismissMenu(event: PointerEvent) {
+    const target = event.target;
+    if (menuOpen && (!(target instanceof Element) || !target.closest(".menu-wrap"))) {
+      menuOpen = false;
+    }
+  }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && (ctx ? closeCtx() : (renamingId = null))} />
+<svelte:window
+  onkeydown={(e) => e.key === "Escape" && (ctx ? closeCtx() : (renamingId = null))}
+  onpointerdown={dismissMenu}
+/>
 
 <aside class="sidebar">
   <div class="search">
     <div class="menu-wrap">
       <button class="menu-btn" title={t("sidebar.menu")} onclick={() => (menuOpen = !menuOpen)}><Icon name="more-horizontal" size={16} /></button>
       {#if menuOpen}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div class="menu-backdrop" role="presentation" onclick={() => (menuOpen = false)}></div>
         <div class="menu">
           <button onclick={() => pick(onAdd)}><span class="mi"><Icon name="plus" /></span>{t("sidebar.addApp")}</button>
           <button onclick={() => pick(onEditFile)}><span class="mi"><Icon name="pencil" /></span>{t("sidebar.editJson")}</button>
@@ -436,11 +444,6 @@
   .menu-btn:hover {
     color: var(--text-strong);
     border-color: var(--focus);
-  }
-  .menu-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 40;
   }
   /* The menu is absolutely positioned inside `.menu-wrap`, which is only as wide
      as the 30px button, so shrink-to-fit would otherwise wrap every label to

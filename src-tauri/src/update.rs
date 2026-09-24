@@ -14,10 +14,16 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-/// Where the update manifest lives. Same GitHub Releases channel as before, but a
-/// custom manifest (raw exe + minisign sig) instead of Tauri's latest.json.
+/// Where the Windows update manifest lives. It carries the raw self-replacing exe.
+#[cfg(not(target_os = "linux"))]
 const MANIFEST_URL: &str =
     "https://github.com/kjustinkeener/Moonpool/releases/latest/download/update.json";
+
+/// Linux ships both package-manager packages and a portable AppImage. Only the
+/// AppImage can safely update itself, so it gets its own signed release manifest.
+#[cfg(target_os = "linux")]
+const MANIFEST_URL: &str =
+    "https://github.com/kjustinkeener/Moonpool/releases/latest/download/linux-update.json";
 
 /// The minisign public key, committed base64 (same value tauri.conf.json used for
 /// the old updater plugin). It's the base64 of the whole minisign pubkey *file*
@@ -80,13 +86,29 @@ fn current_version() -> &'static str {
 /// Delete leftover `moonpool.old` / `moonpool.new` next to the running exe (from a
 /// prior update). Best-effort: if a file is somehow still locked, we retry next launch.
 pub fn cleanup_old() {
-    if let Ok(cur) = std::env::current_exe() {
+    if let Some(cur) = update_target() {
         for ext in ["old", "new"] {
             let stray = cur.with_extension(ext);
             if stray.exists() {
                 let _ = std::fs::remove_file(&stray);
             }
         }
+    }
+}
+
+/// The file we are allowed to replace. In an AppImage process `current_exe()`
+/// points into the temporary FUSE mount, not at the AppImage the user launched;
+/// APPIMAGE is the stable source file. Packaged Linux installs deliberately return
+/// `None` so apt/dnf/rpm remain the sole authority for their upgrades.
+fn update_target() -> Option<PathBuf> {
+    #[cfg(target_os = "linux")]
+    {
+        let path = std::env::var_os("APPIMAGE").map(PathBuf::from)?;
+        path.is_file().then_some(path)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        std::env::current_exe().ok()
     }
 }
 
@@ -155,14 +177,23 @@ pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
         ));
     }
 
-    // The self-replace is the Windows rename trick plus a registry version sync; there
-    // is no in-place updater on other platforms. Point the user at a manual download
-    // instead - the About panel links the releases page. Guard before downloading so a
-    // non-Windows build never runs Windows-only file/registry surgery.
-    #[cfg(not(windows))]
+    // Linux package installs are upgraded by their package manager. An AppImage is
+    // self-contained, however, and can be atomically replaced just like the Windows
+    // portable executable.
+    #[cfg(target_os = "linux")]
+    {
+        let target = update_target().ok_or(
+            "automatic updates are available for the AppImage only; update the .deb or RPM with your package manager",
+        )?;
+        let bytes = http_get_bytes(&info.url)?;
+        verify_signature(&bytes, &info.signature)?;
+        self_replace_appimage_and_relaunch(&app, &target, &bytes)?;
+        Ok(())
+    }
+    #[cfg(all(not(windows), not(target_os = "linux")))]
     {
         let _ = &app;
-        Err("automatic update is Windows-only; download the latest release manually".to_string())
+        Err("automatic updates are not supported on this platform; download the latest release manually".to_string())
     }
     #[cfg(windows)]
     {
@@ -171,6 +202,55 @@ pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
         self_replace_and_relaunch(&app, &bytes, info.version.trim_start_matches('v'))?;
         Ok(())
     }
+}
+
+/// Atomically replace the AppImage that launched us, then start the replacement
+/// behind the normal single-instance handoff. The running image remains mapped by
+/// its inode after the rename, so the swap is safe on Linux filesystems.
+#[cfg(target_os = "linux")]
+fn self_replace_appimage_and_relaunch(
+    app: &AppHandle,
+    target: &Path,
+    new_bytes: &[u8],
+) -> Result<(), String> {
+    use std::io::Write;
+    use std::os::unix::fs::PermissionsExt;
+
+    let old = target.with_extension("old");
+    let staged = target.with_extension("new");
+    let _ = std::fs::remove_file(&old);
+    let _ = std::fs::remove_file(&staged);
+
+    let result = (|| -> Result<(), String> {
+        let mut f = std::fs::File::create(&staged).map_err(|e| format!("create update: {e}"))?;
+        f.write_all(new_bytes)
+            .map_err(|e| format!("write update: {e}"))?;
+        f.flush().map_err(|e| format!("flush update: {e}"))?;
+        f.sync_all().map_err(|e| format!("sync update: {e}"))?;
+        std::fs::set_permissions(&staged, std::fs::Permissions::from_mode(0o755))
+            .map_err(|e| format!("make update executable: {e}"))?;
+        std::fs::rename(target, &old).map_err(|e| format!("move current AppImage aside: {e}"))?;
+        if let Err(e) = std::fs::rename(&staged, target) {
+            let _ = std::fs::rename(&old, target);
+            return Err(format!("activate update: {e}"));
+        }
+        Ok(())
+    })();
+    if let Err(e) = result {
+        let _ = std::fs::remove_file(&staged);
+        return Err(e);
+    }
+
+    let mut cmd = std::process::Command::new(target);
+    cmd.arg("--wait-pid").arg(std::process::id().to_string());
+    if let Err(e) = cmd.spawn() {
+        let _ = std::fs::remove_file(target);
+        let _ = std::fs::rename(&old, target);
+        return Err(format!("relaunch updated AppImage: {e}"));
+    }
+    app.cleanup_before_exit();
+    app.exit(0);
+    Ok(())
 }
 
 /// Download, verify, and apply a help-docs update: fetch the ZIP, verify its minisign

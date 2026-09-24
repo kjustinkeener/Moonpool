@@ -1003,6 +1003,7 @@ fn stop_mcp_shim(id: String, state: State<HubState>) -> Result<(), String> {
 /// app's) and persist the change. Exists for test repeatability: `mcp_seen` is deliberately
 /// never cleared by normal operation (see `AppStatus.mcp_seen`), so a test run that wants to
 /// re-observe the sidebar's "not yet seen" state needs an explicit way back to it.
+#[cfg(windows)]
 pub(crate) fn reset_mcp_seen(app: &AppHandle, state: &HubState, id: Option<&str>) -> String {
     let mut seen = lock(&state.mcp_seen);
     let msg = match id {

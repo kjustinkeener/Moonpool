@@ -21,7 +21,7 @@ static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
 /// Version of the help content bundled in this build. Written to `help/version.txt`
 /// on first seed and compared against the updater manifest's `help.version`.
 /// Bump when the bundled baseline help content changes.
-pub const HELP_BASELINE_VERSION: &str = "2026.09.20";
+pub const HELP_BASELINE_VERSION: &str = "2026.09.22";
 
 /// The URL passed to `WebviewUrl::CustomProtocol`. Tauri does NOT remap this - the
 /// webview navigates to it verbatim. On Windows a custom scheme handler is installed
@@ -47,10 +47,15 @@ pub fn seed(app: &AppHandle) {
     // Version-gated, but also guard against a stamped-but-empty tree: an earlier
     // build whose `help/dist` had not been built yet could write `version.txt` over
     // an empty directory, and the gate would then skip forever, leaving the help
-    // window blank. Only skip when the stamp AND the entry point actually exist.
+    // window blank. Preserve a matching or newer downloaded bundle, but replace an
+    // older embedded baseline when the app ships revised bundled help.
     let index_file = dest.join("index.html");
-    if version_file.exists() && index_file.exists() {
-        return; // baseline or a newer bundle is already staged; leave it alone
+    if index_file.exists()
+        && std::fs::read_to_string(&version_file)
+            .map(|version| version.trim() >= HELP_BASELINE_VERSION)
+            .unwrap_or(false)
+    {
+        return; // matching baseline or a newer downloaded bundle is already staged
     }
     if version_file.exists() {
         crate::log_line(
