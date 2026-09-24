@@ -120,6 +120,28 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
+      # AppImages are self-contained and can safely replace their own source file.
+      # Package-manager installs (.deb/.rpm) intentionally keep using apt/dnf/rpm
+      # for upgrades. Publish a Linux-specific manifest so the app never mistakes
+      # the Windows raw-exe updater payload for a Linux update.
+      - name: Publish Linux AppImage updater artifacts
+        if: matrix.platform == 'ubuntu-latest'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          image=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          if [ -z "$image" ]; then echo "AppImage not found" >&2; exit 1; fi
+          npx tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$image"
+          signature=$(base64 --decode "$image.sig")
+          version="${GITHUB_REF_NAME#v}"
+          filename=$(basename "$image")
+          url="https://github.com/kjustinkeener/Moonpool/releases/download/${GITHUB_REF_NAME}/${filename}"
+          node -e 'const fs=require("fs"); fs.writeFileSync("linux-update.json", JSON.stringify({version:process.argv[1],notes:"",url:process.argv[2],signature:process.argv[3]}))' "$version" "$url" "$signature"
+          gh release upload "$GITHUB_REF_NAME" "$image" linux-update.json --clobber
+
       # Publish the custom self-updater artifacts (Windows only): the raw exe plus a
       # minisign-signed update.json that the in-app updater reads from Releases/latest.
       - name: Publish custom updater artifacts (Windows)

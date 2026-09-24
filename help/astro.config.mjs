@@ -18,6 +18,10 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	// `site` is used for canonical URLs / sitemap on the web build; harmless in-app.
 	site: 'https://moonpool.app',
+	// Keep the help root useful without exposing a separate Home page.
+	redirects: {
+		'/': '/getting-started/overview/',
+	},
 	integrations: [
 		starlight({
 			title: 'Moonpool Help',

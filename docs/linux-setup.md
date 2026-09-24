@@ -14,6 +14,11 @@ chmod +x Moonpool_*.AppImage
 ./Moonpool_*.AppImage
 ```
 
+The AppImage checks for and installs signed Moonpool updates from the app. Keep it
+in a directory you can write to. `.deb` and RPM installs are upgraded by your
+distribution's package manager instead (`sudo apt update && sudo apt upgrade` on
+Debian/Ubuntu); Moonpool deliberately will not overwrite package-managed files.
+
 **.deb** (Debian/Ubuntu):
 
 ```bash
