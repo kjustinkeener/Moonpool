@@ -370,16 +370,11 @@
   // window is still launcher-width, leaving no way to widen it back).
   let winWidth = $state(window.innerWidth);
 
-  // The width the ">" button expands to. Show the button whenever the window is
-  // narrower than that: below it the CLI cannot fit, so offer the one click that
-  // makes room; at or above it there is nothing to expand.
+  // The width the ">" button expands to. Keep the button present while the CLI is
+  // explicitly collapsed, even if the user has widened the window: that extra width
+  // belongs to the sidebar until they choose to reopen the CLI.
   const expandTarget = $derived(sidebarWidth + RESIZER_W + savedMainWidth);
-  const showExpand = $derived(winWidth < expandTarget);
-
-  // While a programmatic collapse is shrinking the window, `resize` events fire
-  // carrying intermediate (still-wide) widths. Ignore reveal-on-resize until the
-  // shrink settles, or a transient wide frame re-reveals the pane we just hid.
-  let collapseGuardUntil = 0;
+  const showExpand = $derived(!cliVisible || winWidth < expandTarget);
 
   async function collapseCli() {
     if (!cliVisible) return;
@@ -387,13 +382,12 @@
     const innerH = window.innerHeight;
     savedMainWidth = Math.max(300, window.innerWidth - sidebarWidth - RESIZER_W);
     cliVisible = false;
-    collapseGuardUntil = Date.now() + 500;
     localStorage.setItem("moonpool.cliVisible", "0");
     localStorage.setItem("moonpool.savedMainWidth", String(savedMainWidth));
     try {
-      await win.setSize(new LogicalSize(sidebarWidth, innerH));
+      // Keep the divider visible at the right edge of the collapsed launcher.
+      await win.setSize(new LogicalSize(sidebarWidth + RESIZER_W, innerH));
     } catch {}
-    collapseGuardUntil = Date.now() + 300;
   }
 
   async function expandCli() {
@@ -405,45 +399,27 @@
     cliVisible = true;
     localStorage.setItem("moonpool.cliVisible", "1");
     try {
-      await win.setSize(
-        new LogicalSize(sidebarWidth + RESIZER_W + savedMainWidth, innerH),
-      );
+      const targetWidth = sidebarWidth + RESIZER_W + savedMainWidth;
+      // If the user widened the collapsed launcher, reveal into that existing
+      // space instead of snapping the window back to its old width.
+      if (window.innerWidth < targetWidth) {
+        await win.setSize(new LogicalSize(targetWidth, innerH));
+      } else {
+        savedMainWidth = Math.max(300, window.innerWidth - sidebarWidth - RESIZER_W);
+        localStorage.setItem("moonpool.savedMainWidth", String(savedMainWidth));
+      }
     } catch {}
-  }
-
-  // Reveal the CLI as soon as there's any room past the sidebar + resizer, not
-  // just once a comfortable width opens up. 1px of main-pane space is enough.
-  const MIN_MAIN_SHOW = 1;
-
-  // Reconcile the collapsed flag with the actual window width: if the window is
-  // wide enough to hold the CLI (e.g. the user dragged it wider while collapsed,
-  // or the restored width disagrees with the saved flag), reveal the pane so the
-  // extra space is filled instead of left as a blank hole. No setSize here - the
-  // window already has the width; we just fill it.
-  function revealCliIfRoom() {
-    if (cliVisible || Date.now() < collapseGuardUntil) return;
-    const room = window.innerWidth - sidebarWidth - RESIZER_W;
-    if (room >= MIN_MAIN_SHOW) {
-      cliVisible = true;
-      savedMainWidth = Math.max(300, room);
-      localStorage.setItem("moonpool.cliVisible", "1");
-      localStorage.setItem("moonpool.savedMainWidth", String(savedMainWidth));
-    }
   }
 
   onMount(async () => {
     const saved = Number(localStorage.getItem("moonpool.sidebarWidth"));
     if (saved >= MIN_W && saved <= MAX_W) sidebarWidth = saved;
 
-    // Restore collapsed CLI state, then reconcile with the real window width: if
-    // the flag says collapsed but the window is wide (e.g. the restored width and
-    // the saved flag disagree), fill the space with the CLI instead of leaving a
-    // blank hole. The window width is the source of truth.
+    // Restore the explicit collapsed state. A wider restored window is still
+    // collapsed; the sidebar fills that space until the user presses ">".
     const savedMain = Number(localStorage.getItem("moonpool.savedMainWidth"));
     if (savedMain > 0) savedMainWidth = savedMain;
     cliVisible = localStorage.getItem("moonpool.cliVisible") !== "0";
-    revealCliIfRoom();
-    window.addEventListener("resize", revealCliIfRoom);
     window.addEventListener("wheel", onWheel, { passive: false });
 
     try {
@@ -600,7 +576,6 @@
     unlistenShowMcpProcesses?.();
     unlistenEditorSave?.();
     unlistenEditorDelete?.();
-    window.removeEventListener("resize", revealCliIfRoom);
     window.removeEventListener("wheel", onWheel);
     clearTimeout(saveScaleTimer);
     // Clear any outstanding timers so they can't fire and set $state after unmount.
@@ -757,7 +732,7 @@
       <button aria-label="Dismiss" onclick={() => (persistenceError = "")}>&times;</button>
     </div>
   {/if}
-  <div class="body">
+  <div class="body" class:cli-collapsed={!cliVisible}>
   <div class="sidebar-host" style:width="{sidebarWidth}px">
     <Sidebar
       {apps}
@@ -790,15 +765,14 @@
       {clashes}
     />
   </div>
-  {#if cliVisible}
   <div
     class="resizer"
+    class:locked={!cliVisible}
     role="separator"
     aria-orientation="vertical"
-    title={t("app.dragToResize")}
-    onpointerdown={startResize}
+    title={cliVisible ? t("app.dragToResize") : undefined}
+    onpointerdown={cliVisible ? startResize : undefined}
   ></div>
-  {/if}
 
   <!-- Kept mounted (just hidden) when collapsed, so running terminals and their
        scrollback survive a hide/show. -->
@@ -936,6 +910,13 @@
     height: 100%;
     overflow: hidden;
   }
+  /* The collapsed CLI has no main pane to consume free width. Keep its divider
+     on the right edge and let the launcher/sidebar take the entire remaining area
+     as the window is resized. */
+  .body.cli-collapsed .sidebar-host {
+    flex: 1 1 auto;
+    width: auto !important;
+  }
   .resizer {
     flex: none;
     width: 5px;
@@ -946,6 +927,12 @@
   .resizer:hover,
   .app.resizing .resizer {
     background: var(--focus);
+  }
+  .resizer.locked {
+    cursor: default;
+  }
+  .resizer.locked:hover {
+    background: var(--border-muted);
   }
   .main {
     flex: 1;

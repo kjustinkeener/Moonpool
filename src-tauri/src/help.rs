@@ -23,14 +23,10 @@ static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
 /// Bump when the bundled baseline help content changes.
 pub const HELP_BASELINE_VERSION: &str = "2026.09.22";
 
-/// The URL passed to `WebviewUrl::CustomProtocol`. Tauri does NOT remap this - the
-/// webview navigates to it verbatim. On Windows a custom scheme handler is installed
-/// against `http://<scheme>.localhost/*` (WebView2 AddWebResourceRequestedFilter), so
-/// on Windows the URL MUST be `http://help.localhost/` for the handler to fire; the
-/// `help://` form matches no filter and yields a blank window. Elsewhere it is `help://`.
-#[cfg(windows)]
-const HELP_ROOT_URL: &str = "http://help.localhost/";
-#[cfg(not(windows))]
+/// The registered custom-protocol URL. Wry translates this to
+/// `http://help.localhost/` on Windows before WebView2 navigates, then translates the
+/// intercepted request back to `help://` for our handler. Passing the HTTP workaround
+/// URL directly bypasses that protocol flow and leaves the Windows help webview blank.
 const HELP_ROOT_URL: &str = "help://localhost/";
 
 /// Write the embedded baseline help to `{MP_HOME}/help` on first run, then stamp
