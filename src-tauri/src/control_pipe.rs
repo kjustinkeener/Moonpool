@@ -54,7 +54,7 @@ pub const PIPE_NAME: &str = r"\\.\pipe\moonpool";
 /// waits for the port to free), hence the generous cap.
 const ACTION_TIMEOUT: Duration = Duration::from_secs(45);
 
-const UI_OWNED_ACTIONS: &[&str] = &["launch", "stop", "restart", "reload", "refresh-icons"];
+const UI_OWNED_ACTIONS: &[&str] = &["launch", "stop", "restart", "reload", "refresh-icons", "help"];
 
 #[derive(Deserialize)]
 struct Request {
@@ -397,7 +397,7 @@ mod tests {
         // If this list and lib.rs's argv-path handling of the same verbs ever diverge,
         // the pipe and argv transports would disagree on which actions go through the
         // UI at all - a silent behavior split between the two control channels.
-        for action in ["launch", "stop", "restart", "reload", "refresh-icons"] {
+        for action in ["launch", "stop", "restart", "reload", "refresh-icons", "help"] {
             assert!(
                 UI_OWNED_ACTIONS.contains(&action),
                 "{action} must be UI-owned"

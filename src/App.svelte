@@ -22,7 +22,7 @@
     updateCheck,
     updateApply,
     helpApply,
-    openHelp,
+    openHelpWindow,
     type UpdateInfo,
     type HelpComponent,
   } from "./lib/api";
@@ -533,6 +533,9 @@
             const ok = await waitForRunning(app.id, false, 15000);
             return done(ok, ok ? null : "still running after stop");
           }
+          case "help":
+            await openHelpWindow();
+            return done(true, null);
           case "reload":
             await handleReload();
             return done(true, null);
@@ -757,7 +760,7 @@
       onReload={handleReload}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
-      onHelp={() => openHelp()}
+      onHelp={() => openHelpWindow()}
       cliHidden={showExpand}
       onExpandCli={expandCli}
       updateWaiting={!!(update || helpUpdate) && !updateDone}

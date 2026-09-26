@@ -19,6 +19,7 @@
   import { t, localeChoice, LOCALES, setLocale } from "./i18n.svelte";
   import { emit } from "@tauri-apps/api/event";
   import brandIcon from "../assets/app-icon.png";
+  import wordmark from "../assets/moonpool-wordmark-text.png";
   import Icon from "./Icon.svelte";
   import { scrollFade } from "./scrollfade";
 
@@ -246,6 +247,7 @@
 <div class="wrap">
 <div class="bar" data-tauri-drag-region>
   <img class="brandicon" src={brandIcon} alt="" aria-hidden="true" draggable="false" />
+  <img class="wordmark" src={wordmark} alt="moonpool" draggable="false" />
   <span class="title" data-tauri-drag-region>{t("settings.title")}</span>
   <span class="spacer" data-tauri-drag-region></span>
   <button class="x" onclick={onClose} title={t("common.close")} aria-label={t("common.close")}>
@@ -462,6 +464,8 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--text-strong);
+    padding-left: 8px;
+    border-left: 1px solid var(--border-muted);
   }
   .brandicon {
     height: 16px;
@@ -469,6 +473,12 @@
     pointer-events: none;
     filter: drop-shadow(0 0 4px rgba(97, 252, 237, 0.455))
       drop-shadow(0 0 8px rgba(97, 252, 237, 0.28));
+  }
+  .wordmark {
+    height: 15px;
+    width: auto;
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.55));
+    pointer-events: none;
   }
   .spacer {
     flex: 1;

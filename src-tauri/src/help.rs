@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 use include_dir::{include_dir, Dir};
 use tauri::http::{Request, Response};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::AppHandle;
 
 /// The built Starlight site, baked into the binary at build time.
 static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
@@ -22,12 +22,6 @@ static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
 /// on first seed and compared against the updater manifest's `help.version`.
 /// Bump when the bundled baseline help content changes.
 pub const HELP_BASELINE_VERSION: &str = "2026.09.22";
-
-/// The first real help document. Avoid the site's root redirect here: WebView2 can
-/// navigate a custom protocol's initial document but fail its immediate meta-refresh,
-/// which leaves a blank window. Wry translates this `help://` URL to
-/// `http://help.localhost/` on Windows and routes it back to our handler.
-const HELP_ROOT_URL: &str = "help://localhost/getting-started/overview/";
 
 /// Write the embedded baseline help to `{MP_HOME}/help` on first run, then stamp
 /// `version.txt`. If `version.txt` already exists we do nothing: either the current
@@ -227,49 +221,3 @@ fn hex_val(b: u8) -> Option<u8> {
     }
 }
 
-/// Open (or focus) the help window. It loads the embedded docs over the `help` URI
-/// scheme, so it works fully offline.
-#[tauri::command]
-pub fn open_help(app: AppHandle) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("help") {
-        let _ = win.unminimize();
-        let _ = win.show();
-        let _ = win.set_focus();
-        return Ok(());
-    }
-    let url = HELP_ROOT_URL
-        .parse()
-        .map_err(|e| format!("bad help url: {e}"))?;
-    // Keep help in the same z-band as the hub when always-on-top is set, so it does
-    // not sink behind the hub (see the always-on-top z-band trap in settings).
-    let on_top = app
-        .try_state::<crate::HubState>()
-        .map(|s| crate::lock(&s.settings).always_on_top)
-        .unwrap_or(false);
-    // Native OS decorations (a real titlebar with a working X). The hub's own windows
-    // are borderless and draw a Svelte titlebar, but the help window shows external
-    // Starlight HTML that has no such control, so without a native frame there is no
-    // way to close it. The close-to-tray / minimize-to-tray handlers in `lib.rs` only
-    // act on the "main" window, so this X closes and destroys the help window normally.
-    let mut builder = WebviewWindowBuilder::new(&app, "help", WebviewUrl::CustomProtocol(url))
-        .title("Moonpool Help")
-        .inner_size(1000.0, 720.0)
-        .resizable(true);
-
-    // The hub is deliberately borderless and transparent. Help is a normal document
-    // window, so make it opaque on platforms that expose this builder option. macOS
-    // does not expose `transparent` here and already creates an opaque native window.
-    #[cfg(any(target_os = "windows", target_os = "linux"))]
-    {
-        builder = builder.transparent(false);
-    }
-
-    builder
-        // The hub is deliberately borderless and transparent. Help is a normal
-        // document window, so make its native frame explicit.
-        .decorations(true)
-        .always_on_top(on_top)
-        .build()
-        .map_err(|e| format!("build help window: {e}"))?;
-    Ok(())
-}
