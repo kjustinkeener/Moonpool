@@ -294,6 +294,7 @@ fn inject_titlebar(html: Vec<u8>) -> Vec<u8> {
 <style>
 :root {{ --sl-nav-height: calc(3.5rem + {BAR_HEIGHT_PX}px) !important; }}
 @media (width >= 50em) {{ :root {{ --sl-nav-height: calc(4rem + {BAR_HEIGHT_PX}px) !important; }} }}
+html, body {{ height: 100%; overflow: hidden !important; }}
 #mp-titlebar {{
   position: fixed; top: 0; left: 0; right: 0; z-index: 999999;
   display: flex; align-items: center; height: {BAR_HEIGHT_PX}px; padding-left: 10px;
@@ -317,12 +318,23 @@ fn inject_titlebar(html: Vec<u8>) -> Vec<u8> {
 }}
 .mp-tb-controls button:hover {{ background: rgba(255,255,255,0.12); }}
 #mp-tb-close:hover {{ background: #e81123; color: #fff; }}
-</style>"#
+#mp-help-scroll {{
+  position: absolute; top: {BAR_HEIGHT_PX}px; left: 0; right: 0; bottom: 0;
+  overflow-y: auto; overflow-x: hidden;
+}}
+</style>
+<div id="mp-help-scroll">"#
     );
-    let mut out = String::with_capacity(text.len() + bar.len());
+    let body_close_at = text
+        .to_ascii_lowercase()
+        .rfind("</body>")
+        .unwrap_or(text.len());
+    let mut out = String::with_capacity(text.len() + bar.len() + 32);
     out.push_str(&text[..insert_at]);
     out.push_str(&bar);
-    out.push_str(&text[insert_at..]);
+    out.push_str(&text[insert_at..body_close_at]);
+    out.push_str("</div>");
+    out.push_str(&text[body_close_at..]);
     out.into_bytes()
 }
 
