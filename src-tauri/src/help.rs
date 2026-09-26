@@ -23,11 +23,11 @@ static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
 /// Bump when the bundled baseline help content changes.
 pub const HELP_BASELINE_VERSION: &str = "2026.09.22";
 
-/// The registered custom-protocol URL. Wry translates this to
-/// `http://help.localhost/` on Windows before WebView2 navigates, then translates the
-/// intercepted request back to `help://` for our handler. Passing the HTTP workaround
-/// URL directly bypasses that protocol flow and leaves the Windows help webview blank.
-const HELP_ROOT_URL: &str = "help://localhost/";
+/// The first real help document. Avoid the site's root redirect here: WebView2 can
+/// navigate a custom protocol's initial document but fail its immediate meta-refresh,
+/// which leaves a blank window. Wry translates this `help://` URL to
+/// `http://help.localhost/` on Windows and routes it back to our handler.
+const HELP_ROOT_URL: &str = "help://localhost/getting-started/overview/";
 
 /// Write the embedded baseline help to `{MP_HOME}/help` on first run, then stamp
 /// `version.txt`. If `version.txt` already exists we do nothing: either the current
@@ -251,10 +251,22 @@ pub fn open_help(app: AppHandle) -> Result<(), String> {
     // Starlight HTML that has no such control, so without a native frame there is no
     // way to close it. The close-to-tray / minimize-to-tray handlers in `lib.rs` only
     // act on the "main" window, so this X closes and destroys the help window normally.
-    WebviewWindowBuilder::new(&app, "help", WebviewUrl::CustomProtocol(url))
+    let mut builder = WebviewWindowBuilder::new(&app, "help", WebviewUrl::CustomProtocol(url))
         .title("Moonpool Help")
         .inner_size(1000.0, 720.0)
-        .resizable(true)
+        .resizable(true);
+
+    // The hub is deliberately borderless and transparent. Help is a normal document
+    // window, so make it opaque on platforms that expose this builder option. macOS
+    // does not expose `transparent` here and already creates an opaque native window.
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    {
+        builder = builder.transparent(false);
+    }
+
+    builder
+        // The hub is deliberately borderless and transparent. Help is a normal
+        // document window, so make its native frame explicit.
         .decorations(true)
         .always_on_top(on_top)
         .build()
