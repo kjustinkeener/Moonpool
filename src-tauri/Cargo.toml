@@ -29,6 +29,9 @@ serde_json = "1"
 portable-pty = "0.8"
 sysinfo = "=0.30.13"
 base64 = "0.22"
+# PNG-encode the raw capture buffer in screenshot.rs so the MCP tool can hand back a small
+# file path instead of a multi-megabyte base64 BMP blob.
+png = "0.17"
 # Embed the example dashboards in the binary; written out to the bundle on first run.
 include_dir = "0.7"
 # Custom installer/updater: tiny blocking HTTP, minisign verify, semver compare.

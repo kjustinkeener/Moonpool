@@ -699,7 +699,7 @@ fn tool_list() -> Value {
         },
         {
             "name": "moonpool_screenshot",
-            "description": "Capture Moonpool's own window content (not the screen) as a base64 BMP image, e.g. to check that a UI change actually rendered. Scoped to Moonpool's own windows only - it cannot capture any other app.",
+            "description": "Capture Moonpool's own window content (not the screen) as an inline PNG image, e.g. to check that a UI change actually rendered. Scoped to Moonpool's own windows only - it cannot capture any other app.",
             "inputSchema": json!({
                 "type": "object",
                 "properties": {
@@ -897,6 +897,19 @@ fn tool_result(id: Value, text: String, is_error: bool) -> Value {
     )
 }
 
+/// Like `tool_result`, but the success payload is an inline base64 PNG image content block
+/// rather than text - lets the MCP client render it directly instead of a giant text blob it
+/// would have to decode by hand. `moonpool_screenshot` is the only tool that returns this shape.
+fn image_tool_result(id: Value, png_base64: String) -> Value {
+    result(
+        id,
+        json!({
+            "content": [{ "type": "image", "data": png_base64, "mimeType": "image/png" }],
+            "isError": false
+        }),
+    )
+}
+
 fn handle(req: &Value) -> Option<Value> {
     let method = req.get("method").and_then(Value::as_str).unwrap_or("");
     // A request has an id; a notification does not, and must not be answered.
@@ -924,6 +937,7 @@ fn handle(req: &Value) -> Option<Value> {
                 .cloned()
                 .unwrap_or_else(|| json!({}));
             Some(match call_tool(name, &args) {
+                Ok(text) if name == "moonpool_screenshot" => image_tool_result(id, text),
                 Ok(text) => tool_result(id, text, false),
                 Err(e) => tool_result(id, e, true),
             })

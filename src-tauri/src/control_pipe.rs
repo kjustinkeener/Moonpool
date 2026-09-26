@@ -176,9 +176,10 @@ fn reply(status: &str, detail: String) -> Value {
 }
 
 /// Capture one of Moonpool's OWN windows (never an arbitrary HWND/PID from the wire) and return
-/// it as base64-encoded BMP bytes. `label` defaults to `"main"`; any value outside `ALL_WINDOWS`
+/// it as base64-encoded PNG bytes. `label` defaults to `"main"`; any value outside `ALL_WINDOWS`
 /// is rejected before a window lookup even happens, so this can never be pointed at another
-/// process's window. See `screenshot.rs` for why `PrintWindow` is safe to use this way.
+/// process's window. See `screenshot.rs` for why `PrintWindow` is safe to use this way, and why
+/// PNG (not raw BMP) keeps this small enough to hand back inline.
 fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
     let label = label.unwrap_or("main");
     if !ALL_WINDOWS.contains(&label) {
@@ -196,11 +197,10 @@ fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
     };
     // `result` must stay a plain string: `pipe_reply_to_result` (mcp.rs) reads it via
     // `Value::as_str`, the same shape every other verb here returns (dump's file path, etc).
-    // BMP bytes, base64-encoded; callers decode knowing the format is always BMP.
-    match crate::screenshot::capture_hwnd(hwnd) {
-        Ok(bmp) => json!({
+    match crate::screenshot::capture_hwnd_to_png(hwnd) {
+        Ok(png) => json!({
             "ok": true,
-            "result": base64::engine::general_purpose::STANDARD.encode(bmp)
+            "result": base64::engine::general_purpose::STANDARD.encode(png)
         }),
         Err(e) => json!({ "ok": false, "error": e }),
     }

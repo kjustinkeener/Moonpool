@@ -2427,6 +2427,7 @@ dependencies = [
  "base64 0.22.1",
  "include_dir",
  "minisign-verify",
+ "png 0.17.16",
  "portable-pty",
  "semver",
  "serde",
