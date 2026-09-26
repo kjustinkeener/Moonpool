@@ -288,10 +288,12 @@ export const helpApply = (help: HelpComponent) =>
   invoke<void>("help_apply", { help });
 /** Open (or focus) the offline help window. */
 // Open (or focus) the offline help window. It loads the embedded docs
-// directly (not wrapped in our own chrome/iframe - that hit a CSP snag
-// framing the custom `help://` scheme, and native decorations are the
-// simplest reliable way to give external Starlight HTML a working close
-// button). Built here (not in Rust) like the other detached windows above: a
+// directly (native decorations own minimize/maximize/close - an iframe/custom-
+// chrome wrapper hit a CSP snag framing the `help://` scheme). The icon+wordmark
+// brand treatment is instead injected server-side into the served HTML itself
+// (see `inject_brand_bar` in `help.rs`), swapped into Starlight's own site-title
+// link so no layout math changes. Built here (not in Rust) like the other
+// detached windows above: a
 // WebviewWindow created from a `#[tauri::command]` runs the builder on
 // Tauri's async command thread rather than the main/event-loop thread, and on
 // Windows a fresh close-then-reopen cycle could then race the previous

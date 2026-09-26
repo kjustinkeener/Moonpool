@@ -10,13 +10,20 @@
 
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
+use base64::Engine as _;
 use include_dir::{include_dir, Dir};
 use tauri::http::{Request, Response};
 use tauri::AppHandle;
 
 /// The built Starlight site, baked into the binary at build time.
 static HELP: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../help/dist");
+
+/// Brand assets for the injected header bar, the same files `Titlebar.svelte` and
+/// `SettingsControls.svelte` use for the main window's icon+wordmark treatment.
+static BRAND_ICON: &[u8] = include_bytes!("../../src/assets/app-icon.png");
+static WORDMARK: &[u8] = include_bytes!("../../src/assets/moonpool-wordmark-text.png");
 
 /// Version of the help content bundled in this build. Written to `help/version.txt`
 /// on first seed and compared against the updater manifest's `help.version`.
@@ -176,10 +183,12 @@ pub fn handle_request(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Co
                     bytes.len()
                 ),
             );
+            let is_html = content_type(&target) == "text/html; charset=utf-8";
+            let body = if is_html { inject_brand_bar(bytes) } else { bytes };
             Response::builder()
                 .status(200)
                 .header("Content-Type", content_type(&target))
-                .body(Cow::from(bytes))
+                .body(Cow::from(body))
                 .expect("help response is valid")
         }
         Err(e) => {
@@ -190,6 +199,52 @@ pub fn handle_request(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Co
             not_found()
         }
     }
+}
+
+/// Data-URI'd brand icon + wordmark, computed once and reused across requests.
+fn brand_data_uris() -> &'static (String, String) {
+    static URIS: OnceLock<(String, String)> = OnceLock::new();
+    URIS.get_or_init(|| {
+        let b64 = base64::engine::general_purpose::STANDARD;
+        (
+            format!("data:image/png;base64,{}", b64.encode(BRAND_ICON)),
+            format!("data:image/png;base64,{}", b64.encode(WORDMARK)),
+        )
+    })
+}
+
+/// Replace Starlight's own site-title text (inside its `<a href="/" class="site-title
+/// ...">` header link) with the main/Settings windows' icon+wordmark treatment.
+/// Done in-place on the existing element rather than adding new chrome, so none of
+/// Starlight's own height/layout math changes (an earlier attempt that added a
+/// separate fixed bar broke the sidebar header's responsive layout). Native window
+/// decorations still own minimize/maximize/close (see `openHelpWindow` in
+/// `api.ts`). A page with no matching site-title anchor is returned unmodified.
+fn inject_brand_bar(html: Vec<u8>) -> Vec<u8> {
+    let (icon, wordmark) = brand_data_uris();
+    let text = String::from_utf8_lossy(&html);
+    let Some(class_at) = text.find("class=\"site-title") else {
+        return html;
+    };
+    let Some(anchor_start) = text[..class_at].rfind("<a ") else {
+        return html;
+    };
+    let Some(open_tag_end_rel) = text[anchor_start..].find('>') else {
+        return html;
+    };
+    let content_start = anchor_start + open_tag_end_rel + 1;
+    let Some(close_rel) = text[content_start..].find("</a>") else {
+        return html;
+    };
+    let content_end = content_start + close_rel;
+    let brand = format!(
+        r#"<span style="display:inline-flex;align-items:center;gap:6px"><img src="{icon}" alt="" style="height:16px;width:16px;pointer-events:none;filter:drop-shadow(0 0 4px rgba(97,252,237,0.455)) drop-shadow(0 0 8px rgba(97,252,237,0.28))" /><img src="{wordmark}" alt="moonpool" style="height:15px;width:auto;pointer-events:none;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.55))" /></span>"#
+    );
+    let mut out = String::with_capacity(text.len() + brand.len());
+    out.push_str(&text[..content_start]);
+    out.push_str(&brand);
+    out.push_str(&text[content_end..]);
+    out.into_bytes()
 }
 
 /// Decode `%XX` escapes to bytes (so multi-byte UTF-8 escapes round-trip); a
