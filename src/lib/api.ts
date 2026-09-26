@@ -287,7 +287,38 @@ export const updateApply = (info: UpdateInfo) =>
 export const helpApply = (help: HelpComponent) =>
   invoke<void>("help_apply", { help });
 /** Open (or focus) the offline help window. */
-export const openHelp = () => invoke<void>("open_help");
+// Open (or focus) the offline help window. It loads the embedded docs
+// directly (not wrapped in our own chrome/iframe - that hit a CSP snag
+// framing the custom `help://` scheme, and native decorations are the
+// simplest reliable way to give external Starlight HTML a working close
+// button). Built here (not in Rust) like the other detached windows above: a
+// WebviewWindow created from a `#[tauri::command]` runs the builder on
+// Tauri's async command thread rather than the main/event-loop thread, and on
+// Windows a fresh close-then-reopen cycle could then race the previous
+// window's WebView2 teardown, leaving a native window that never actually
+// created a webview - blank, and unresponsive to its own close button since
+// nothing pumps its message loop. The JS `WebviewWindow` constructor goes
+// through Tauri's IPC, which marshals creation onto the main thread correctly.
+export async function openHelpWindow(): Promise<void> {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const existing = await WebviewWindow.getByLabel("help");
+  if (existing) {
+    await existing.show().catch(() => {});
+    await existing.setFocus().catch(() => {});
+    return;
+  }
+  const w = new WebviewWindow("help", {
+    url: "help://localhost/getting-started/overview/",
+    title: "Moonpool Help",
+    width: 1000,
+    height: 720,
+    resizable: true,
+    decorations: true,
+    transparent: false,
+    alwaysOnTop: await alwaysOnTopNow(),
+  });
+  w.once("tauri://error", (e) => console.error("help window", e));
+}
 
 export const launchApp = (id: string, cols: number, rows: number) =>
   invoke<void>("launch_app", { id, cols, rows });
@@ -321,7 +352,7 @@ export const onTermExit = (cb: (id: string) => void): Promise<UnlistenFn> =>
 // External control channel: commands forwarded from a second `moonpool.exe` run
 // (single-instance) that the UI executes as if the user had clicked.
 export interface ControlCommand {
-  action: "launch" | "stop" | "restart" | "reload" | "refresh-icons";
+  action: "launch" | "stop" | "restart" | "reload" | "refresh-icons" | "help";
   arg: string | null;
   /** Caller-supplied correlation key; when set, the outcome is reported back. */
   ticket: string | null;

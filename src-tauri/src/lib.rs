@@ -1794,12 +1794,6 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
         show_main(app);
         return;
     }
-    // `help` opens the offline help window, same as the ... menu's Help item. Answered
-    // here so the window can be opened without a UI click (used for headless testing).
-    if action == "help" {
-        let _ = help::open_help(app.clone());
-        return;
-    }
     // `quit` shuts the hub down, same as the tray Quit item. Answered here so the
     // MCP `moonpool_shutdown_launcher` tool can boot the hub back down; the caller
     // confirms by watching the process leave, so no ticket flush is needed first.
@@ -1887,7 +1881,7 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
     }
     if !matches!(
         action.as_str(),
-        "launch" | "stop" | "restart" | "reload" | "refresh-icons"
+        "launch" | "stop" | "restart" | "reload" | "refresh-icons" | "help"
     ) {
         log_line(
             app,
@@ -2971,8 +2965,7 @@ pub fn run() {
             portable::reveal_path,
             update::update_check,
             update::update_apply,
-            update::help_apply,
-            help::open_help
+            update::help_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");
