@@ -283,6 +283,7 @@ fn inject_titlebar(html: Vec<u8>) -> Vec<u8> {
   <span class="mp-tb-brand" data-tauri-drag-region>
     <img src="{icon}" alt="" />
     <img src="{wordmark}" alt="moonpool" />
+    <span class="mp-tb-label">Help</span>
   </span>
   <div class="mp-tb-controls">
     <button id="mp-tb-min" title="Minimize" aria-label="Minimize">&#x2212;</button>
@@ -306,9 +307,14 @@ html, body {{ height: 100%; overflow: hidden !important; }}
   height: 16px; width: 16px; pointer-events: none;
   filter: drop-shadow(0 0 4px rgba(97,252,237,0.455)) drop-shadow(0 0 8px rgba(97,252,237,0.28));
 }}
-.mp-tb-brand img:last-child {{
+.mp-tb-brand img:last-of-type {{
   height: 15px; width: auto; pointer-events: none;
   filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.55));
+}}
+.mp-tb-label {{
+  display: inline-flex; align-items: center; align-self: stretch;
+  color: #9aa4ac; font-size: 13px; line-height: 1; font-family: inherit; pointer-events: none;
+  border-left: 1px solid rgba(255,255,255,0.14); padding-left: 8px; margin-left: 2px;
 }}
 .mp-tb-controls {{ margin-left: auto; display: flex; height: 100%; padding-right: 4px; }}
 .mp-tb-controls button {{
