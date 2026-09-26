@@ -293,9 +293,26 @@ fn inject_titlebar(html: Vec<u8>) -> Vec<u8> {
 </div>
 <script src="/_mp-titlebar.js"></script>
 <style>
-:root {{ --sl-nav-height: calc(3.5rem + {BAR_HEIGHT_PX}px) !important; }}
-@media (width >= 50em) {{ :root {{ --sl-nav-height: calc(4rem + {BAR_HEIGHT_PX}px) !important; }} }}
+:root {{
+  --sl-nav-height: calc(3.5rem + {BAR_HEIGHT_PX}px) !important;
+  --mp-orig-nav-height: calc(var(--sl-nav-height) - {BAR_HEIGHT_PX}px);
+}}
+@media (width >= 50em) {{
+  :root {{
+    --sl-nav-height: calc(4rem + {BAR_HEIGHT_PX}px) !important;
+    --mp-orig-nav-height: calc(var(--sl-nav-height) - {BAR_HEIGHT_PX}px);
+  }}
+}}
 html, body {{ height: 100%; overflow: hidden !important; }}
+/* Starlight's own header sizes its title image off --sl-nav-height directly; since we
+   inflate that variable so the sidebar/toc/content all get pushed down below our bar,
+   the header's own box (still anchored at top:0) grew to include the space our bar now
+   covers, dragging its centered content up under the bar instead of centering it in the
+   visible strip. Give the header back its original (uninflated) height and start it right
+   below our bar instead, so its own internal centering (which we don't touch) is correct
+   again. */
+.header {{ top: {BAR_HEIGHT_PX}px !important; height: var(--mp-orig-nav-height) !important; }}
+.site-title img {{ height: calc(var(--mp-orig-nav-height) - 2 * var(--sl-nav-pad-y)) !important; }}
 #mp-titlebar {{
   position: fixed; top: 0; left: 0; right: 0; z-index: 999999;
   display: flex; align-items: center; height: {BAR_HEIGHT_PX}px; padding-left: 10px;
