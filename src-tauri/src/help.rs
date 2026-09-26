@@ -169,6 +169,15 @@ pub fn handle_request(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Co
             .body(Cow::from(b"not found".as_slice()))
             .expect("static 404 response is valid")
     };
+    // Virtual asset for the injected custom titlebar (not a file on disk - see
+    // `inject_titlebar`/`TITLEBAR_SCRIPT`).
+    if path == "/_mp-titlebar.js" {
+        return Response::builder()
+            .status(200)
+            .header("Content-Type", "text/javascript; charset=utf-8")
+            .body(Cow::from(TITLEBAR_SCRIPT.as_bytes()))
+            .expect("titlebar script response is valid");
+    }
     let Some(target) = resolve(&path) else {
         crate::log_line(app, &format!("help: {path} -> rejected (out of bounds)"));
         return not_found();
@@ -184,7 +193,7 @@ pub fn handle_request(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Co
                 ),
             );
             let is_html = content_type(&target) == "text/html; charset=utf-8";
-            let body = if is_html { inject_brand_bar(bytes) } else { bytes };
+            let body = if is_html { inject_titlebar(bytes) } else { bytes };
             Response::builder()
                 .status(200)
                 .header("Content-Type", content_type(&target))
@@ -213,37 +222,107 @@ fn brand_data_uris() -> &'static (String, String) {
     })
 }
 
-/// Replace Starlight's own site-title text (inside its `<a href="/" class="site-title
-/// ...">` header link) with the main/Settings windows' icon+wordmark treatment.
-/// Done in-place on the existing element rather than adding new chrome, so none of
-/// Starlight's own height/layout math changes (an earlier attempt that added a
-/// separate fixed bar broke the sidebar header's responsive layout). Native window
-/// decorations still own minimize/maximize/close (see `openHelpWindow` in
-/// `api.ts`). A page with no matching site-title anchor is returned unmodified.
-fn inject_brand_bar(html: Vec<u8>) -> Vec<u8> {
+/// Same-origin script for the injected custom titlebar (served from `/_mp-titlebar.js`,
+/// not from disk - see the intercept in `handle_request`). Runs with `withGlobalTauri`
+/// enabled in `tauri.conf.json`, so `window.__TAURI__` is available regardless of the
+/// page's own origin. Wired as an external file rather than an inline `<script>` tag
+/// because CSP's `script-src 'self'` blocks inline script; a same-origin file passes.
+const TITLEBAR_SCRIPT: &str = r#"(function () {
+  function wire() {
+    if (!window.__TAURI__) return;
+    var win = window.__TAURI__.window.getCurrentWindow();
+    var closeBtn = document.getElementById("mp-tb-close");
+    var minBtn = document.getElementById("mp-tb-min");
+    var maxBtn = document.getElementById("mp-tb-max");
+    if (closeBtn) closeBtn.addEventListener("click", function () { win.close(); });
+    if (minBtn) minBtn.addEventListener("click", function () { win.minimize(); });
+    if (maxBtn) {
+      maxBtn.addEventListener("click", function () { win.toggleMaximize(); });
+      var sync = function () {
+        win.isMaximized().then(function (m) {
+          maxBtn.textContent = m ? "❒" : "□";
+        });
+      };
+      sync();
+      win.onResized(sync);
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wire);
+  } else {
+    wire();
+  }
+})();
+"#;
+
+/// Insert a real custom titlebar (drag region + minimize/maximize/close, wired via
+/// `TITLEBAR_SCRIPT`) matching the main/Settings windows' icon+wordmark treatment,
+/// right after the opening `<body>` tag. The help window loads with
+/// `decorations:false` (see `openHelpWindow` in `api.ts`) so this bar is the ONLY
+/// window chrome - there's no native titlebar underneath it.
+///
+/// Starlight's own layout parameterizes header/content height entirely on the
+/// `--sl-nav-height` CSS custom property (used for the sticky nav bar's height,
+/// the sidebar's top padding, the main content's top padding, and scroll-padding),
+/// so bumping that variable - rather than hacking `body` padding directly, which an
+/// earlier attempt tried and broke the sidebar header's responsive layout - pushes
+/// every dependent measurement down together correctly.
+fn inject_titlebar(html: Vec<u8>) -> Vec<u8> {
+    const BAR_HEIGHT_PX: u32 = 32;
     let (icon, wordmark) = brand_data_uris();
     let text = String::from_utf8_lossy(&html);
-    let Some(class_at) = text.find("class=\"site-title") else {
+    let Some(body_tag_start) = text.to_ascii_lowercase().find("<body") else {
         return html;
     };
-    let Some(anchor_start) = text[..class_at].rfind("<a ") else {
+    let Some(tag_end_offset) = text[body_tag_start..].find('>') else {
         return html;
     };
-    let Some(open_tag_end_rel) = text[anchor_start..].find('>') else {
-        return html;
-    };
-    let content_start = anchor_start + open_tag_end_rel + 1;
-    let Some(close_rel) = text[content_start..].find("</a>") else {
-        return html;
-    };
-    let content_end = content_start + close_rel;
-    let brand = format!(
-        r#"<span style="display:inline-flex;align-items:center;gap:6px"><img src="{icon}" alt="" style="height:16px;width:16px;pointer-events:none;filter:drop-shadow(0 0 4px rgba(97,252,237,0.455)) drop-shadow(0 0 8px rgba(97,252,237,0.28))" /><img src="{wordmark}" alt="moonpool" style="height:15px;width:auto;pointer-events:none;filter:drop-shadow(1px 1px 1px rgba(0,0,0,0.55))" /></span>"#
+    let insert_at = body_tag_start + tag_end_offset + 1;
+    let bar = format!(
+        r#"<div id="mp-titlebar" data-tauri-drag-region>
+  <span class="mp-tb-brand" data-tauri-drag-region>
+    <img src="{icon}" alt="" />
+    <img src="{wordmark}" alt="moonpool" />
+  </span>
+  <div class="mp-tb-controls">
+    <button id="mp-tb-min" title="Minimize" aria-label="Minimize">&#x2212;</button>
+    <button id="mp-tb-max" title="Maximize" aria-label="Maximize">&#x25a1;</button>
+    <button id="mp-tb-close" title="Close" aria-label="Close">&#x2715;</button>
+  </div>
+</div>
+<script src="/_mp-titlebar.js"></script>
+<style>
+:root {{ --sl-nav-height: calc(3.5rem + {BAR_HEIGHT_PX}px) !important; }}
+@media (width >= 50em) {{ :root {{ --sl-nav-height: calc(4rem + {BAR_HEIGHT_PX}px) !important; }} }}
+#mp-titlebar {{
+  position: fixed; top: 0; left: 0; right: 0; z-index: 999999;
+  display: flex; align-items: center; height: {BAR_HEIGHT_PX}px; padding-left: 10px;
+  background: #14181c; border-bottom: 1px solid rgba(255,255,255,0.08);
+  user-select: none; -webkit-user-select: none;
+}}
+.mp-tb-brand {{ display: inline-flex; align-items: center; gap: 6px; }}
+.mp-tb-brand img:first-child {{
+  height: 16px; width: 16px; pointer-events: none;
+  filter: drop-shadow(0 0 4px rgba(97,252,237,0.455)) drop-shadow(0 0 8px rgba(97,252,237,0.28));
+}}
+.mp-tb-brand img:last-child {{
+  height: 15px; width: auto; pointer-events: none;
+  filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.55));
+}}
+.mp-tb-controls {{ margin-left: auto; display: flex; height: 100%; padding-right: 4px; }}
+.mp-tb-controls button {{
+  width: 30px; height: 100%; display: grid; place-items: center; border: none;
+  background: transparent; color: #d7dee3; cursor: pointer; font-size: 13px;
+  font-family: inherit; padding: 0;
+}}
+.mp-tb-controls button:hover {{ background: rgba(255,255,255,0.12); }}
+#mp-tb-close:hover {{ background: #e81123; color: #fff; }}
+</style>"#
     );
-    let mut out = String::with_capacity(text.len() + brand.len());
-    out.push_str(&text[..content_start]);
-    out.push_str(&brand);
-    out.push_str(&text[content_end..]);
+    let mut out = String::with_capacity(text.len() + bar.len());
+    out.push_str(&text[..insert_at]);
+    out.push_str(&bar);
+    out.push_str(&text[insert_at..]);
     out.into_bytes()
 }
 
