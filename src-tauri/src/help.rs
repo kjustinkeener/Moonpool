@@ -311,7 +311,7 @@ html, body {{ height: 100%; overflow: hidden !important; }}
    visible strip. Give the header back its original (uninflated) height and start it right
    below our bar instead, so its own internal centering (which we don't touch) is correct
    again. */
-.header {{ top: {BAR_HEIGHT_PX}px !important; height: var(--mp-orig-nav-height) !important; }}
+header.header {{ top: {BAR_HEIGHT_PX}px !important; height: var(--mp-orig-nav-height) !important; }}
 .site-title img {{ height: calc(var(--mp-orig-nav-height) - 2 * var(--sl-nav-pad-y)) !important; }}
 #mp-titlebar {{
   position: fixed; top: 0; left: 0; right: 0; z-index: 999999;
