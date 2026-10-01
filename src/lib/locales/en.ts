@@ -134,7 +134,16 @@ export const en = {
     "On launch, quietly checks GitHub for a newer version and shows a banner if one is found.",
   "settings.debugLogging": "Log debug info to a file",
   "settings.debugLoggingHint": "Records manifest loads, launches, and errors to {file}.",
-  "settings.openLog": "Open log",
+  "settings.openLog": "Reveal log file",
+  "settings.copyLogPath": "Copy log file path",
+  "settings.cliLogging": "Keep app output logs between sessions",
+  "settings.cliLoggingHint":
+    "The running session's CLI output is always kept for its own tabs. This controls whether older sessions' logs stay on disk under cli-output/, capped by the retention setting below - off discards them as soon as a session ends.",
+  "settings.revealCliOutputDir": "Reveal CLI log folder",
+  "settings.copyCliOutputPath": "Copy CLI log folder path",
+  "settings.logRetentionMb": "Log retention per app",
+  "settings.logRetentionMbHint":
+    "Cap, in MB, on each app's combined CLI log size under cli-output/ from past sessions. The current session's log is never truncated or discarded by this cap.",
   "settings.showInTray": "Show in tray",
   "settings.showInTrayHint": "Keep the Moonpool tray icon visible.",
   "settings.showInTaskbar": "Show in taskbar",

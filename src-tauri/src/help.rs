@@ -193,7 +193,11 @@ pub fn handle_request(app: &AppHandle, request: Request<Vec<u8>>) -> Response<Co
                 ),
             );
             let is_html = content_type(&target) == "text/html; charset=utf-8";
-            let body = if is_html { inject_titlebar(bytes) } else { bytes };
+            let body = if is_html {
+                inject_titlebar(bytes)
+            } else {
+                bytes
+            };
             Response::builder()
                 .status(200)
                 .header("Content-Type", content_type(&target))
@@ -389,4 +393,3 @@ fn hex_val(b: u8) -> Option<u8> {
         _ => None,
     }
 }
-

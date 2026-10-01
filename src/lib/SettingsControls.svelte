@@ -12,9 +12,14 @@
     setShowInTaskbar,
     setShowStatusbar,
     setShowMcpProcesses,
-    openLog,
+    setLogRetentionMb,
+    setCliLogging,
+    revealLog,
     manifestDir,
+    cliOutputDir,
+    revealCliOutputDir,
   } from "./api";
+  import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { getTheme, setTheme, THEMES, type Theme } from "./theme";
   import { t, localeChoice, LOCALES, setLocale } from "./i18n.svelte";
   import { emit } from "@tauri-apps/api/event";
@@ -38,6 +43,8 @@
     showStatusbar: boolean;
     showMcpProcesses: boolean;
     debugLogging: boolean;
+    cliLogging: boolean;
+    logRetentionMb: number;
   } = {
     closeToTray: false,
     minimizeToTray: true,
@@ -49,9 +56,12 @@
     showStatusbar: true,
     showMcpProcesses: true,
     debugLogging: false,
+    cliLogging: false,
+    logRetentionMb: 10,
   };
 
   let debugLogging = $state(DEFAULTS.debugLogging);
+  let cliLogging = $state(DEFAULTS.cliLogging);
   let closeToTray = $state(DEFAULTS.closeToTray);
   let minimizeToTray = $state(DEFAULTS.minimizeToTray);
   let checkOnStartup = $state(DEFAULTS.checkOnStartup);
@@ -61,8 +71,11 @@
   let showInTaskbar = $state(DEFAULTS.showInTaskbar);
   let showStatusbar = $state(DEFAULTS.showStatusbar);
   let showMcpProcesses = $state(DEFAULTS.showMcpProcesses);
+  let logRetentionMb = $state(DEFAULTS.logRetentionMb);
   let saveError = $state("");
   let dir = $state("");
+  let cliDir = $state("");
+  const logPathText = $derived(dir ? `${dir}${dir.includes("\\") ? "\\" : "/"}moonpool.log` : "");
 
   // Named palettes (Nord, Gruvbox, ...) are proper nouns and stay as written in
   // theme.ts; only the three generic ids have a translatable name.
@@ -115,6 +128,51 @@
     setTransparency(transparency).catch(() => {});
   }
 
+  let logRetentionSaveTimer: ReturnType<typeof setTimeout>;
+  function onLogRetentionInput(e: Event) {
+    const raw = Math.max(1, Number((e.target as HTMLInputElement).value) || 1);
+    logRetentionMb = raw;
+    clearTimeout(logRetentionSaveTimer);
+    logRetentionSaveTimer = setTimeout(
+      () => setLogRetentionMb(logRetentionMb).catch(() => {}),
+      400,
+    );
+  }
+  function resetLogRetention() {
+    logRetentionMb = DEFAULTS.logRetentionMb;
+    setLogRetentionMb(logRetentionMb).catch(() => {});
+  }
+
+  let logPathCopied = $state(false);
+  let logPathCopiedTimer: ReturnType<typeof setTimeout> | null = null;
+  function copyLogPath() {
+    if (!logPathText) return;
+    writeText(logPathText)
+      .then(() => {
+        logPathCopied = true;
+        if (logPathCopiedTimer) clearTimeout(logPathCopiedTimer);
+        logPathCopiedTimer = setTimeout(() => (logPathCopied = false), 1200);
+      })
+      .catch(() => {});
+  }
+
+  let cliPathCopied = $state(false);
+  let cliPathCopiedTimer: ReturnType<typeof setTimeout> | null = null;
+  function copyCliOutputPath() {
+    if (!cliDir) return;
+    writeText(cliDir)
+      .then(() => {
+        cliPathCopied = true;
+        if (cliPathCopiedTimer) clearTimeout(cliPathCopiedTimer);
+        cliPathCopiedTimer = setTimeout(() => (cliPathCopied = false), 1200);
+      })
+      .catch(() => {});
+  }
+
+  function selectPath(e: FocusEvent) {
+    (e.target as HTMLInputElement).select();
+  }
+
   onMount(async () => {
     try {
       const s = await getSettings();
@@ -128,12 +186,17 @@
       showInTaskbar = s.showInTaskbar ?? true;
       showStatusbar = s.showStatusbar ?? true;
       showMcpProcesses = s.showMcpProcesses ?? true;
+      logRetentionMb = s.logRetentionMb ?? 10;
+      cliLogging = s.cliLogging ?? false;
       applyTransparency(transparency);
     } catch (e) {
       saveError = `Could not load settings.json: ${String(e)}`;
     }
     manifestDir()
       .then((d) => (dir = d))
+      .catch(() => {});
+    cliOutputDir()
+      .then((d) => (cliDir = d))
       .catch(() => {});
   });
 
@@ -178,6 +241,12 @@
       }
     },
     DEFAULTS.debugLogging,
+  );
+  const cliLoggingCtl = boolSetting(
+    () => cliLogging,
+    (v) => (cliLogging = v),
+    setCliLogging,
+    DEFAULTS.cliLogging,
   );
   const closeToTrayCtl = boolSetting(
     () => closeToTray,
@@ -258,6 +327,8 @@
 <div class="content" use:scrollFade>
   {#if saveError}<div class="save-error" role="alert">{saveError}</div>{/if}
 
+  <div class="columns">
+  <div class="col">
   <div class="setting">
     <div class="title">{t("settings.language")}</div>
     <select
@@ -408,26 +479,126 @@
     />
     <span>{t("settings.checkOnStartup")}</span>
   </label>
+  </div>
 
-  <label
-    class="row"
-    title={t("settings.debugLoggingHint", { file: "moonpool.log" }) + " " + t("settings.resetTip")}
-  >
-    <input
-      type="checkbox"
-      checked={debugLogging}
-      onchange={debugLoggingCtl.toggle}
-      oncontextmenu={debugLoggingCtl.reset}
-    />
-    <span>{t("settings.debugLogging")}</span>
-  </label>
+  <div class="col">
+  <div class="log-card">
+    <label class="row" title={t("settings.cliLoggingHint") + " " + t("settings.resetTip")}>
+      <input
+        type="checkbox"
+        checked={cliLogging}
+        onchange={cliLoggingCtl.toggle}
+        oncontextmenu={cliLoggingCtl.reset}
+      />
+      <span>{t("settings.cliLogging")}</span>
+    </label>
 
-  {#if dir}
-    <div class="path">{dir}{dir.includes("\\") ? "\\" : "/"}moonpool.log</div>
-  {/if}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="setting"
+      role="group"
+      title={t("settings.logRetentionMbHint") + " " + t("settings.resetTip")}
+      oncontextmenu={(e) => {
+        e.preventDefault();
+        resetLogRetention();
+      }}
+    >
+      <div class="title">{t("settings.logRetentionMb")}</div>
+      <div class="slider-row">
+        <input
+          class="num-input"
+          type="number"
+          min="1"
+          step="1"
+          disabled={!cliLogging}
+          value={logRetentionMb}
+          oninput={onLogRetentionInput}
+          aria-label={t("settings.logRetentionMb")}
+        />
+        <span class="pct">MB</span>
+      </div>
+    </div>
 
-  <div class="actions">
-    <button class="btn" onclick={() => openLog()}>{t("settings.openLog")}</button>
+    {#if cliDir}
+    <div class="path-row">
+      <input
+        class="path"
+        type="text"
+        readonly
+        value={cliDir}
+        style="width: {cliDir.length}ch"
+        onfocus={selectPath}
+        aria-label={t("settings.cliLogging")}
+      />
+      <div class="path-actions">
+        <button
+          class="icon-btn"
+          title={t("settings.revealCliOutputDir")}
+          aria-label={t("settings.revealCliOutputDir")}
+          onclick={() => revealCliOutputDir()}
+        >
+          <Icon name="folder" size={14} />
+        </button>
+        <button
+          class="icon-btn"
+          title={cliPathCopied ? t("term.copied") : t("settings.copyCliOutputPath")}
+          aria-label={t("settings.copyCliOutputPath")}
+          onclick={copyCliOutputPath}
+        >
+          <Icon name={cliPathCopied ? "check" : "copy"} size={14} />
+        </button>
+      </div>
+    </div>
+    {/if}
+  </div>
+
+  <div class="log-card">
+    <label
+      class="row"
+      title={t("settings.debugLoggingHint", { file: "moonpool.log" }) + " " + t("settings.resetTip")}
+    >
+      <input
+        type="checkbox"
+        checked={debugLogging}
+        onchange={debugLoggingCtl.toggle}
+        oncontextmenu={debugLoggingCtl.reset}
+      />
+      <span>{t("settings.debugLogging")}</span>
+    </label>
+
+    {#if dir}
+    <div class="path-row">
+      <input
+        class="path"
+        type="text"
+        readonly
+        value={logPathText}
+        style="width: {logPathText.length}ch"
+        onfocus={selectPath}
+        aria-label={t("settings.debugLogging")}
+      />
+      <div class="path-actions">
+        <button
+          class="icon-btn"
+          title={t("settings.openLog")}
+          aria-label={t("settings.openLog")}
+          onclick={() => revealLog()}
+        >
+          <Icon name="folder" size={14} />
+        </button>
+        <button
+          class="icon-btn"
+          title={logPathCopied ? t("term.copied") : t("settings.copyLogPath")}
+          aria-label={t("settings.copyLogPath")}
+          onclick={copyLogPath}
+        >
+          <Icon name={logPathCopied ? "check" : "copy"} size={14} />
+        </button>
+      </div>
+    </div>
+    {/if}
+  </div>
+  </div>
   </div>
 </div>
 </div>
@@ -503,6 +674,15 @@
     padding: 16px 22px 20px;
     color: var(--text);
   }
+  .columns {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .col {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .save-error {
     margin-bottom: 10px;
     padding: 7px 9px;
@@ -567,30 +747,78 @@
     outline: none;
     border-color: var(--focus);
   }
+  .log-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--bg-elevated) 45%, transparent);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .log-card .row,
+  .log-card .setting {
+    margin-bottom: 12px;
+  }
+  .log-card .row:last-child,
+  .log-card .setting:last-child,
+  .log-card .path-row:last-child {
+    margin-bottom: 0;
+  }
+  .path-row {
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+  }
   .path {
+    flex: 0 1 auto;
+    min-width: 0;
+    box-sizing: content-box;
     font-family: "Cascadia Code", Consolas, monospace;
     font-size: 11px;
     color: var(--text-dim);
     background: var(--bg);
     border: 1px solid var(--border-muted);
     border-radius: 6px;
-    padding: 7px 9px;
-    margin-top: 4px;
-    word-break: break-all;
+    padding: 7px 62px 7px 9px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
   }
-  .actions {
+  .path:focus {
+    outline: none;
+    border-color: var(--focus);
+    color: var(--text);
+  }
+  .path-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 18px;
+    gap: 2px;
+    padding-right: 4px;
   }
-  .btn {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 7px 14px;
-    border-radius: 6px;
+  .icon-btn {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    border-radius: 5px;
     cursor: pointer;
-    font-size: 13px;
+  }
+  .icon-btn:hover {
+    color: var(--text);
+    background: var(--bg-elevated);
+    border-color: var(--border);
+  }
+  .num-input {
+    width: 60px;
+    flex: none;
+    box-sizing: border-box;
   }
 </style>

@@ -46,6 +46,10 @@
   let statuses = $state<Record<string, AppStatus>>({});
   let openTabs = $state<string[]>([]);
   let activeTab = $state<string | null>(null);
+  // Which tab-opens should start the app on mount vs. just view its log (see
+  // TermView's autoLaunch prop). Keyed by id; read once per mount (gen bump),
+  // so a stale true/false left over from an earlier open is harmless.
+  let launchOnOpen = $state<Record<string, boolean>>({});
   let filter = $state("");
   // Bump a tab's generation to force TermView to remount (fresh terminal + relaunch).
   let gen = $state<Record<string, number>>({});
@@ -638,19 +642,26 @@
       // Tab already exists: focus a live one, relaunch a stopped one in place.
       if (!isActive(app.id)) {
         setPending(app.id, "up");
+        launchOnOpen = { ...launchOnOpen, [app.id]: true };
         gen = { ...gen, [app.id]: (gen[app.id] ?? 0) + 1 };
       }
       activeTab = app.id;
       return;
     }
     setPending(app.id, "up");
+    launchOnOpen = { ...launchOnOpen, [app.id]: true };
     openTabs = [...openTabs, app.id];
     activeTab = app.id;
   }
 
-  // Clicking a name focuses its terminal tab if open; it never launches.
+  // Clicking a name always opens/focuses its tab - showing this session's log
+  // even if the app was never launched or its tab was closed - but never
+  // launches anything itself; use the Launch/Restart controls for that.
   function handleSelect(app: AppEntry) {
-    if (openTabs.includes(app.id)) activeTab = app.id;
+    if (!openTabs.includes(app.id)) {
+      openTabs = [...openTabs, app.id];
+    }
+    activeTab = app.id;
   }
 
   async function handleReload() {
@@ -700,6 +711,7 @@
     while (isActive(app.id) && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 100));
     }
+    launchOnOpen = { ...launchOnOpen, [app.id]: true };
     if (!openTabs.includes(app.id)) {
       openTabs = [...openTabs, app.id];
     } else {
@@ -801,7 +813,7 @@
 
     <section class="terminals">
       {#each openTabs as id (id + "#" + (gen[id] ?? 0))}
-        <TermView {id} active={activeTab === id} />
+        <TermView {id} active={activeTab === id} autoLaunch={launchOnOpen[id] ?? false} />
       {/each}
       {#if openTabs.length === 0}
         <div class="placeholder">

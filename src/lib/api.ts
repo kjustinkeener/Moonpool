@@ -10,6 +10,9 @@ export const openManifest = () => invoke<void>("open_manifest");
 
 export const manifestDir = () => invoke<string>("manifest_dir");
 
+export const cliOutputDir = () => invoke<string>("cli_output_dir_str");
+export const revealCliOutputDir = () => invoke<void>("reveal_cli_output_dir");
+
 export const saveManifest = (entries: AppEntry[]) =>
   invoke<void>("save_manifest", { entries });
 
@@ -31,6 +34,10 @@ export interface Settings {
   uiScale: number;
   /** UI language: "auto" or a tag from LOCALES in i18n.svelte.ts. */
   locale: string;
+  /** Cap, MB, on an app's combined on-disk CLI log size (see cli-output/). */
+  logRetentionMb: number;
+  /** Whether launched apps' output is written to cli-output/ at all. */
+  cliLogging: boolean;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
 export const setDebugLogging = (enabled: boolean) =>
@@ -55,6 +62,14 @@ export const setShowStatusbar = (enabled: boolean) =>
   invoke<void>("set_show_statusbar", { enabled });
 export const setShowMcpProcesses = (enabled: boolean) =>
   invoke<void>("set_show_mcp_processes", { enabled });
+export const setLogRetentionMb = (value: number) =>
+  invoke<void>("set_log_retention_mb", { value });
+export const setCliLogging = (enabled: boolean) =>
+  invoke<void>("set_cli_logging", { enabled });
+
+// This app's persistent CLI log for the current hub session, base64-encoded raw
+// PTY bytes (ANSI included) - "" if it hasn't produced output yet this session.
+export const runLogBytes = (id: string) => invoke<string>("run_log_bytes", { id });
 
 export const onSysStats = (cb: (s: SysStats) => void): Promise<UnlistenFn> =>
   listen<SysStats>("sysstats", (e) => cb(e.payload));
@@ -69,6 +84,7 @@ const alwaysOnTopNow = () =>
     .then((s) => !!s.alwaysOnTop)
     .catch(() => false);
 export const openLog = () => invoke<void>("open_log");
+export const revealLog = () => invoke<void>("reveal_log");
 
 // Open (or focus, if already open) the detached Settings window. It's a real OS
 // window loading the app at #settings, so it floats free of the main window and
@@ -90,10 +106,10 @@ export async function openSettingsWindow(): Promise<void> {
   const w = new WebviewWindow("settings", {
     url: "index.html#settings",
     title: "Moonpool Settings",
-    width: 480,
-    height: 700,
-    minWidth: 420,
-    minHeight: 460,
+    width: 860,
+    height: 620,
+    minWidth: 760,
+    minHeight: 420,
     resizable: true,
     center: true,
     // Frameless, like the other detached windows: SettingsControls draws its
