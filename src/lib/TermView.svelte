@@ -3,7 +3,7 @@
   import { Terminal } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
   import "@xterm/xterm/css/xterm.css";
-  import { launchApp, termInput, termResize, onTermOutput, onTermExit } from "./api";
+  import { launchApp, termInput, termResize, onTermOutput, onTermExit, runLogBytes } from "./api";
   import { onThemeChange } from "./theme";
   import { scrollFade } from "./scrollfade";
   import { ansiFor } from "./ansi";
@@ -12,7 +12,11 @@
   import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
   import { type UnlistenFn } from "@tauri-apps/api/event";
 
-  let { id, active }: { id: string; active: boolean } = $props();
+  // autoLaunch: whether mounting this tab should start the app. Reopening a
+  // closed tab just to view its log (see App.svelte's handleSelect) passes
+  // false - the log is backfilled from disk instead, no process is started.
+  let { id, active, autoLaunch = true }: { id: string; active: boolean; autoLaunch?: boolean } =
+    $props();
 
   let el: HTMLDivElement;
   let term: Terminal;
@@ -170,14 +174,31 @@
     if (destroyed) return uExit();
     unlistenExit = uExit;
 
-    // Launch the app sized to the terminal we just laid out - unless we've since
-    // unmounted (e.g. the user switched away before this resolved).
     if (destroyed) return;
-    try {
-      await launchApp(id, term.cols, term.rows);
-    } catch (err) {
-      // Most likely "already running" - just show a note.
-      term.write(`\r\n\x1b[33m${err}\x1b[0m\r\n`);
+    if (autoLaunch) {
+      // Launch the app sized to the terminal we just laid out - unless we've
+      // since unmounted (e.g. the user switched away before this resolved).
+      try {
+        await launchApp(id, term.cols, term.rows);
+      } catch (err) {
+        // Most likely "already running" - just show a note.
+        term.write(`\r\n\x1b[33m${err}\x1b[0m\r\n`);
+      }
+    } else {
+      // View-only reopen: backfill this session's log instead of starting
+      // anything. If the app is actually running, live output from the
+      // onTermOutput listener above already continues to append past this.
+      try {
+        const b64 = await runLogBytes(id);
+        if (b64) {
+          const bin = atob(b64);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          if (!destroyed) term.write(arr);
+        }
+      } catch (err) {
+        if (!destroyed) term.write(`\r\n\x1b[33m${err}\x1b[0m\r\n`);
+      }
     }
 
     if (destroyed) return;

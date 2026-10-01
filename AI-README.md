@@ -36,6 +36,13 @@ variable form, and then edit a file the real Moonpool never sees.
   "openBrowser": true,           // web/static: open the browser
   "env": { "PORT": "5173" },     // optional env vars injected into the command
   "processName": "app",          // desktop: status by process name (its .exe, without extension)
+  "killMode": "port",            // how stop/restart finds & kills what this app left running,
+                                  //   beyond the PTY tree Moonpool already tree-kills unconditionally.
+                                  //   One of: "processName" | "port" | "command" | "none".
+                                  //   Unset defaults to "processName" for desktop, "port" for web,
+                                  //   "none" otherwise - i.e. omitting it preserves old behavior.
+  "stopCommand": "docker compose stop app", // killMode "command" only: run this in `cwd`, awaited
+                                  //   to completion before restart's relaunch
   "note": "shown as a tooltip"   // optional
 }
 ```
@@ -49,6 +56,31 @@ variable form, and then edit a file the real Moonpool never sees.
   terminal). With a `command` it runs that (e.g. a doc generator) then exits.
 - **cli** - a tool. Opens an interactive shell in `cwd`. To run something first and keep the
   shell open, use `pwsh -NoLogo -NoProfile -NoExit -Command <tokens...>`.
+
+## killMode (stop/restart cleanup, beyond the PTY tree)
+
+On stop/restart, Moonpool always tree-kills the PTY subtree it spawned for `command` first. For
+some apps that isn't enough (a desktop window detaches from its dev server; a web server
+subprocess can linger holding `port`), so it does one more thing afterward, per `killMode`:
+
+- **"processName"** (desktop default) - force-kill every process matching `processName`.
+- **"port"** (web default) - force-kill whatever process is listening on `port`.
+- **"command"** - run `stopCommand` in `cwd` and wait for it to finish.
+- **"none"** - nothing further. Use this when the app's real lifecycle isn't Moonpool's to
+  manage beyond the launcher script itself.
+
+**Set `killMode: "none"` (or `"command"` with a real stop command) for anything backed by Docker
+on Windows.** Docker Desktop proxies every container's published port through one shared backend
+process (`com.docker.backend.exe` / vpnkit) - there is no per-container host listener. So `"port"`
+mode's "whatever owns the port" resolves to that one shared Docker Desktop process for EVERY
+container, not the one this app's config points at: force-killing it takes down Docker Desktop
+entirely, for every app that depends on it, not just this one. A Docker Compose app whose launch
+`command` already does `docker compose up -d --build` (an idempotent recreate) needs no separate
+kill step at all - `killMode: "none"` is correct, and restart re-running `command` does the
+right thing on its own. Moonpool also refuses to kill a handful of well-known shared/system
+process images even under `"port"` mode as a backstop (see `platform::NEVER_KILL_BY_PORT` in the
+source), but don't rely on that list instead of setting the right `killMode` - it only covers
+process image names, not every way an app-specific config could point at shared infrastructure.
 
 ## Command rules (important)
 
@@ -107,11 +139,15 @@ Then run it with a command word:
 launch). These only work while Moonpool is running; if it isn't, start it first (or a bare run
 just opens it).
 
-`dump` writes the app's recent terminal output (ANSI stripped, last ~512 KB, the current
-run only) to `%APPDATA%\Moonpool\dumps\<app-id>.log`, or to a path you pass as a third
-argument: `& $mp dump my-app C:\tmp\out.log`. Read that file to see what an app printed
-without opening the window. Tag it with `--ticket` and the ticket's `detail` is the file
-path it wrote (or why it couldn't - e.g. the app hasn't been launched this session).
+Each app writes ONE persistent, append-only log per hub session (never truncated) to
+`%APPDATA%\Moonpool\cli-output\<app-id>-<hub-start-ms>.log` - stopping and relaunching
+the app keeps appending to the same file; only restarting Moonpool itself starts a new
+one. `Settings > Log retention per app` (default 10 MB) prunes each app's OLDER
+sessions' log files once their combined size passes the cap; the current file is
+exempt and always survives. `dump` hands you that file's path directly (no `out-path`),
+or copies it out as ANSI-stripped plain text to a path you pass as a third argument:
+`& $mp dump my-app C:\tmp\out.log`. Tag it with `--ticket` and the ticket's `detail` is
+the path (or why it couldn't - e.g. the app hasn't produced output this session).
 
 **This channel needs Moonpool v0.1.4 or newer.** If running a command opens a NEW window
 instead of handing off to the open one, the running build is older - update Moonpool first.

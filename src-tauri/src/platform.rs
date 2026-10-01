@@ -81,6 +81,32 @@ pub fn open_text_file(path: &std::path::Path) -> bool {
     }
 }
 
+/// Open the file manager with `path` pre-selected, so the user lands right on the
+/// file instead of just its folder. Windows and macOS both support this natively;
+/// Linux file managers have no common "select" argument, so fall back to just
+/// opening the containing folder there (still lands the user one click away).
+/// Best-effort: a missing/unreadable path or a failed spawn is silently ignored,
+/// same as the rest of this module's OS-shell helpers.
+pub fn reveal_in_folder(path: &std::path::Path) {
+    #[cfg(windows)]
+    {
+        let mut c = Command::new("explorer.exe");
+        c.arg("/select,");
+        c.arg(path);
+        hidden(&mut c);
+        let _ = c.spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = Command::new("open").arg("-R").arg(path).spawn();
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let dir = path.parent().unwrap_or(path);
+        let _ = Command::new("xdg-open").arg(dir).spawn();
+    }
+}
+
 /// Force-kill a process tree rooted at `pid`.
 pub fn kill_tree(pid: u32) {
     #[cfg(windows)]
@@ -326,6 +352,41 @@ mod job_object_tests {
     }
 }
 
+/// Run `command` to completion in `cwd` (default: the current directory) with `env`
+/// merged in, via the platform shell (`cmd /c` / `sh -c`). Used for `killMode: "command"`
+/// so a caller-supplied stop command (e.g. `docker compose stop app`) finishes before
+/// restart's relaunch can race it. Runs on the blocking thread `stop_app` is already
+/// dispatched on (a sync Tauri command), so waiting here does not freeze the UI.
+pub fn run_stop_command(
+    command: &str,
+    cwd: Option<&str>,
+    env: Option<&std::collections::HashMap<String, String>>,
+) {
+    #[cfg(windows)]
+    let mut c = {
+        let mut c = Command::new("cmd");
+        c.args(["/c", command]);
+        c
+    };
+    #[cfg(not(windows))]
+    let mut c = {
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+        let mut c = Command::new(shell);
+        c.args(["-c", command]);
+        c
+    };
+    if let Some(dir) = cwd {
+        c.current_dir(dir);
+    }
+    if let Some(vars) = env {
+        c.envs(vars);
+    }
+    hidden(&mut c);
+    // Best-effort: a stop command failing to run/exit-nonzero must not block the rest
+    // of stop_app (the PTY tree is already dead by the time this runs).
+    let _ = c.status();
+}
+
 /// Force-kill every process matching `name` (its base exe name).
 pub fn kill_by_name(name: &str) {
     #[cfg(windows)]
@@ -346,13 +407,50 @@ pub fn kill_by_name(name: &str) {
     }
 }
 
-/// Free a TCP port by killing whatever is listening on it.
+/// Process images `free_port` must never kill even if found "owning" a port, because
+/// they are shared host infrastructure rather than a process scoped to one app: killing
+/// them takes down every app relying on them, not just the one being stopped. The
+/// motivating case is Docker Desktop on Windows, which proxies every container's
+/// published port through one shared backend/VPN process - "whatever owns port 8080"
+/// can be Docker Desktop itself, not the container behind that port.
+const NEVER_KILL_BY_PORT: &[&str] = &[
+    "com.docker.backend",
+    "com.docker.proxy",
+    "com.docker.service",
+    "com.docker.cli",
+    "dockerd",
+    "docker desktop",
+    "vpnkit",
+    "vpnkit-bridge",
+    "wsl",
+    "wslservice",
+    "wslhost",
+    "svchost",
+    "services",
+    "lsass",
+    "csrss",
+    "wininit",
+    "winlogon",
+    "system",
+];
+
+/// Free a TCP port by killing whatever is listening on it - skipping any owner whose
+/// image name is in `NEVER_KILL_BY_PORT` (logged, not force-killed).
 pub fn free_port(port: u16) {
     #[cfg(windows)]
     {
+        let denylist = NEVER_KILL_BY_PORT.join(",");
         let script = format!(
-            "$l = Get-NetTCPConnection -LocalPort {port} -State Listen -ErrorAction SilentlyContinue; \
-             foreach ($p in ($l.OwningProcess | Sort-Object -Unique)) {{ taskkill /PID $p /T /F 2>$null | Out-Null }}"
+            "$deny = '{denylist}'.Split(','); \
+             $l = Get-NetTCPConnection -LocalPort {port} -State Listen -ErrorAction SilentlyContinue; \
+             foreach ($p in ($l.OwningProcess | Sort-Object -Unique)) {{ \
+               $proc = Get-Process -Id $p -ErrorAction SilentlyContinue; \
+               if ($proc -and ($deny -contains $proc.ProcessName.ToLower())) {{ \
+                 Write-Output \"free_port {port}: refusing to kill shared process $($proc.ProcessName) (pid $p)\"; \
+               }} else {{ \
+                 taskkill /PID $p /T /F 2>$null | Out-Null \
+               }} \
+             }}"
         );
         // Windows PowerShell 5.1 (always present), not the Store `pwsh`.
         let mut c = Command::new("powershell");
@@ -389,6 +487,50 @@ pub fn extract_exe_icon(exe: &std::path::Path, out: &std::path::Path) -> bool {
     cmd.args(["-NoProfile", "-Command", &script]);
     hidden(&mut cmd);
     cmd.status().map(|s| s.success()).unwrap_or(false) && out.is_file()
+}
+
+#[cfg(test)]
+mod never_kill_by_port_tests {
+    use super::NEVER_KILL_BY_PORT;
+
+    #[test]
+    fn covers_every_docker_and_wsl_backend_process() {
+        // Regression lock for the bug this list exists to prevent: killMode "port"
+        // force-killing "whatever owns the port" resolved to Docker Desktop's one
+        // shared backend on Windows, taking every container down, not just one app's.
+        for must_have in [
+            "com.docker.backend",
+            "com.docker.proxy",
+            "com.docker.service",
+            "dockerd",
+            "docker desktop",
+            "vpnkit",
+            "wsl",
+        ] {
+            assert!(
+                NEVER_KILL_BY_PORT.contains(&must_have),
+                "{must_have:?} must stay in the denylist"
+            );
+        }
+    }
+
+    #[test]
+    fn every_entry_is_already_lowercase() {
+        // free_port's PowerShell script lowercases the candidate process name before
+        // comparing; an uppercase entry here would silently never match anything.
+        for name in NEVER_KILL_BY_PORT {
+            assert_eq!(*name, name.to_lowercase(), "{name:?} must be lowercase");
+        }
+    }
+
+    #[test]
+    fn has_no_duplicate_entries() {
+        for (i, a) in NEVER_KILL_BY_PORT.iter().enumerate() {
+            for b in &NEVER_KILL_BY_PORT[i + 1..] {
+                assert_ne!(a, b, "duplicate entry {a:?}");
+            }
+        }
+    }
 }
 
 #[cfg(not(windows))]

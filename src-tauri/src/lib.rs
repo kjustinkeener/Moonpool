@@ -69,6 +69,32 @@ struct AppEntry {
         skip_serializing_if = "Option::is_none"
     )]
     process_name: Option<String>,
+    /// How `stop`/`restart` finds and kills whatever this app left running, beyond the
+    /// PTY subtree Moonpool itself spawned and already tree-kills unconditionally. One
+    /// of: "processName" (kill by exe name, via `processName`), "port" (kill whatever
+    /// owns `port` - dangerous for a published Docker port on Windows, see below),
+    /// "command" (run `stopCommand` in `cwd`), or "none" (do nothing further - right for
+    /// an app whose lifecycle Moonpool doesn't own beyond its own launcher script, e.g. a
+    /// Docker Compose app where the real server lives in a container and `command` is
+    /// already an idempotent recreate). Unset defaults to today's per-type behavior:
+    /// "processName" for `desktop`, "port" for `web`, "none" otherwise - so existing
+    /// configs are unaffected.
+    ///
+    /// "port" is dangerous for anything backed by Docker on Windows: Docker Desktop
+    /// proxies every container's published port through one shared backend process, so
+    /// "whatever owns the port" is that shared process, not a process scoped to this
+    /// app - killing it takes down Docker Desktop for every container, not just this one.
+    #[serde(default, rename = "killMode", skip_serializing_if = "Option::is_none")]
+    kill_mode: Option<String>,
+    /// Command to run in `cwd` when `killMode` is "command" (e.g. `docker compose stop
+    /// app`). Run via `cmd /c` like `command`, and awaited to completion before restart
+    /// proceeds to relaunch.
+    #[serde(
+        default,
+        rename = "stopCommand",
+        skip_serializing_if = "Option::is_none"
+    )]
+    stop_command: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     url: Option<String>,
     #[serde(default, rename = "openBrowser")]
@@ -160,6 +186,17 @@ struct Settings {
     /// from `LOCALES` in `src/lib/i18n.svelte.ts` ("en", "pt-BR", ...).
     #[serde(default = "default_locale", rename = "locale")]
     locale: String,
+    /// Cap, in MB, on the combined size of a single app's on-disk CLI logs under
+    /// `cli-output/` (see `prune_old_logs`). Only past runs' log files count
+    /// against it - the current run's file is never truncated or deleted.
+    #[serde(default = "default_log_retention_mb", rename = "logRetentionMb")]
+    log_retention_mb: u32,
+    /// Whether to keep *previous* hub sessions' CLI logs under `cli-output/`
+    /// once this one ends (see `open_run_log`). The running session's log is
+    /// always written either way; this only governs history. Separate from
+    /// `debug_logging` (the hub's own `moonpool.log`); off by default.
+    #[serde(default, rename = "cliLogging")]
+    cli_logging: bool,
     /// What "auto" last resolved to. The webview resolves the OS language and
     /// writes it back; Rust needs a concrete tag to label the tray at startup,
     /// before any window exists to ask. See `i18n::tray_strings`.
@@ -182,6 +219,9 @@ fn default_locale() -> String {
 fn default_locale_resolved() -> String {
     "en".into()
 }
+fn default_log_retention_mb() -> u32 {
+    10
+}
 
 impl Default for Settings {
     fn default() -> Self {
@@ -199,7 +239,33 @@ impl Default for Settings {
             ui_scale: default_ui_scale(),
             locale: default_locale(),
             locale_resolved: default_locale_resolved(),
+            log_retention_mb: default_log_retention_mb(),
+            cli_logging: false,
         }
+    }
+}
+
+#[cfg(test)]
+mod settings_deserialize_tests {
+    use super::Settings;
+
+    #[test]
+    fn a_settings_json_written_before_cli_logging_existed_deserializes_with_it_off() {
+        // Real pre-existing settings.json shape (no "cliLogging" key at all).
+        let old_json = r#"{"debugLogging":true,"closeToTray":false,"minimizeToTray":true,
+            "checkOnStartup":true,"logRetentionMb":10}"#;
+        let settings: Settings = serde_json::from_str(old_json).unwrap();
+        assert!(
+            !settings.cli_logging,
+            "missing key must default to off, not panic or default-on"
+        );
+    }
+
+    #[test]
+    fn an_explicit_true_in_settings_json_round_trips() {
+        let json = r#"{"cliLogging":true}"#;
+        let settings: Settings = serde_json::from_str(json).unwrap();
+        assert!(settings.cli_logging);
     }
 }
 
@@ -266,10 +332,12 @@ struct HubState {
     last_statuses: Mutex<Vec<AppStatus>>,
     /// Serializes complete state snapshot capture and replacement.
     state_write: Mutex<()>,
-    /// Recent PTY output per app id, capped at MAX_TERM_LOG bytes each. Kept in
-    /// Rust (not just the WebView) so the `dump` control command can write an
-    /// app's console output to a file, including after the app has exited.
-    term_logs: Mutex<HashMap<String, Vec<u8>>>,
+    /// When this hub process started, used as the shared timestamp in every app's
+    /// CLI log filename this run (see `run_log_path`). One file per app per hub
+    /// session: stopping and relaunching an app re-opens (appends to) the same
+    /// file instead of starting a new one, and only a fresh hub process rolls to
+    /// a new one.
+    session_started_ms: u64,
     /// Last non-degenerate physical window size (w, h). Used to re-assert a sane
     /// size when a Win+D restore of the borderless window brings it back as the
     /// ~215x26 minimized-placeholder sliver.
@@ -334,10 +402,6 @@ const MAX_TICKETS: usize = 50;
 /// the cap, so stale records cannot linger indefinitely on a quiet hub.
 const TICKET_TTL_MS: u64 = 24 * 60 * 60 * 1000;
 
-/// Per-app cap on the retained PTY output ring (bytes). Enough for a long build
-/// log without letting a chatty app grow memory without bound.
-const MAX_TERM_LOG: usize = 512 * 1024;
-
 // ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
@@ -359,6 +423,112 @@ fn example_manifest() -> &'static str {
 }
 /// AI configuration guide, seeded next to the manifest so agents can read it.
 const AI_README: &str = include_str!("../../AI-README.md");
+
+/// Directory for persistent per-app CLI output logs.
+fn cli_output_dir(app: &AppHandle) -> Option<PathBuf> {
+    moonpool_dir(app).map(|d| d.join("cli-output"))
+}
+
+/// Filesystem-safe stem for an app id.
+fn safe_id(id: &str) -> String {
+    id.chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+/// The one log file this app id writes to for the lifetime of this hub process:
+/// `cli-output/<slug>-<hub-session-start-ms>.log`. Deterministic (no lookup table
+/// needed) so a UI click can open it even before the app has ever run this
+/// session - it just doesn't exist on disk yet. Stopping and relaunching the app
+/// re-opens (appends to) this same path; only a fresh hub process gets a new one.
+fn run_log_path(app: &AppHandle, state: &HubState, id: &str) -> Option<PathBuf> {
+    cli_output_dir(app)
+        .map(|dir| dir.join(format!("{}-{}.log", safe_id(id), state.session_started_ms)))
+}
+
+/// Delete this app's oldest CLI logs from PAST hub sessions (in `dir`, matching
+/// `<slug>-*.log`) until their combined size - including `keep`, this session's
+/// own file, which always survives - is under `retention_bytes`. Best-effort: an
+/// IO error just stops pruning early rather than blocking the launch that
+/// triggered it.
+fn prune_old_logs(dir: &Path, slug: &str, keep: &Path, retention_bytes: u64) {
+    let prefix = format!("{slug}-");
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut files: Vec<(PathBuf, u64, String)> = entries
+        .filter_map(|e| e.ok())
+        .filter_map(|e| {
+            let path = e.path();
+            let name = path.file_name()?.to_str()?.to_string();
+            if name.starts_with(&prefix) && name.ends_with(".log") {
+                let len = e.metadata().ok()?.len();
+                Some((path, len, name))
+            } else {
+                None
+            }
+        })
+        .collect();
+    // The timestamp right after the prefix makes a plain name sort chronological.
+    files.sort_by(|a, b| a.2.cmp(&b.2));
+    let mut total: u64 = files.iter().map(|(_, len, _)| *len).sum();
+    for (path, len, _) in files {
+        if total <= retention_bytes {
+            break;
+        }
+        if path == keep {
+            continue;
+        }
+        if std::fs::remove_file(&path).is_ok() {
+            total = total.saturating_sub(len);
+        }
+    }
+}
+
+/// How many bytes of *previous* sessions' logs to keep for an app, given the
+/// `cliLogging` setting: the full MB cap when it's on, 0 (discard immediately)
+/// when it's off. Extracted so this decision is testable without an
+/// AppHandle/HubState.
+fn retention_bytes_for(cli_logging: bool, retention_mb: u64) -> u64 {
+    if cli_logging {
+        retention_mb * 1024 * 1024
+    } else {
+        0
+    }
+}
+
+/// Open this run's log file (create-if-missing, append-only - satisfies "the
+/// current output file is never truncated"), pruning older sessions' logs for
+/// this id first so its total on-disk size stays under the configured retention.
+///
+/// The current session's file is always written, regardless of `cli_logging` -
+/// that setting only controls whether *previous* sessions' logs are kept around
+/// (capped at `log_retention_mb`) or discarded immediately (capped at 0). This
+/// keeps tab-reopen scrollback working for the running session either way; only
+/// history from earlier hub sessions is affected by the toggle.
+fn open_run_log(app: &AppHandle, state: &HubState, id: &str) -> Option<(PathBuf, std::fs::File)> {
+    let (retention_mb, cli_logging) = {
+        let settings = lock(&state.settings);
+        (settings.log_retention_mb as u64, settings.cli_logging)
+    };
+    let path = run_log_path(app, state, id)?;
+    let dir = path.parent()?.to_path_buf();
+    std::fs::create_dir_all(&dir).ok()?;
+    let retention_bytes = retention_bytes_for(cli_logging, retention_mb);
+    prune_old_logs(&dir, &safe_id(id), &path, retention_bytes);
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .ok()?;
+    Some((path, file))
+}
 
 /// Moonpool's config directory. Installed: `%USERPROFILE%\.moonpool\moonpool-config`.
 /// Portable: `{exe dir}\moonpool-config` (see `portable`), so all data travels with
@@ -897,6 +1067,11 @@ fn set_debug_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> R
 }
 
 #[tauri::command]
+fn set_cli_logging(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    update_settings(&app, &state, |settings| settings.cli_logging = enabled).map(|_| ())
+}
+
+#[tauri::command]
 fn set_close_to_tray(enabled: bool, app: AppHandle, state: State<HubState>) -> Result<(), String> {
     update_settings(&app, &state, |settings| settings.close_to_tray = enabled).map(|_| ())
 }
@@ -984,6 +1159,30 @@ fn set_show_mcp_processes(
 ) -> Result<(), String> {
     update_settings(&app, &state, |settings| {
         settings.show_mcp_processes = enabled
+    })
+    .map(|_| ())
+}
+
+/// Read this app's persistent CLI log for the hub session (raw bytes, base64 -
+/// same transport as `term://output` so the frontend can `term.write()` it
+/// directly, ANSI codes included). Empty string if the app hasn't produced any
+/// output yet this session (the file doesn't exist).
+#[tauri::command]
+fn run_log_bytes(id: String, app: AppHandle, state: State<HubState>) -> Result<String, String> {
+    let Some(path) = run_log_path(&app, &state, &id) else {
+        return Err("no config directory".into());
+    };
+    match std::fs::read(&path) {
+        Ok(bytes) => Ok(base64::engine::general_purpose::STANDARD.encode(bytes)),
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(format!("cannot read {}: {e}", path.display())),
+    }
+}
+
+#[tauri::command]
+fn set_log_retention_mb(value: u32, app: AppHandle, state: State<HubState>) -> Result<(), String> {
+    update_settings(&app, &state, |settings| {
+        settings.log_retention_mb = value.max(1)
     })
     .map(|_| ())
 }
@@ -1102,12 +1301,50 @@ fn open_log(app: AppHandle) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+/// Reveal the log file in the OS file manager, pre-selected where the platform
+/// supports it (see `platform::reveal_in_folder`), instead of opening it in
+/// whatever app is registered for `.log` files.
+#[tauri::command]
+fn reveal_log(app: AppHandle) -> Result<(), String> {
+    let path = log_path(&app).ok_or("no config directory")?;
+    if !path.exists() {
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(&path, "");
+    }
+    platform::reveal_in_folder(&path);
+    Ok(())
+}
+
 /// Absolute path of Moonpool's config directory (holds apps.json + AI-README.md).
 #[tauri::command]
 fn manifest_dir(app: AppHandle) -> Result<String, String> {
     moonpool_dir(&app)
         .map(|d| d.to_string_lossy().to_string())
         .ok_or_else(|| "no config directory".to_string())
+}
+
+/// Absolute path of the `cli-output/` directory (per-app CLI logs), for the
+/// Settings UI's CLI-logging path display. It's a whole directory rather than
+/// one file - each app gets its own `<slug>-<session>.log` inside it - so
+/// there's no single file to reveal-and-select the way `reveal_log` does.
+#[tauri::command]
+fn cli_output_dir_str(app: AppHandle) -> Result<String, String> {
+    cli_output_dir(&app)
+        .map(|d| d.to_string_lossy().to_string())
+        .ok_or_else(|| "no config directory".to_string())
+}
+
+/// Open the `cli-output/` directory itself in the OS file manager (creating it
+/// first if no app has logged anything yet this session).
+#[tauri::command]
+fn reveal_cli_output_dir(app: AppHandle) -> Result<(), String> {
+    let dir = cli_output_dir(&app).ok_or("no config directory")?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+    app.opener()
+        .open_path(dir.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 /// Resolve an app's icon to an <img> src. Snapshots the manifest entry under the lock,
@@ -1380,8 +1617,10 @@ fn launch_app(
         }
     };
 
-    // A fresh run starts a fresh log so `dump` never mixes two runs' output.
-    lock(&state.term_logs).insert(id.clone(), Vec::new());
+    // Open (or re-open/append to) this id's one log file for the hub session.
+    // Best-effort: a failure here (e.g. disk full) loses persistent logging for
+    // this run but must not block the launch itself.
+    let run_log = open_run_log(&app, &state, &id);
 
     log_line(&app, &format!("launch {id}: {command} (cwd {cwd})"));
 
@@ -1390,6 +1629,7 @@ fn launch_app(
     let id2 = id.clone();
     let stop2 = stop.clone();
     std::thread::spawn(move || {
+        let mut run_log = run_log;
         let mut buf = [0u8; 8192];
         loop {
             if stop2.load(Ordering::Relaxed) {
@@ -1398,15 +1638,8 @@ fn launch_app(
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
-                    if let Some(state) = app2.try_state::<HubState>() {
-                        let mut logs = lock(&state.term_logs);
-                        let buf_for_id = logs.entry(id2.clone()).or_default();
-                        buf_for_id.extend_from_slice(&buf[..n]);
-                        // Trim from the front so the ring keeps the newest output.
-                        if buf_for_id.len() > MAX_TERM_LOG {
-                            let cut = buf_for_id.len() - MAX_TERM_LOG;
-                            buf_for_id.drain(0..cut);
-                        }
+                    if let Some((_, file)) = run_log.as_mut() {
+                        let _ = file.write_all(&buf[..n]);
                     }
                     let _ = app2.emit(
                         "term://output",
@@ -1486,6 +1719,16 @@ fn term_resize(id: String, cols: u16, rows: u16, state: State<HubState>) -> Resu
     Ok(())
 }
 
+/// Explicit `killMode` wins; otherwise fall back to today's per-type default so
+/// existing configs (no killMode set) behave exactly as before.
+fn resolve_kill_mode<'a>(kill_mode: Option<&'a str>, app_type: &str) -> &'a str {
+    kill_mode.unwrap_or(match app_type {
+        "desktop" => "processName",
+        "web" => "port",
+        _ => "none",
+    })
+}
+
 #[tauri::command]
 fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
     // Advance this id's stop epoch first, in its own short-lived lock (released before
@@ -1517,20 +1760,33 @@ fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
     }
 
     if let Some(e) = entry {
-        match e.app_type.as_str() {
+        let kill_mode = resolve_kill_mode(e.kill_mode.as_deref(), &e.app_type);
+        match kill_mode {
             // A desktop app may outlive the PTY tree (the window detaches from the
             // dev server), so also kill it by name.
-            "desktop" => {
+            "processName" => {
                 if let Some(pn) = &e.process_name {
                     platform::kill_by_name(pn);
                 }
             }
-            // A web server subprocess can linger holding the port; free it.
-            "web" => {
+            // A web server subprocess can linger holding the port; free it. Dangerous
+            // for a Docker-published port on Windows (see AppEntry::kill_mode) - such
+            // apps should set killMode "command" or "none" instead.
+            "port" => {
                 if let Some(port) = e.port {
                     platform::free_port(port);
                 }
             }
+            // Run a caller-supplied stop command (e.g. `docker compose stop app`) and
+            // wait for it, so a subsequent restart's relaunch doesn't race it.
+            "command" => {
+                if let Some(cmd) = &e.stop_command {
+                    platform::run_stop_command(cmd, e.cwd.as_deref(), e.env.as_ref());
+                }
+            }
+            // Nothing further to do - this app's lifecycle beyond the PTY tree isn't
+            // Moonpool's to manage (e.g. a Docker Compose app: the container keeps
+            // running regardless, and `command` is already an idempotent recreate).
             _ => {}
         }
     }
@@ -1924,7 +2180,7 @@ fn dispatch_control(app: &AppHandle, argv: &[String]) {
 /// Strip ANSI/VT escape sequences so a dumped log reads as plain text. Handles
 /// CSI (`ESC [ ... final`), OSC (`ESC ] ... BEL or ST`) and short two-byte
 /// escapes; anything else is passed through.
-fn strip_ansi(bytes: &[u8]) -> String {
+pub(crate) fn strip_ansi(bytes: &[u8]) -> String {
     let text = String::from_utf8_lossy(bytes);
     let src: Vec<char> = text.chars().collect();
     let mut out = String::with_capacity(src.len());
@@ -1968,49 +2224,42 @@ fn strip_ansi(bytes: &[u8]) -> String {
     out
 }
 
-/// Back the `dump <app-id> [out-path]` control command: write the retained PTY
-/// output for `id` to a file and return (status, detail) for the ticket. Default
-/// destination is `<moonpool_dir>/dumps/<id>.log`.
+/// Back the `dump <app-id> [out-path]` control command. With no `out-path`, just
+/// hands back this app's one persistent log for the hub session (see
+/// `run_log_path`) - no copy, no rewrite, so "current output file is never
+/// truncated" holds. With an `out-path`, copies the log out as ANSI-stripped
+/// plain text to that caller-chosen destination (a one-shot export, distinct
+/// from the growing log itself).
 fn dump_term_log(app: &AppHandle, id: Option<&str>, positional: &[&str]) -> (&'static str, String) {
     let Some(id) = id else {
         return ("error", "dump needs an app id".into());
     };
-    let Some(bytes) = app
-        .try_state::<HubState>()
-        .and_then(|s| lock(&s.term_logs).get(id).cloned())
-    else {
+    let Some(state) = app.try_state::<HubState>() else {
+        return ("error", "hub state unavailable".into());
+    };
+    let Some(log_path) = run_log_path(app, &state, id) else {
+        return ("error", "no config directory".into());
+    };
+    if !log_path.is_file() {
         return (
             "error",
             format!("no console output recorded for '{id}' (not launched this session)"),
         );
-    };
-    let text = strip_ansi(&bytes);
-    let path = match positional.get(2) {
-        Some(p) => PathBuf::from(p),
-        None => {
-            let Some(dir) = moonpool_dir(app).map(|d| d.join("dumps")) else {
-                return ("error", "no config directory".into());
+    }
+    match positional.get(2) {
+        None => ("ok", log_path.display().to_string()),
+        Some(out) => {
+            let bytes = match std::fs::read(&log_path) {
+                Ok(b) => b,
+                Err(e) => return ("error", format!("cannot read {}: {e}", log_path.display())),
             };
-            if let Err(e) = std::fs::create_dir_all(&dir) {
-                return ("error", format!("cannot create {}: {e}", dir.display()));
+            let text = strip_ansi(&bytes);
+            let out_path = PathBuf::from(out);
+            match std::fs::write(&out_path, &text) {
+                Ok(()) => ("ok", out_path.display().to_string()),
+                Err(e) => ("error", format!("cannot write {}: {e}", out_path.display())),
             }
-            // Keep the file name filesystem-safe whatever the id looks like.
-            let safe: String = id
-                .chars()
-                .map(|c| {
-                    if c.is_alphanumeric() || c == '-' || c == '_' {
-                        c
-                    } else {
-                        '_'
-                    }
-                })
-                .collect();
-            dir.join(format!("{safe}.log"))
         }
-    };
-    match std::fs::write(&path, &text) {
-        Ok(()) => ("ok", path.display().to_string()),
-        Err(e) => ("error", format!("cannot write {}: {e}", path.display())),
     }
 }
 
@@ -2717,7 +2966,10 @@ pub fn run() {
             tickets: Mutex::new(Vec::new()),
             last_statuses: Mutex::new(Vec::new()),
             state_write: Mutex::new(()),
-            term_logs: Mutex::new(HashMap::new()),
+            session_started_ms: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
             last_good_size: Mutex::new(None),
             pipe_waiters: Mutex::new(HashMap::new()),
             frontend_ready: std::sync::atomic::AtomicBool::new(false),
@@ -2930,10 +3182,13 @@ pub fn run() {
             reload_manifest,
             open_manifest,
             manifest_dir,
+            cli_output_dir_str,
+            reveal_cli_output_dir,
             save_manifest,
             app_icon,
             get_settings,
             set_debug_logging,
+            set_cli_logging,
             set_close_to_tray,
             set_minimize_to_tray,
             set_check_on_startup,
@@ -2942,6 +3197,9 @@ pub fn run() {
             set_show_in_taskbar,
             set_show_statusbar,
             set_show_mcp_processes,
+            set_log_retention_mb,
+            reveal_log,
+            run_log_bytes,
             stop_mcp_shim,
             set_locale,
             set_transparency,
@@ -3314,4 +3572,199 @@ mod startup_tests {
     // returns Err) and cold-start-corrupt preserves the file + surfaces an empty list.
     // Both need a running Tauri app/AppHandle, so they are covered by manual QA rather
     // than unit tests here.
+}
+
+#[cfg(test)]
+mod kill_mode_tests {
+    use super::resolve_kill_mode;
+
+    #[test]
+    fn explicit_kill_mode_always_wins_over_the_type_default() {
+        assert_eq!(resolve_kill_mode(Some("none"), "web"), "none");
+        assert_eq!(resolve_kill_mode(Some("command"), "desktop"), "command");
+        assert_eq!(resolve_kill_mode(Some("port"), "cli"), "port");
+    }
+
+    #[test]
+    fn unset_kill_mode_falls_back_to_the_old_per_type_default() {
+        // These defaults are load-bearing: they're what makes existing apps.json
+        // entries (written before killMode existed) behave exactly as before.
+        assert_eq!(resolve_kill_mode(None, "desktop"), "processName");
+        assert_eq!(resolve_kill_mode(None, "web"), "port");
+        assert_eq!(resolve_kill_mode(None, "static"), "none");
+        assert_eq!(resolve_kill_mode(None, "cli"), "none");
+    }
+}
+
+#[cfg(test)]
+mod cli_log_tests {
+    use super::{prune_old_logs, retention_bytes_for, safe_id, strip_ansi};
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    #[test]
+    fn safe_id_keeps_alnum_dash_underscore_and_replaces_the_rest() {
+        assert_eq!(safe_id("forumsapp"), "forumsapp");
+        assert_eq!(safe_id("my-app_1"), "my-app_1");
+        assert_eq!(safe_id("weird/id:with spaces"), "weird_id_with_spaces");
+        assert_eq!(safe_id(""), "");
+    }
+
+    #[test]
+    fn strip_ansi_drops_csi_and_osc_sequences_and_bare_cr() {
+        // CSI color codes around plain text.
+        assert_eq!(strip_ansi(b"\x1b[31mred\x1b[0m"), "red");
+        // OSC (e.g. a terminal title) terminated by BEL.
+        assert_eq!(strip_ansi(b"\x1b]0;title\x07after"), "after");
+        // OSC terminated by ST (ESC \) instead of BEL.
+        assert_eq!(strip_ansi(b"\x1b]0;title\x1b\\after"), "after");
+        // Bare CR (progress-bar redraw) is dropped, paired LF is kept.
+        assert_eq!(strip_ansi(b"a\r\nb"), "a\nb");
+        // Plain text with no escapes at all passes through unchanged.
+        assert_eq!(strip_ansi(b"plain text"), "plain text");
+    }
+
+    fn unique_dir(name: &str) -> PathBuf {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir =
+            std::env::temp_dir().join(format!("moonpool-test-{name}-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write_log(dir: &PathBuf, name: &str, bytes: usize) -> PathBuf {
+        let path = dir.join(name);
+        std::fs::write(&path, vec![b'x'; bytes]).unwrap();
+        path
+    }
+
+    #[test]
+    fn prune_old_logs_deletes_oldest_first_until_under_the_cap() {
+        let dir = unique_dir("prune-basic");
+        // Timestamps embedded in the name make plain string sort chronological.
+        let oldest = write_log(&dir, "app-100.log", 10);
+        let middle = write_log(&dir, "app-200.log", 10);
+        let keep = write_log(&dir, "app-300.log", 10);
+
+        // total=30; deleting only the oldest (10) brings it to 20, under this cap.
+        prune_old_logs(&dir, "app", &keep, 25);
+
+        assert!(!oldest.exists(), "oldest file should be pruned first");
+        assert!(
+            middle.exists(),
+            "pruning stops once total size is back under the cap"
+        );
+        assert!(
+            keep.exists(),
+            "the active session file must never be pruned"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn prune_old_logs_never_removes_the_active_file_even_if_it_is_largest() {
+        let dir = unique_dir("prune-keep-active");
+        let keep = write_log(&dir, "app-999.log", 1000);
+
+        prune_old_logs(&dir, "app", &keep, 1);
+
+        assert!(
+            keep.exists(),
+            "active file survives even far over the cap alone"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn prune_old_logs_ignores_other_apps_and_non_log_files() {
+        let dir = unique_dir("prune-scoped");
+        let other_app = write_log(&dir, "other-100.log", 10);
+        let non_log = write_log(&dir, "app-100.txt", 10);
+        let keep = write_log(&dir, "app-200.log", 10);
+
+        // Cap of 0 would delete everything matching "app-*.log" if scoping broke.
+        prune_old_logs(&dir, "app", &keep, 0);
+
+        assert!(
+            other_app.exists(),
+            "a different app's log must not be touched"
+        );
+        assert!(non_log.exists(), "non-.log files must not be touched");
+        assert!(keep.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn prune_old_logs_is_a_noop_under_the_cap() {
+        let dir = unique_dir("prune-under-cap");
+        let a = write_log(&dir, "app-100.log", 10);
+        let keep = write_log(&dir, "app-200.log", 10);
+
+        prune_old_logs(&dir, "app", &keep, 1_000_000);
+
+        assert!(
+            a.exists(),
+            "nothing should be deleted while under the retention cap"
+        );
+        assert!(keep.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn retention_bytes_for_cli_logging_off_is_always_zero_regardless_of_the_mb_cap() {
+        assert_eq!(retention_bytes_for(false, 10), 0);
+        assert_eq!(retention_bytes_for(false, 0), 0);
+        assert_eq!(retention_bytes_for(false, u64::MAX), 0);
+    }
+
+    #[test]
+    fn retention_bytes_for_cli_logging_on_converts_mb_to_bytes() {
+        assert_eq!(retention_bytes_for(true, 10), 10 * 1024 * 1024);
+        assert_eq!(retention_bytes_for(true, 0), 0);
+    }
+
+    #[test]
+    fn cli_logging_off_prunes_all_previous_sessions_but_keeps_the_active_one() {
+        // End-to-end through the same two functions open_run_log composes:
+        // retention_bytes_for feeding prune_old_logs. Confirms disabling
+        // "keep previous logs" wipes history immediately, not just caps it.
+        let dir = unique_dir("prune-cli-logging-off");
+        let old1 = write_log(&dir, "app-100.log", 10);
+        let old2 = write_log(&dir, "app-200.log", 10);
+        let active = write_log(&dir, "app-300.log", 10);
+
+        prune_old_logs(&dir, "app", &active, retention_bytes_for(false, 10));
+
+        assert!(
+            !old1.exists(),
+            "previous sessions are discarded when cli_logging is off"
+        );
+        assert!(
+            !old2.exists(),
+            "previous sessions are discarded when cli_logging is off"
+        );
+        assert!(
+            active.exists(),
+            "the running session's own log is never touched by this setting"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn cli_logging_on_keeps_previous_sessions_under_the_mb_cap() {
+        let dir = unique_dir("prune-cli-logging-on");
+        let old = write_log(&dir, "app-100.log", 10);
+        let active = write_log(&dir, "app-200.log", 10);
+
+        // Cap of 10MB comfortably covers both 10-byte files - nothing pruned.
+        prune_old_logs(&dir, "app", &active, retention_bytes_for(true, 10));
+
+        assert!(
+            old.exists(),
+            "previous sessions are kept under the retention cap when cli_logging is on"
+        );
+        assert!(active.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

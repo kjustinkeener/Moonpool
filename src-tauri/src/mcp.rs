@@ -420,8 +420,10 @@ fn list_apps() -> Result<String, String> {
 /// MCP: the agent gets the console output without a second file-read round trip.
 fn dump(id: &str, tail: usize) -> Result<String, String> {
     let path = control("dump", &[id])?;
-    let text = std::fs::read_to_string(&path)
-        .map_err(|e| format!("dump wrote {path} but it could not be read: {e}"))?;
+    let bytes = std::fs::read(&path)
+        .map_err(|e| format!("dump pointed at {path} but it could not be read: {e}"))?;
+    // The persistent log is raw PTY bytes (ANSI included); strip it here for display.
+    let text = crate::strip_ansi(&bytes);
     if text.trim().is_empty() {
         return Ok(format!("(no output recorded for '{id}')"));
     }
