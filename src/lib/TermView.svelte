@@ -18,6 +18,34 @@
   let { id, active, autoLaunch = true }: { id: string; active: boolean; autoLaunch?: boolean } =
     $props();
 
+  // Replace each ESC[2J (clear screen) in `arr` - only the first when `all` is false - with a
+  // screenful of newlines followed by the clear. The newlines scroll the visible text into
+  // scrollback, so the clear that follows blanks an empty screen and nothing is lost.
+  function clearsToScrollback(arr: Uint8Array, rows: number, all: boolean): Uint8Array {
+    const hits: number[] = [];
+    for (let i = 0; i + 3 < arr.length; i++) {
+      if (arr[i] === 0x1b && arr[i + 1] === 0x5b && arr[i + 2] === 0x32 && arr[i + 3] === 0x4a) {
+        hits.push(i);
+        if (!all) break;
+      }
+    }
+    if (hits.length === 0) return arr;
+    const scroll = new Uint8Array(rows * 2);
+    for (let r = 0; r < rows; r++) scroll.set([0x0d, 0x0a], r * 2);
+    const out = new Uint8Array(arr.length + hits.length * scroll.length);
+    let src = 0;
+    let dst = 0;
+    for (const h of hits) {
+      out.set(arr.subarray(src, h), dst);
+      dst += h - src;
+      out.set(scroll, dst);
+      dst += scroll.length;
+      src = h;
+    }
+    out.set(arr.subarray(src), dst);
+    return out;
+  }
+
   let el: HTMLDivElement;
   let term: Terminal;
   let fit: FitAddon;
@@ -161,13 +189,24 @@
     // it, not interleaved with it. Each carries its log offset (`end`) so the part the log
     // read already contained can be dropped instead of written twice.
     let held: { arr: Uint8Array; end?: number }[] | null = [];
+    // A fresh run's terminal opens with a clear-screen, which would wipe the earlier output and
+    // the restart divider just backfilled. Until the first one goes by, turn it into a scroll
+    // so that history moves up into scrollback instead of vanishing.
+    let startupClearPending = autoLaunch;
+    const liveWrite = (arr: Uint8Array) => {
+      if (startupClearPending) {
+        const kept = clearsToScrollback(arr, term.rows, false);
+        if (kept !== arr) startupClearPending = false;
+        term.write(kept);
+      } else term.write(arr);
+    };
     const uOut = await onTermOutput((o) => {
       if (o.id !== id) return;
       const bin = atob(o.data);
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       if (held) held.push({ arr, end: o.end });
-      else term.write(arr);
+      else liveWrite(arr);
     });
     // Unmounted while awaiting: unlisten now (onDestroy already ran with a null handle).
     if (destroyed) return uOut();
@@ -202,15 +241,15 @@
           const arr = new Uint8Array(bin.length);
           for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
           logLen = arr.length;
-          if (!destroyed) term.write(arr);
+          if (!destroyed) term.write(clearsToScrollback(arr, term.rows, true));
         }
         // Replay what arrived live meanwhile, minus whatever the log read already covered.
         const pending = held ?? [];
         held = null;
         for (const { arr, end } of pending) {
           if (destroyed) break;
-          if (end === undefined) term.write(arr);
-          else if (end > logLen) term.write(arr.subarray(Math.max(0, logLen - (end - arr.length))));
+          if (end === undefined) liveWrite(arr);
+          else if (end > logLen) liveWrite(arr.subarray(Math.max(0, logLen - (end - arr.length))));
         }
       } catch (err) {
         held = null;
