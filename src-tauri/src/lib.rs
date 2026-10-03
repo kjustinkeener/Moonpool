@@ -274,6 +274,11 @@ struct TermOutput {
     id: String,
     /// PTY bytes, base64-encoded (far cheaper over IPC than a JSON number array).
     data: String,
+    /// Byte offset in this app's session log just past this chunk, when it was logged. Lets a
+    /// tab that backfills the log after subscribing drop the part of a live chunk the log
+    /// read already contained.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    end: Option<u64>,
 }
 
 // ---------------------------------------------------------------------------
@@ -1651,6 +1656,11 @@ fn launch_app(
     let stop2 = stop.clone();
     std::thread::spawn(move || {
         let mut run_log = run_log;
+        // The log is append-only and shared by relaunches, so this run starts at its current length.
+        let mut log_pos: u64 = run_log
+            .as_ref()
+            .and_then(|(_, f)| f.metadata().ok())
+            .map_or(0, |m| m.len());
         let mut buf = [0u8; 8192];
         loop {
             if stop2.load(Ordering::Relaxed) {
@@ -1659,14 +1669,19 @@ fn launch_app(
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
+                    let mut end = None;
                     if let Some((_, file)) = run_log.as_mut() {
-                        let _ = file.write_all(&buf[..n]);
+                        if file.write_all(&buf[..n]).is_ok() {
+                            log_pos += n as u64;
+                            end = Some(log_pos);
+                        }
                     }
                     let _ = app2.emit(
                         "term://output",
                         TermOutput {
                             id: id2.clone(),
                             data: base64::engine::general_purpose::STANDARD.encode(&buf[..n]),
+                            end,
                         },
                     );
                 }
@@ -1750,8 +1765,10 @@ fn resolve_kill_mode<'a>(kill_mode: Option<&'a str>, app_type: &str) -> &'a str 
     })
 }
 
-#[tauri::command]
-fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
+// `async`: runs on the runtime's thread pool instead of the main thread, because a stop command
+// or port kill is awaited below and must not freeze the hub window while it runs.
+#[tauri::command(async)]
+fn stop_app(id: String, app: AppHandle, state: State<HubState>) -> Result<(), String> {
     // Advance this id's stop epoch first, in its own short-lived lock (released before
     // we touch `apps`). A launch mid-spawn snapshots this value and re-checks it under
     // the apps lock; bumping it here makes such a launch abort instead of registering a
@@ -1795,14 +1812,20 @@ fn stop_app(id: String, state: State<HubState>) -> Result<(), String> {
             // apps should set killMode "command" or "none" instead.
             "port" => {
                 if let Some(port) = e.port {
-                    platform::free_port(port);
+                    let out = platform::free_port(port);
+                    if !out.is_empty() {
+                        log_line(&app, &out);
+                    }
                 }
             }
             // Run a caller-supplied stop command (e.g. `docker compose stop app`) and
             // wait for it, so a subsequent restart's relaunch doesn't race it.
             "command" => {
                 if let Some(cmd) = &e.stop_command {
-                    platform::run_stop_command(cmd, e.cwd.as_deref(), e.env.as_ref());
+                    // Same {MP_HOME}/{MP_DATA} and ./ expansion launch_app applies.
+                    let cmd = portable::resolve_tokens(cmd, &app);
+                    let cwd = e.cwd.as_deref().map(|c| portable::resolve_path(c, &app));
+                    platform::run_stop_command(&cmd, cwd.as_deref(), e.env.as_ref());
                 }
             }
             // Nothing further to do - this app's lifecycle beyond the PTY tree isn't

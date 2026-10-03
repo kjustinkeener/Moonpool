@@ -722,6 +722,10 @@
 
   function closeTab(id: string) {
     openTabs = openTabs.filter((t) => t !== id);
+    // Consumed at mount: left set, reopening the tab later to just read its log would
+    // relaunch an app the user stopped.
+    const { [id]: _, ...rest } = launchOnOpen;
+    launchOnOpen = rest;
     if (activeTab === id) activeTab = openTabs[openTabs.length - 1] ?? null;
   }
 

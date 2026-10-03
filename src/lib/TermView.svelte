@@ -157,12 +157,17 @@
       window.removeEventListener("mouseup", onMouseUp);
     };
 
+    // While a view-only tab backfills the log, live chunks are held here so they land after
+    // it, not interleaved with it. Each carries its log offset (`end`) so the part the log
+    // read already contained can be dropped instead of written twice.
+    let held: { arr: Uint8Array; end?: number }[] | null = autoLaunch ? null : [];
     const uOut = await onTermOutput((o) => {
       if (o.id !== id) return;
       const bin = atob(o.data);
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-      term.write(arr);
+      if (held) held.push({ arr, end: o.end });
+      else term.write(arr);
     });
     // Unmounted while awaiting: unlisten now (onDestroy already ran with a null handle).
     if (destroyed) return uOut();
@@ -190,13 +195,24 @@
       // onTermOutput listener above already continues to append past this.
       try {
         const b64 = await runLogBytes(id);
+        let logLen = 0;
         if (b64) {
           const bin = atob(b64);
           const arr = new Uint8Array(bin.length);
           for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          logLen = arr.length;
           if (!destroyed) term.write(arr);
         }
+        // Replay what arrived live meanwhile, minus whatever the log read already covered.
+        const pending = held ?? [];
+        held = null;
+        for (const { arr, end } of pending) {
+          if (destroyed) break;
+          if (end === undefined) term.write(arr);
+          else if (end > logLen) term.write(arr.subarray(Math.max(0, logLen - (end - arr.length))));
+        }
       } catch (err) {
+        held = null;
         if (!destroyed) term.write(`\r\n\x1b[33m${err}\x1b[0m\r\n`);
       }
     }

@@ -355,8 +355,9 @@ mod job_object_tests {
 /// Run `command` to completion in `cwd` (default: the current directory) with `env`
 /// merged in, via the platform shell (`cmd /c` / `sh -c`). Used for `killMode: "command"`
 /// so a caller-supplied stop command (e.g. `docker compose stop app`) finishes before
-/// restart's relaunch can race it. Runs on the blocking thread `stop_app` is already
-/// dispatched on (a sync Tauri command), so waiting here does not freeze the UI.
+/// restart's relaunch can race it. `stop_app` runs off the UI thread, so waiting here does not
+/// freeze the hub; a command still running after `STOP_COMMAND_TIMEOUT` is killed (with its
+/// children) so a hung one can't wedge Stop/Restart forever.
 pub fn run_stop_command(
     command: &str,
     cwd: Option<&str>,
@@ -365,7 +366,9 @@ pub fn run_stop_command(
     #[cfg(windows)]
     let mut c = {
         let mut c = Command::new("cmd");
-        c.args(["/c", command]);
+        // raw_arg: `args` would re-quote the line and escape its embedded `"`, which cmd
+        // reads literally (`docker exec x "a b"` breaks).
+        c.arg("/c").raw_arg(command);
         c
     };
     #[cfg(not(windows))]
@@ -388,8 +391,26 @@ pub fn run_stop_command(
     hidden(&mut c);
     // Best-effort: a stop command failing to run/exit-nonzero must not block the rest
     // of stop_app (the PTY tree is already dead by the time this runs).
-    let _ = c.status();
+    let Ok(mut child) = c.spawn() else {
+        return;
+    };
+    let deadline = std::time::Instant::now() + STOP_COMMAND_TIMEOUT;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) | Err(_) => return,
+            Ok(None) if std::time::Instant::now() >= deadline => {
+                kill_tree(child.id());
+                let _ = child.kill();
+                let _ = child.wait();
+                return;
+            }
+            Ok(None) => std::thread::sleep(std::time::Duration::from_millis(100)),
+        }
+    }
 }
+
+/// How long `run_stop_command` waits before killing a stop command that never exits.
+const STOP_COMMAND_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// Force-kill every process matching `name` (its base exe name).
 pub fn kill_by_name(name: &str) {
@@ -440,8 +461,9 @@ const NEVER_KILL_BY_PORT: &[&str] = &[
 ];
 
 /// Free a TCP port by killing whatever is listening on it - skipping any owner whose
-/// image name is in `NEVER_KILL_BY_PORT` (logged, not force-killed).
-pub fn free_port(port: u16) {
+/// image name is in `NEVER_KILL_BY_PORT`. Waits for the kill to finish and returns what the
+/// script printed (a refusal notice, if any) so the caller can log it.
+pub fn free_port(port: u16) -> String {
     #[cfg(windows)]
     {
         let denylist = NEVER_KILL_BY_PORT.join(",");
@@ -461,14 +483,17 @@ pub fn free_port(port: u16) {
         let mut c = Command::new("powershell");
         c.args(["-NoProfile", "-Command", &script]);
         hidden(&mut c);
-        let _ = c.spawn();
+        c.output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .unwrap_or_default()
     }
     #[cfg(unix)]
     {
         let script = format!(
             "lsof -ti tcp:{port} | xargs -r kill -9 2>/dev/null || fuser -k {port}/tcp 2>/dev/null"
         );
-        let _ = Command::new("sh").args(["-c", &script]).spawn();
+        let _ = Command::new("sh").args(["-c", &script]).output();
+        String::new()
     }
 }
 
