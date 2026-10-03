@@ -216,6 +216,10 @@ export const en = {
     "The command run in the embedded terminal to start the app, e.g. 'npm run dev' or 'python app.py'. Leave blank for a static URL-only entry.",
   "editor.portHint":
     "The local TCP port the app listens on. Moonpool shows Running when this port answers, and frees it on Stop. Used by web apps.",
+  "editor.killModeHint":
+    "How Stop/Restart cleans up beyond the terminal tree Moonpool started: kill by processName, kill whatever owns the port, run stopCommand, or do nothing. Default depends on type.",
+  "editor.killModeDefault": "default (by type)",
+  "editor.stopCommandHint": "Run in cwd when killMode is command, e.g. docker compose stop app. Finishes before a restart relaunches.",
   "editor.processNameHint":
     "For desktop apps: the process/executable name (without .exe) used to detect Running and to stop it. On Linux it must be 15 characters or fewer.",
   "editor.urlHint":
