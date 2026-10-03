@@ -413,6 +413,7 @@ pub fn kill_by_name(name: &str) {
 /// motivating case is Docker Desktop on Windows, which proxies every container's
 /// published port through one shared backend/VPN process - "whatever owns port 8080"
 /// can be Docker Desktop itself, not the container behind that port.
+#[cfg(any(windows, test))]
 const NEVER_KILL_BY_PORT: &[&str] = &[
     "com.docker.backend",
     "com.docker.proxy",

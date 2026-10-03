@@ -144,7 +144,8 @@ pub fn capture_hwnd_to_png(hwnd: HWND) -> Result<Vec<u8>, String> {
     let (width, height, mut rgba) = downsample(raw_w, raw_h, &bgra);
 
     // GDI hands back BGRA; PNG wants RGBA. Swap in place rather than allocating a second buffer.
-    for px in rgba.chunks_exact_mut(4) {
+    let (pixels, _) = rgba.as_chunks_mut::<4>();
+    for px in pixels {
         px.swap(0, 2);
     }
 
