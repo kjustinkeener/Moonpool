@@ -94,7 +94,7 @@ apps.json / Reload), or by hand, then Reload. See the app schema in `AI-README.m
 
 - Launch commands run through `sh -c <command>` (vs `cmd /c` on Windows), so use shell syntax
   your `$SHELL` understands.
-- Stop kills the process group; port-freeing uses `lsof` (falls back to `fuser`) - install
+- Stop kills the process group, then does the extra cleanup chosen by `killMode` (see AI-README.md); port-freeing under `killMode: "port"` uses `lsof` (falls back to `fuser`) - install
   `lsof` if your distro doesn't ship it.
 - **A `desktop` app's `processName` must be 15 characters or fewer on Linux.** Running-status
   detection and stop-by-name match the kernel's process name (`comm`), which Linux truncates to

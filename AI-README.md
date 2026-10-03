@@ -82,6 +82,10 @@ process images even under `"port"` mode as a backstop (see `platform::NEVER_KILL
 source), but don't rely on that list instead of setting the right `killMode` - it only covers
 process image names, not every way an app-specific config could point at shared infrastructure.
 
+`killMode` is independent of `type`: `port` works on a `cli` app and `processName` on a `web` app if
+you set it explicitly. If the field the mode reads is missing (no `port`, no `processName`, no
+`stopCommand`), the extra step is silently skipped, not an error.
+
 ## Command rules (important)
 
 - Every `command` runs through `cmd /c` in `cwd`, inheriting the environment plus `env`.

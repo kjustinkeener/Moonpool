@@ -93,6 +93,9 @@ Each entry:
   "openBrowser": true,
   "env": { "PORT": "3000" },     // optional vars injected into the command
   "processName": "myapp",        // desktop: status by process name
+  "killMode": "port",            // optional extra cleanup on Stop: processName | port | command | none
+                                 //   (default: desktop=processName, web=port, others=none)
+  "stopCommand": "docker compose stop app", // only for killMode "command"; run in cwd
   "note": "shown as a tooltip"
 }
 ```
@@ -102,6 +105,11 @@ Each entry:
 - **web** - status by `port` (TCP health-check); the browser opens when it goes live.
 - **static** - opens `url` (or runs `command` then exits).
 - **cli** - opens an interactive shell in `cwd`.
+
+`killMode`: Stop always ends the terminal Moonpool started. `killMode` adds one cleanup step for apps
+that outlive it: `processName` kills by exe name, `port` kills whatever listens on `port`, `command`
+runs `stopCommand`, `none` does nothing. Docker apps on Windows must use `none` or `command`, never
+`port` (it would kill Docker Desktop). Full reference: the in-app Help, "App fields".
 
 **Command tips:** every `command` runs via `cmd /c` (Windows) or `sh -c` (Linux/macOS) in `cwd`,
 inheriting the environment plus `env`. Prefer a foreground command that streams logs

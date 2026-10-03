@@ -134,6 +134,15 @@
     },
   });
   let ti = $derived(TYPE_INFO[f.type]);
+  let killNote = $derived(
+    {
+      "": t("editor.killNoteDefault"),
+      processName: t("editor.killNoteProcessName"),
+      port: t("editor.killNotePort"),
+      command: t("editor.killNoteCommand"),
+      none: t("editor.killNoteNone"),
+    }[f.killMode as string] ?? "",
+  );
 
   // Dirty tracking + safe close: a modified form asks before discarding. Routed
   // through Modal's onClose so overlay-click / Escape also get the confirm.
@@ -236,6 +245,7 @@
           <option value="none">none</option>
         </select>
       </label>
+      <div class="type-hint wide">{killNote}</div>
       <label class="wide" class:dim={f.killMode !== "command"} title={t("editor.stopCommandHint")}>stopCommand<input bind:value={f.stopCommand} placeholder="docker compose stop app" /></label>
       <label class="wide" class:dim={!ti.fields.includes("url")} title={t("editor.urlHint")}>
         <span class="lbl">url{#if urlWarn}<span class="warn" title={t("editor.portableWarn")}>{t("editor.notPortable")}</span>{/if}</span>

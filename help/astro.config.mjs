@@ -45,6 +45,10 @@ export default defineConfig({
 						{ label: 'Updating', slug: 'guides/updating' },
 					],
 				},
+				{
+					label: 'Reference',
+					items: [{ label: 'App fields', slug: 'reference/apps-json' }],
+				},
 			],
 		}),
 	],
