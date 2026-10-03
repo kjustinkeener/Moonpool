@@ -157,10 +157,10 @@
       window.removeEventListener("mouseup", onMouseUp);
     };
 
-    // While a view-only tab backfills the log, live chunks are held here so they land after
+    // While the tab backfills the log, live chunks are held here so they land after
     // it, not interleaved with it. Each carries its log offset (`end`) so the part the log
     // read already contained can be dropped instead of written twice.
-    let held: { arr: Uint8Array; end?: number }[] | null = autoLaunch ? null : [];
+    let held: { arr: Uint8Array; end?: number }[] | null = [];
     const uOut = await onTermOutput((o) => {
       if (o.id !== id) return;
       const bin = atob(o.data);
@@ -189,10 +189,11 @@
         // Most likely "already running" - just show a note.
         term.write(`\r\n\x1b[33m${err}\x1b[0m\r\n`);
       }
-    } else {
-      // View-only reopen: backfill this session's log instead of starting
-      // anything. If the app is actually running, live output from the
-      // onTermOutput listener above already continues to append past this.
+    }
+    // Backfill this session's log: earlier runs of this app (a restart rebuilds the tab, which
+    // would otherwise clear them) and, for a relaunch, the "restarted" divider launch_app wrote
+    // to the log. A view-only reopen starts nothing; live output keeps appending past this.
+    {
       try {
         const b64 = await runLogBytes(id);
         let logLen = 0;

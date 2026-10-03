@@ -1510,6 +1510,9 @@ fn save_manifest(
     Ok(())
 }
 
+/// Written to an app's session log when it launches again after an earlier run (dim grey).
+const RESTART_DIVIDER: &[u8] = b"\r\n\x1b[90m---------- restarted ----------\x1b[0m\r\n";
+
 /// `WEBVIEW2_USER_DATA_FOLDER` as it was before `run()` pointed it at Moonpool's own profile.
 static ORIG_WEBVIEW2_DIR: std::sync::OnceLock<Option<std::ffi::OsString>> =
     std::sync::OnceLock::new();
@@ -1646,7 +1649,14 @@ fn launch_app(
     // Open (or re-open/append to) this id's one log file for the hub session.
     // Best-effort: a failure here (e.g. disk full) loses persistent logging for
     // this run but must not block the launch itself.
-    let run_log = open_run_log(&app, &state, &id);
+    let run_log = open_run_log(&app, &state, &id).map(|(path, mut file)| {
+        // A non-empty log means an earlier run this session: mark where this one starts, in
+        // the file itself, so the tab's backfill shows the boundary after a restart.
+        if file.metadata().is_ok_and(|m| m.len() > 0) {
+            let _ = file.write_all(RESTART_DIVIDER);
+        }
+        (path, file)
+    });
 
     log_line(&app, &format!("launch {id}: {command} (cwd {cwd})"));
 
