@@ -1510,8 +1510,12 @@ fn save_manifest(
     Ok(())
 }
 
-/// Written to an app's session log when it launches again after an earlier run (dim grey).
-const RESTART_DIVIDER: &[u8] = b"\r\n\x1b[90m---------- restarted ----------\x1b[0m\r\n";
+/// Written to an app's session log when it launches again after an earlier run (dim grey),
+/// stamped with local date and time.
+fn restart_divider() -> Vec<u8> {
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
+    format!("\r\n\x1b[90m---------- restarted {now} ----------\x1b[0m\r\n").into_bytes()
+}
 
 /// `WEBVIEW2_USER_DATA_FOLDER` as it was before `run()` pointed it at Moonpool's own profile.
 static ORIG_WEBVIEW2_DIR: std::sync::OnceLock<Option<std::ffi::OsString>> =
@@ -1653,7 +1657,7 @@ fn launch_app(
         // A non-empty log means an earlier run this session: mark where this one starts, in
         // the file itself, so the tab's backfill shows the boundary after a restart.
         if file.metadata().is_ok_and(|m| m.len() > 0) {
-            let _ = file.write_all(RESTART_DIVIDER);
+            let _ = file.write_all(&restart_divider());
         }
         (path, file)
     });
