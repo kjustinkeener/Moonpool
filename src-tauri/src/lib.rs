@@ -3633,7 +3633,7 @@ mod cli_log_tests {
         dir
     }
 
-    fn write_log(dir: &PathBuf, name: &str, bytes: usize) -> PathBuf {
+    fn write_log(dir: &std::path::Path, name: &str, bytes: usize) -> PathBuf {
         let path = dir.join(name);
         std::fs::write(&path, vec![b'x'; bytes]).unwrap();
         path
