@@ -251,10 +251,24 @@ const TITLEBAR_SCRIPT: &str = r#"(function () {
       win.onResized(sync);
     }
   }
+  // Starlight's "On this page" column is position:fixed with width:100%, which for a fixed
+  // box means the whole window width starting at the column's left edge, so it spills past the
+  // right edge and covers our scrollbar. Size it to its container (which ends at the scroll
+  // area's edge, scrollbar excluded) so it only covers its own column.
+  function fitToc() {
+    var box = document.querySelector(".right-sidebar-container");
+    var toc = document.querySelector(".right-sidebar");
+    if (!box || !toc || !window.ResizeObserver) return;
+    new ResizeObserver(function () {
+      var w = box.getBoundingClientRect().width;
+      if (w > 0) toc.style.width = w + "px";
+    }).observe(box);
+  }
+  function init() { wire(); fitToc(); }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", wire);
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    wire();
+    init();
   }
 })();
 "#;
@@ -359,11 +373,10 @@ header.header {{ top: {BAR_HEIGHT_PX}px !important; height: var(--mp-orig-nav-he
   border: 3px solid transparent; border-radius: 7px;
 }}
 #mp-help-scroll::-webkit-scrollbar-thumb:hover {{ background: rgba(128,128,128,0.7); background-clip: content-box; }}
-/* Starlight's header and "On this page" column are position:fixed and span to the window's
-   right edge. With our own scroll container the scrollbar sits inside the window, so they
-   covered it: dragging the thumb selected the TOC text instead. Clipping removes the
-   scrollbar's strip from their hit area, so the scrollbar receives the mouse. */
-header.header, .right-sidebar {{ clip-path: inset(0 {SCROLLBAR_PX}px 0 0); }}
+/* Starlight's header is position:fixed and spans the whole window, so with our own scroll
+   container it covered the scrollbar's top. Clipping removes the scrollbar's strip from its
+   hit area. (The "On this page" column is handled in TITLEBAR_SCRIPT's fitToc.) */
+header.header {{ clip-path: inset(0 {SCROLLBAR_PX}px 0 0); }}
 </style>
 <div id="mp-help-scroll">"#
     );
