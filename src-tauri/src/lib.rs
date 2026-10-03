@@ -443,22 +443,23 @@ fn safe_id(id: &str) -> String {
 }
 
 /// The one log file this app id writes to for the lifetime of this hub process:
-/// `cli-output/<slug>-<hub-session-start-ms>.log`. Deterministic (no lookup table
-/// needed) so a UI click can open it even before the app has ever run this
-/// session - it just doesn't exist on disk yet. Stopping and relaunching the app
-/// re-opens (appends to) this same path; only a fresh hub process gets a new one.
+/// `cli-output/<slug>/<hub-session-start-ms>.log`. Each app gets its own folder so pruning one
+/// app can never touch another's files, whatever their slugs look like. Deterministic (no lookup
+/// table needed) so a UI click can open it even before the app has ever run this session - it
+/// just doesn't exist on disk yet. Stopping and relaunching the app re-opens (appends to) this
+/// same path; only a fresh hub process gets a new one.
 fn run_log_path(app: &AppHandle, state: &HubState, id: &str) -> Option<PathBuf> {
-    cli_output_dir(app)
-        .map(|dir| dir.join(format!("{}-{}.log", safe_id(id), state.session_started_ms)))
+    cli_output_dir(app).map(|dir| {
+        dir.join(safe_id(id))
+            .join(format!("{}.log", state.session_started_ms))
+    })
 }
 
-/// Delete this app's oldest CLI logs from PAST hub sessions (in `dir`, matching
-/// `<slug>-*.log`) until their combined size - including `keep`, this session's
-/// own file, which always survives - is under `retention_bytes`. Best-effort: an
-/// IO error just stops pruning early rather than blocking the launch that
-/// triggered it.
-fn prune_old_logs(dir: &Path, slug: &str, keep: &Path, retention_bytes: u64) {
-    let prefix = format!("{slug}-");
+/// Delete the oldest CLI logs from PAST hub sessions in `dir` (one app's own folder, see
+/// `run_log_path`) until their combined size - including `keep`, this session's own file, which
+/// always survives - is under `retention_bytes`. Best-effort: an IO error just stops pruning
+/// early rather than blocking the launch that triggered it.
+fn prune_old_logs(dir: &Path, keep: &Path, retention_bytes: u64) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
@@ -467,13 +468,7 @@ fn prune_old_logs(dir: &Path, slug: &str, keep: &Path, retention_bytes: u64) {
         .filter_map(|e| {
             let path = e.path();
             let name = path.file_name()?.to_str()?.to_string();
-            // Exactly `<slug>-<digits>.log`: a bare prefix match would also catch another app
-            // whose slug extends this one (`web` vs `web-api-123.log`).
-            let is_ours = name
-                .strip_prefix(&prefix)
-                .and_then(|rest| rest.strip_suffix(".log"))
-                .is_some_and(|ts| !ts.is_empty() && ts.bytes().all(|b| b.is_ascii_digit()));
-            if is_ours {
+            if name.ends_with(".log") {
                 let len = e.metadata().ok()?.len();
                 Some((path, len, name))
             } else {
@@ -481,7 +476,7 @@ fn prune_old_logs(dir: &Path, slug: &str, keep: &Path, retention_bytes: u64) {
             }
         })
         .collect();
-    // The timestamp right after the prefix makes a plain name sort chronological.
+    // The names are fixed-width millisecond timestamps, so a plain name sort is chronological.
     files.sort_by(|a, b| a.2.cmp(&b.2));
     let mut total: u64 = files.iter().map(|(_, len, _)| *len).sum();
     for (path, len, _) in files {
@@ -527,7 +522,7 @@ fn open_run_log(app: &AppHandle, state: &HubState, id: &str) -> Option<(PathBuf,
     let dir = path.parent()?.to_path_buf();
     std::fs::create_dir_all(&dir).ok()?;
     let retention_bytes = retention_bytes_for(cli_logging, retention_mb);
-    prune_old_logs(&dir, &safe_id(id), &path, retention_bytes);
+    prune_old_logs(&dir, &path, retention_bytes);
     let file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -1333,7 +1328,7 @@ fn manifest_dir(app: AppHandle) -> Result<String, String> {
 
 /// Absolute path of the `cli-output/` directory (per-app CLI logs), for the
 /// Settings UI's CLI-logging path display. It's a whole directory rather than
-/// one file - each app gets its own `<slug>-<session>.log` inside it - so
+/// one file - each app gets its own `<slug>/<session>.log` inside it - so
 /// there's no single file to reveal-and-select the way `reveal_log` does.
 #[tauri::command]
 fn cli_output_dir_str(app: AppHandle) -> Result<String, String> {
@@ -3670,12 +3665,12 @@ mod cli_log_tests {
     fn prune_old_logs_deletes_oldest_first_until_under_the_cap() {
         let dir = unique_dir("prune-basic");
         // Timestamps embedded in the name make plain string sort chronological.
-        let oldest = write_log(&dir, "app-100.log", 10);
-        let middle = write_log(&dir, "app-200.log", 10);
-        let keep = write_log(&dir, "app-300.log", 10);
+        let oldest = write_log(&dir, "100.log", 10);
+        let middle = write_log(&dir, "200.log", 10);
+        let keep = write_log(&dir, "300.log", 10);
 
         // total=30; deleting only the oldest (10) brings it to 20, under this cap.
-        prune_old_logs(&dir, "app", &keep, 25);
+        prune_old_logs(&dir, &keep, 25);
 
         assert!(!oldest.exists(), "oldest file should be pruned first");
         assert!(
@@ -3692,9 +3687,9 @@ mod cli_log_tests {
     #[test]
     fn prune_old_logs_never_removes_the_active_file_even_if_it_is_largest() {
         let dir = unique_dir("prune-keep-active");
-        let keep = write_log(&dir, "app-999.log", 1000);
+        let keep = write_log(&dir, "999.log", 1000);
 
-        prune_old_logs(&dir, "app", &keep, 1);
+        prune_old_logs(&dir, &keep, 1);
 
         assert!(
             keep.exists(),
@@ -3704,46 +3699,42 @@ mod cli_log_tests {
     }
 
     #[test]
-    fn prune_old_logs_ignores_apps_whose_slug_extends_this_one() {
-        let dir = unique_dir("prune-prefix");
-        let longer = write_log(&dir, "web-api-100.log", 10);
-        let numeric = write_log(&dir, "web-1-100.log", 10);
-        let keep = write_log(&dir, "web-200.log", 10);
+    fn prune_old_logs_only_touches_its_own_folder_and_log_files() {
+        let root = unique_dir("prune-scoped");
+        let mine = root.join("web");
+        // `web-api` and `web-1` are the slugs a name-prefix match used to confuse with `web`.
+        let longer = root.join("web-api");
+        let numeric = root.join("web-1");
+        for d in [&mine, &longer, &numeric] {
+            std::fs::create_dir_all(d).unwrap();
+        }
+        let other_log = write_log(&longer, "100.log", 10);
+        let other_num = write_log(&numeric, "100.log", 10);
+        let non_log = write_log(&mine, "100.txt", 10);
+        let keep = write_log(&mine, "200.log", 10);
 
-        prune_old_logs(&dir, "web", &keep, 0);
-
-        assert!(longer.exists(), "`web-api` logs belong to another app");
-        assert!(numeric.exists(), "`web-1` logs belong to another app");
-        assert!(keep.exists());
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn prune_old_logs_ignores_other_apps_and_non_log_files() {
-        let dir = unique_dir("prune-scoped");
-        let other_app = write_log(&dir, "other-100.log", 10);
-        let non_log = write_log(&dir, "app-100.txt", 10);
-        let keep = write_log(&dir, "app-200.log", 10);
-
-        // Cap of 0 would delete everything matching "app-*.log" if scoping broke.
-        prune_old_logs(&dir, "app", &keep, 0);
+        prune_old_logs(&mine, &keep, 0);
 
         assert!(
-            other_app.exists(),
-            "a different app's log must not be touched"
+            other_log.exists(),
+            "another app's folder must not be touched"
+        );
+        assert!(
+            other_num.exists(),
+            "another app's folder must not be touched"
         );
         assert!(non_log.exists(), "non-.log files must not be touched");
         assert!(keep.exists());
-        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
     fn prune_old_logs_is_a_noop_under_the_cap() {
         let dir = unique_dir("prune-under-cap");
-        let a = write_log(&dir, "app-100.log", 10);
-        let keep = write_log(&dir, "app-200.log", 10);
+        let a = write_log(&dir, "100.log", 10);
+        let keep = write_log(&dir, "200.log", 10);
 
-        prune_old_logs(&dir, "app", &keep, 1_000_000);
+        prune_old_logs(&dir, &keep, 1_000_000);
 
         assert!(
             a.exists(),
@@ -3772,11 +3763,11 @@ mod cli_log_tests {
         // retention_bytes_for feeding prune_old_logs. Confirms disabling
         // "keep previous logs" wipes history immediately, not just caps it.
         let dir = unique_dir("prune-cli-logging-off");
-        let old1 = write_log(&dir, "app-100.log", 10);
-        let old2 = write_log(&dir, "app-200.log", 10);
-        let active = write_log(&dir, "app-300.log", 10);
+        let old1 = write_log(&dir, "100.log", 10);
+        let old2 = write_log(&dir, "200.log", 10);
+        let active = write_log(&dir, "300.log", 10);
 
-        prune_old_logs(&dir, "app", &active, retention_bytes_for(false, 10));
+        prune_old_logs(&dir, &active, retention_bytes_for(false, 10));
 
         assert!(
             !old1.exists(),
@@ -3796,11 +3787,11 @@ mod cli_log_tests {
     #[test]
     fn cli_logging_on_keeps_previous_sessions_under_the_mb_cap() {
         let dir = unique_dir("prune-cli-logging-on");
-        let old = write_log(&dir, "app-100.log", 10);
-        let active = write_log(&dir, "app-200.log", 10);
+        let old = write_log(&dir, "100.log", 10);
+        let active = write_log(&dir, "200.log", 10);
 
         // Cap of 10MB comfortably covers both 10-byte files - nothing pruned.
-        prune_old_logs(&dir, "app", &active, retention_bytes_for(true, 10));
+        prune_old_logs(&dir, &active, retention_bytes_for(true, 10));
 
         assert!(
             old.exists(),

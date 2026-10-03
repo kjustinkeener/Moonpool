@@ -144,7 +144,7 @@ launch). These only work while Moonpool is running; if it isn't, start it first 
 just opens it).
 
 Each app writes ONE persistent, append-only log per hub session (never truncated) to
-`%APPDATA%\Moonpool\cli-output\<app-id>-<hub-start-ms>.log` - stopping and relaunching
+`%APPDATA%\Moonpool\cli-output\<app-id>\<hub-start-ms>.log` - stopping and relaunching
 the app keeps appending to the same file; only restarting Moonpool itself starts a new
 one. `Settings > Log retention per app` (default 10 MB) prunes each app's OLDER
 sessions' log files once their combined size passes the cap; the current file is
