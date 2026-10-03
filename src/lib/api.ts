@@ -34,9 +34,9 @@ export interface Settings {
   uiScale: number;
   /** UI language: "auto" or a tag from LOCALES in i18n.svelte.ts. */
   locale: string;
-  /** Cap, MB, on an app's combined on-disk CLI log size (see cli-output/). */
+  /** Cap, MB, on the combined size of an app's PAST sessions' CLI logs (see cli-output/<app>/). */
   logRetentionMb: number;
-  /** Whether launched apps' output is written to cli-output/ at all. */
+  /** Whether past sessions' CLI logs are kept. This session's log is always written. */
   cliLogging: boolean;
 }
 export const getSettings = () => invoke<Settings>("get_settings");
@@ -358,6 +358,7 @@ export const onStatus = (cb: (s: AppStatus[]) => void): Promise<UnlistenFn> =>
 export interface TermOutput {
   id: string;
   data: string; // base64-encoded PTY bytes
+  end?: number; // offset in the session log just past this chunk, when it was logged
 }
 
 export const onTermOutput = (
