@@ -467,7 +467,13 @@ fn prune_old_logs(dir: &Path, slug: &str, keep: &Path, retention_bytes: u64) {
         .filter_map(|e| {
             let path = e.path();
             let name = path.file_name()?.to_str()?.to_string();
-            if name.starts_with(&prefix) && name.ends_with(".log") {
+            // Exactly `<slug>-<digits>.log`: a bare prefix match would also catch another app
+            // whose slug extends this one (`web` vs `web-api-123.log`).
+            let is_ours = name
+                .strip_prefix(&prefix)
+                .and_then(|rest| rest.strip_suffix(".log"))
+                .is_some_and(|ts| !ts.is_empty() && ts.bytes().all(|b| b.is_ascii_digit()));
+            if is_ours {
                 let len = e.metadata().ok()?.len();
                 Some((path, len, name))
             } else {
@@ -3694,6 +3700,21 @@ mod cli_log_tests {
             keep.exists(),
             "active file survives even far over the cap alone"
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn prune_old_logs_ignores_apps_whose_slug_extends_this_one() {
+        let dir = unique_dir("prune-prefix");
+        let longer = write_log(&dir, "web-api-100.log", 10);
+        let numeric = write_log(&dir, "web-1-100.log", 10);
+        let keep = write_log(&dir, "web-200.log", 10);
+
+        prune_old_logs(&dir, "web", &keep, 0);
+
+        assert!(longer.exists(), "`web-api` logs belong to another app");
+        assert!(numeric.exists(), "`web-1` logs belong to another app");
+        assert!(keep.exists());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
