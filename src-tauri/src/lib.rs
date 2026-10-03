@@ -1504,6 +1504,20 @@ fn save_manifest(
     Ok(())
 }
 
+/// `WEBVIEW2_USER_DATA_FOLDER` as it was before `run()` pointed it at Moonpool's own profile.
+static ORIG_WEBVIEW2_DIR: std::sync::OnceLock<Option<std::ffi::OsString>> =
+    std::sync::OnceLock::new();
+
+/// What a child process should see for `WEBVIEW2_USER_DATA_FOLDER`: the user's own value if they
+/// had one, else unset. Never Moonpool's profile, which a child WebView2 app would share and can
+/// hang on. If `run()` never overrode it, the current value is the user's own and passes through.
+pub(crate) fn child_webview2_dir() -> Option<std::ffi::OsString> {
+    ORIG_WEBVIEW2_DIR
+        .get()
+        .cloned()
+        .unwrap_or_else(|| std::env::var_os("WEBVIEW2_USER_DATA_FOLDER"))
+}
+
 #[tauri::command]
 fn launch_app(
     id: String,
@@ -1557,6 +1571,12 @@ fn launch_app(
     // on Unix) so any command works with a single code path.
     let mut cmd = platform::shell_command(&command);
     cmd.cwd(&cwd);
+    // Launched apps must not inherit the WebView2 profile Moonpool set for its own window (see
+    // `child_webview2_dir`). Applied before the entry's own env so a config can still override it.
+    match child_webview2_dir() {
+        Some(v) => cmd.env("WEBVIEW2_USER_DATA_FOLDER", v),
+        None => cmd.env_remove("WEBVIEW2_USER_DATA_FOLDER"),
+    }
     if let Some(env) = &entry.env {
         for (k, v) in env {
             cmd.env(k, v);
@@ -2929,6 +2949,7 @@ pub fn run() {
     // %LOCALAPPDATA%\<identifier>\EBWebView.
     if let Some(dir) = portable::webview_data_dir() {
         let _ = std::fs::create_dir_all(&dir);
+        let _ = ORIG_WEBVIEW2_DIR.set(std::env::var_os("WEBVIEW2_USER_DATA_FOLDER"));
         std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", &dir);
     }
 

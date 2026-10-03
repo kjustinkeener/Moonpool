@@ -375,6 +375,10 @@ pub fn run_stop_command(
         c.args(["-c", command]);
         c
     };
+    match crate::child_webview2_dir() {
+        Some(v) => c.env("WEBVIEW2_USER_DATA_FOLDER", v),
+        None => c.env_remove("WEBVIEW2_USER_DATA_FOLDER"),
+    };
     if let Some(dir) = cwd {
         c.current_dir(dir);
     }
