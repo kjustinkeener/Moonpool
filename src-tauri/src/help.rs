@@ -273,6 +273,9 @@ const TITLEBAR_SCRIPT: &str = r#"(function () {
 /// every dependent measurement down together correctly.
 fn inject_titlebar(html: Vec<u8>) -> Vec<u8> {
     const BAR_HEIGHT_PX: u32 = 32;
+    // Width of #mp-help-scroll's scrollbar. Fixed so the Starlight elements that overlap it can
+    // be clipped by exactly that much (see the clip-path rule below).
+    const SCROLLBAR_PX: u32 = 14;
     let (icon, wordmark) = brand_data_uris();
     let text = String::from_utf8_lossy(&html);
     let Some(body_tag_start) = text.to_ascii_lowercase().find("<body") else {
@@ -349,6 +352,18 @@ header.header {{ top: {BAR_HEIGHT_PX}px !important; height: var(--mp-orig-nav-he
   position: absolute; top: {BAR_HEIGHT_PX}px; left: 0; right: 0; bottom: 0;
   overflow-y: auto; overflow-x: hidden;
 }}
+#mp-help-scroll::-webkit-scrollbar {{ width: {SCROLLBAR_PX}px; }}
+#mp-help-scroll::-webkit-scrollbar-track {{ background: transparent; }}
+#mp-help-scroll::-webkit-scrollbar-thumb {{
+  background: rgba(128,128,128,0.45); background-clip: content-box;
+  border: 3px solid transparent; border-radius: 7px;
+}}
+#mp-help-scroll::-webkit-scrollbar-thumb:hover {{ background: rgba(128,128,128,0.7); background-clip: content-box; }}
+/* Starlight's header and "On this page" column are position:fixed and span to the window's
+   right edge. With our own scroll container the scrollbar sits inside the window, so they
+   covered it: dragging the thumb selected the TOC text instead. Clipping removes the
+   scrollbar's strip from their hit area, so the scrollbar receives the mouse. */
+header.header, .right-sidebar {{ clip-path: inset(0 {SCROLLBAR_PX}px 0 0); }}
 </style>
 <div id="mp-help-scroll">"#
     );
