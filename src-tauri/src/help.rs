@@ -367,16 +367,18 @@ header.header {{ top: {BAR_HEIGHT_PX}px !important; height: var(--mp-orig-nav-he
   overflow-y: auto; overflow-x: hidden;
 }}
 #mp-help-scroll::-webkit-scrollbar {{ width: {SCROLLBAR_PX}px; }}
-#mp-help-scroll::-webkit-scrollbar-track {{ background: transparent; }}
+#mp-help-scroll::-webkit-scrollbar-track {{ background: var(--sl-color-bg, transparent); }}
 #mp-help-scroll::-webkit-scrollbar-thumb {{
   background: rgba(128,128,128,0.45); background-clip: content-box;
   border: 3px solid transparent; border-radius: 7px;
 }}
 #mp-help-scroll::-webkit-scrollbar-thumb:hover {{ background: rgba(128,128,128,0.7); background-clip: content-box; }}
-/* Starlight's header is position:fixed and spans the whole window, so with our own scroll
-   container it covered the scrollbar's top. Clipping removes the scrollbar's strip from its
-   hit area. (The "On this page" column is handled in TITLEBAR_SCRIPT's fitToc.) */
-header.header {{ clip-path: inset(0 {SCROLLBAR_PX}px 0 0); }}
+/* Starlight's header and the narrow-width "On this page" bar are position:fixed and span the
+   whole window, so with our own scroll container they covered the scrollbar's top. Clipping
+   removes the scrollbar's strip from their hit area, and the track's page-colour background
+   makes that strip read as one full-height scrollbar column. (The wide-layout "On this page"
+   column is handled in TITLEBAR_SCRIPT's fitToc.) */
+header.header, mobile-starlight-toc nav {{ clip-path: inset(0 {SCROLLBAR_PX}px 0 0); }}
 </style>
 <div id="mp-help-scroll">"#
     );
