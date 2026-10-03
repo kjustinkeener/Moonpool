@@ -9,6 +9,8 @@ export interface AppEntry {
   command?: string;
   port?: number;
   processName?: string;
+  killMode?: "processName" | "port" | "command" | "none";
+  stopCommand?: string;
   url?: string;
   openBrowser?: boolean;
   // Manifest-schema field (an explicit icon path/URL in apps.json). Not read by
