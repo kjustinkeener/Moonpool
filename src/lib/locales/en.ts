@@ -7,7 +7,7 @@
 // silently breaks something. The judgement calls, all of them made once here:
 //
 //  - **apps.json field labels** ("name", "group", "cwd", "command", "port",
-//    "processName", "url", "env", "note"). They are the literal JSON keys the
+//    "processName", "killMode", "stopCommand", "url", "env", "note"). They are the literal JSON keys the
 //    user types into the file the editor is a front end for. A translated label
 //    beside an untranslatable key is a worse experience, not a better one. The
 //    *hints* next to them are translated; the identifiers are not.
@@ -215,13 +215,18 @@ export const en = {
   "editor.commandHint":
     "The command run in the embedded terminal to start the app, e.g. 'npm run dev' or 'python app.py'. Leave blank for a static URL-only entry.",
   "editor.portHint":
-    "The local TCP port the app listens on. Moonpool shows Running when this port answers, and frees it on Stop. Used by web apps.",
+    "The local TCP port the app listens on. Moonpool shows Running when this port answers. It also kills whatever listens on this port on Stop, but only when killMode is port (the default for web apps).",
   "editor.killModeHint":
-    "How Stop/Restart cleans up beyond the terminal tree Moonpool started: kill by processName, kill whatever owns the port, run stopCommand, or do nothing. Default depends on type.",
+    "Stop always ends the terminal Moonpool started. This picks one extra cleanup step for apps that outlive it. Leave on default unless Stop leaves something running.",
   "editor.killModeDefault": "default (by type)",
+  "editor.killNoteDefault": "Default by type: desktop kills by processName, web kills whatever owns port, static and cli do nothing extra.",
+  "editor.killNoteProcessName": "On Stop, kills every process named processName. Uses: processName.",
+  "editor.killNotePort": "On Stop, kills whatever is listening on port. Uses: port. Never use for Docker apps on Windows; it can kill Docker Desktop.",
+  "editor.killNoteCommand": "On Stop, runs stopCommand in cwd and waits for it. Uses: stopCommand, cwd, env.",
+  "editor.killNoteNone": "On Stop, only ends the terminal Moonpool started. Right for Docker Compose apps whose command recreates the container.",
   "editor.stopCommandHint": "Run in cwd when killMode is command, e.g. docker compose stop app. Finishes before a restart relaunches.",
   "editor.processNameHint":
-    "For desktop apps: the process/executable name (without .exe) used to detect Running and to stop it. On Linux it must be 15 characters or fewer.",
+    "For desktop apps: the process/executable name (without .exe) used to detect Running. It also kills every process with this name on Stop when killMode is processName (the default for desktop apps). On Linux it must be 15 characters or fewer.",
   "editor.urlHint":
     "The URL to open: http://localhost:<port> for a web app, or file:///path/to/index.html for a static page. Use file:///{MP_HOME}/... to stay portable.",
   "editor.openBrowser": "open browser",
