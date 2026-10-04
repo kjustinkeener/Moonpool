@@ -46,8 +46,16 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Reference',
-					items: [{ label: 'App fields', slug: 'reference/apps-json' }],
+					label: 'Configuration',
+					items: [
+						{ label: 'Overview', slug: 'configuration/overview' },
+						{ label: 'App fields', slug: 'configuration/fields' },
+						{ label: 'App types', slug: 'configuration/app-types' },
+						{ label: 'Stop and restart', slug: 'configuration/stop-and-restart' },
+						{ label: 'Paths and environment', slug: 'configuration/paths-and-environment' },
+						{ label: 'Examples', slug: 'configuration/examples' },
+						{ label: 'Settings and logs', slug: 'configuration/settings-and-logs' },
+					],
 				},
 			],
 		}),
