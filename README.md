@@ -69,8 +69,9 @@ itself in place.
 Moonpool reads a user-editable manifest from your config directory:
 
 ```text
-%APPDATA%\Moonpool\apps.json      (Windows)
-~/.config/Moonpool/apps.json      (Linux)
+%USERPROFILE%\.moonpool\moonpool-config\apps.json      (Windows, installed)
+<folder>\moonpool-config\apps.json                       (Windows, portable)
+~/.config/Moonpool/apps.json                         (Linux)
 ```
 
 On first run it's seeded from [`apps.example.json`](src-tauri/resources/apps.example.json).
@@ -103,13 +104,13 @@ Each entry:
 `type` semantics:
 - **desktop** - status detected by `processName` (its `.exe`, without extension).
 - **web** - status by `port` (TCP health-check); the browser opens when it goes live.
-- **static** - opens `url` (or runs `command` then exits).
+- **static** - opens `url` (or runs `command` in a terminal).
 - **cli** - opens an interactive shell in `cwd`.
 
 `killMode`: Stop always ends the terminal Moonpool started. `killMode` adds one cleanup step for apps
 that outlive it: `processName` kills by exe name, `port` kills whatever listens on `port`, `command`
 runs `stopCommand`, `none` does nothing. Docker apps on Windows must use `none` or `command`, never
-`port` (it would kill Docker Desktop). Full reference: the in-app Help, "App fields".
+`port` (it would kill Docker Desktop). Full reference: the in-app Help, "Configuration".
 
 **Command tips:** every `command` runs via `cmd /c` (Windows) or `sh -c` (Linux/macOS) in `cwd`,
 inheriting the environment plus `env`. Prefer a foreground command that streams logs
@@ -118,7 +119,7 @@ inheriting the environment plus `env`. Prefer a foreground command that streams 
 unquoted form `pwsh -NoExit -Command <tokens...>`.
 
 **Icons:** resolved as: manifest `"icon"` (file path / URL / data URI) ->
-`%APPDATA%\Moonpool\icons\<id>.png` -> **auto-discovered from the app's own project folder**
+`<config folder>\icons\<id>.png` -> **auto-discovered from the app's own project folder**
 (Tauri `src-tauri/icons/`, Electron `build/icon`, web `public/favicon`, or `icon.png`/`logo.png`)
 -> desktop exe icon -> web favicon -> a type glyph. Most apps get their real icon with no config.
 

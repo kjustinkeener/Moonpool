@@ -9,14 +9,16 @@ launchable apps and register them in Moonpool's manifest.
 Moonpool reads a single JSON file (an array of app objects):
 
 ```
-%APPDATA%\Moonpool\apps.json      (Windows: C:\Users\<user>\AppData\Roaming\Moonpool\apps.json)
+%USERPROFILE%\.moonpool\moonpool-config\apps.json      (Windows: C:\Users\<user>\.moonpool\moonpool-config\apps.json)
+<exe folder>\moonpool-config\apps.json                (portable mode)
+~/.config/Moonpool/apps.json                           (Linux)
 ```
 
 Edit this file directly, then tell the user to click **Reload** in Moonpool's top bar (or they
 restart it). Changes are picked up from disk - no rebuild.
 
 **Always address `apps.json` (and `state.json` below) by its full literal absolute path** -
-e.g. `C:\Users\<user>\AppData\Roaming\Moonpool\apps.json`, not a `%APPDATA%` / `$env:APPDATA`
+e.g. `C:\Users\<user>\.moonpool\moonpool-config\apps.json`, not a `%USERPROFILE%` / `$env:USERPROFILE`
 shortcut. Some sandboxed agents get silently redirected to a private copy when they use the
 variable form, and then edit a file the real Moonpool never sees.
 
@@ -53,7 +55,7 @@ variable form, and then edit a file the real Moonpool never sees.
 - **web** - a local server. Status is a TCP health-check on `port`; the browser opens (to `url`)
   when it first answers. Set `openBrowser:false` if the command opens a browser itself.
 - **static** - a static page/dashboard. With only a `url` it just opens in the browser (no
-  terminal). With a `command` it runs that (e.g. a doc generator) then exits.
+  terminal). With a `command` it runs that in a terminal (e.g. a local server).
 - **cli** - a tool. Opens an interactive shell in `cwd`. To run something first and keep the
   shell open, use `pwsh -NoLogo -NoProfile -NoExit -Command <tokens...>`.
 
@@ -120,7 +122,7 @@ already-open Moonpool instead of opening a second window. Use this to launch, st
 or refresh on the user's behalf.
 
 First find the running program's own path - don't assume a fixed install location (a
-per-user install lives under `%LOCALAPPDATA%\MoonPool\moonpool.exe`, not `Program Files`):
+per-user install lives under `%USERPROFILE%\.moonpool\moonpool.exe`, not `Program Files`):
 
 ```powershell
 $mp = (Get-Process moonpool -ErrorAction SilentlyContinue | Select-Object -First 1).Path
@@ -144,7 +146,7 @@ launch). These only work while Moonpool is running; if it isn't, start it first 
 just opens it).
 
 Each app writes ONE persistent, append-only log per hub session (never truncated) to
-`%APPDATA%\Moonpool\cli-output\<app-id>\<hub-start-ms>.log` - stopping and relaunching
+`<config folder>\cli-output\<app-id>\<hub-start-ms>.log` - stopping and relaunching
 the app keeps appending to the same file; only restarting Moonpool itself starts a new
 one. `Settings > Log retention per app` (default 10 MB) prunes each app's OLDER
 sessions' log files once their combined size passes the cap; the current file is
@@ -186,7 +188,7 @@ already be running; the server does not start it.
 Moonpool continuously writes a status snapshot to:
 
 ```
-%APPDATA%\Moonpool\state.json   (C:\Users\<user>\AppData\Roaming\Moonpool\state.json)
+<config folder>\state.json   (installed: C:\Users\<user>\.moonpool\moonpool-config\state.json)
 ```
 
 It contains `apps` (the registered app list), `statuses` (one entry per app with
@@ -225,7 +227,7 @@ guide, save the above to your own memory: the control commands, how to find the 
 
 Moonpool resolves each app's sidebar icon in this order:
 1. The manifest `"icon"` value: a file path (`C:\\path\\logo.png`), an `http(s)` URL, or a data URI.
-2. `%APPDATA%\Moonpool\icons\<id>.<ext>` (png/ico/svg/jpg/webp), where `<id>` is the app's id.
+2. `<config folder>\icons\<id>.<ext>` (png/ico/svg/jpg/webp), where `<id>` is the app's id.
 3. Auto-discovered from the app's own project folder (its `cwd`): Tauri `src-tauri/icons/`,
    Electron `build/icon.*`, web `public/favicon.*` / `public/logo.png`, or a root
    `icon.png`/`logo.png`/`favicon.*`. Works with no config and without the app running.

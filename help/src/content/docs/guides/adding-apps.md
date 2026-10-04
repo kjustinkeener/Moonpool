@@ -3,39 +3,32 @@ title: Adding Apps
 description: Register an app or dev server so Moonpool can launch and manage it.
 ---
 
-Each app in Moonpool is one entry with a launch command, a working directory, and an
-optional environment. Moonpool runs the command in its own managed terminal.
+Each app in Moonpool is one entry with a launch command, a working folder, and an optional
+environment. Moonpool runs the command in its own managed terminal.
 
-## Add an entry
+## Add an app
 
-1. Open the editor from the hub.
-2. Give the app a **name** and pick a **group** (groups organize the tiles).
-3. Pick the **type**: `web` (dev server on a port), `desktop` (native app), `static` (a page) or `cli` (a terminal).
-4. Set the **command** to run and the **working directory** to run it in.
+1. Open the **...** menu at the top of the sidebar and choose **Add app**.
+2. Enter a **name** and pick a **group**.
+3. Pick the **type**: `web` (server on a port), `desktop` (native app), `static` (a page) or `cli` (a command).
+4. Set the **command** and the **cwd** it runs in.
 5. Fill in what the type needs: **port** and **url** for web, **processName** for desktop.
-6. Optionally set **killMode** if Stop leaves something running (see below).
-7. Save. The new tile appears in the hub; click it to launch.
+6. Save. The app appears in the sidebar. Use its **Launch** control to start it.
 
-Every field is explained in the [App fields reference](/reference/apps-json/).
+Clicking an app's name only opens its terminal tab. It does not start the app.
 
-## Stop and restart
+## Edit by hand
 
-Stop ends the terminal Moonpool started for the app and everything it launched. If the app
-outlives that, pick a **killMode**: `processName` kills by executable name, `port` kills
-whatever listens on the port, `command` runs your own **stopCommand**, and `none` does
-nothing more. Leave it empty for the default for the type (`desktop` uses `processName`,
-`web` uses `port`, others use `none`). Docker apps should use `none` or `command`, never
-`port`. Details: [Stop and Restart](/reference/apps-json/#stop-and-restart).
+Choose **Edit apps.json** in the same menu, save the file, then choose **Reload**. The
+format, validation rules and recovery options are in the
+[Configuration overview](/configuration/overview/).
 
-## Portable-friendly paths
+## Where to go next
 
-If you run Moonpool portably, use the `{MP_HOME}` token in a path instead of a fixed
-drive letter (for example `{MP_HOME}\tools\myapp.exe`). `{MP_HOME}` resolves to Moonpool's
-own folder, so your apps travel with the bundle. Absolute paths still work but will not
-move with the folder.
-
-## Next
-
-- [App fields reference](/reference/apps-json/)
+- [App fields](/configuration/fields/): every key and what it does.
+- [App types](/configuration/app-types/): how each type launches and shows Running.
+- [Stop and restart](/configuration/stop-and-restart/): what to set when Stop leaves something running, and why Docker apps need care.
+- [Paths and environment](/configuration/paths-and-environment/): `{MP_HOME}`, `./` paths and `env`.
+- [Examples](/configuration/examples/): complete entries to copy.
 - [Portable mode](/guides/portable-mode/)
 - [Updating](/guides/updating/)
