@@ -1851,13 +1851,17 @@ fn stop_app(id: String, app: AppHandle, state: State<HubState>) -> Result<(), St
     Ok(())
 }
 
-/// Whether a resolved url may be handed to the OS opener. `apps.json` is editable by
-/// the user AND writable by MCP agents, so an arbitrary `url` reaching the opener is a
-/// real vector: `file://`, `javascript:`, `vbscript:`, `data:` etc. can run code or
-/// read local files. Only plain web links (and `mailto:`) are allowed through.
+/// Whether a resolved url may be handed to the OS opener: web links, `mailto:` and `file://`.
+/// `file://` is deliberately allowed with no extension check: static dashboards and local pages
+/// (.html, .php, ...) are a documented use, and anyone who can write `apps.json` can already
+/// run any program through an app's `command`, so filtering file types here would protect
+/// nothing. Script-ish and opaque schemes (`javascript:`, `vbscript:`, `data:`, ...) stay refused.
 fn is_openable_url(url: &str) -> bool {
     let u = url.trim_start().to_ascii_lowercase();
-    u.starts_with("http://") || u.starts_with("https://") || u.starts_with("mailto:")
+    u.starts_with("http://")
+        || u.starts_with("https://")
+        || u.starts_with("mailto:")
+        || u.starts_with("file://")
 }
 
 #[tauri::command]
@@ -3293,18 +3297,20 @@ mod url_tests {
     use super::{is_openable_url, percent_decode};
 
     #[test]
-    fn only_web_and_mailto_schemes_open() {
+    fn only_web_mailto_and_file_schemes_open() {
         for ok in [
             "http://x",
             "https://x/y",
             "HTTPS://X",
             "  https://x",
             "mailto:a@b",
+            "file:///c:/x/index.html",
+            "FILE:///home/u/page.php",
         ] {
             assert!(is_openable_url(ok), "{ok:?} should be openable");
         }
         for bad in [
-            "file:///c:/x",
+            "file:/c:/x",
             "javascript:alert(1)",
             "vbscript:msgbox",
             "data:text/html,x",
