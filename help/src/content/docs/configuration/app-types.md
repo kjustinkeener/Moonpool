@@ -40,8 +40,9 @@ name.
 ## static
 
 A page. With only a `url`, Launch and Restart open it in your browser and Stop does nothing.
-Only `http://`, `https://` and `mailto:` URLs are opened, so a `file://` URL is refused. To
-serve a local folder, add a `command` that starts a server and a `port` to track it. See the
+`http://`, `https://`, `mailto:` and `file://` URLs are opened, so a local page such as
+`file:///{MP_HOME}/dashboards/csv/index.html` works. Pages that need a server (PHP, or anything
+fetching local files) need a `command` that starts one and a `port` to track it. See the
 [examples](/configuration/examples/).
 
 ## cli
