@@ -25,6 +25,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Moonpool Help',
+			customCss: ['./src/styles/screenshots.css'],
 			// No external social links in bundled app help.
 			social: [],
 			// Two-level navigation: category label -> pages.
