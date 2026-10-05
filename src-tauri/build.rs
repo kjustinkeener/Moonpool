@@ -10,6 +10,9 @@ fn main() {
     println!("cargo:rustc-env=MOONPOOL_BUILD_DATE={}", ymd_utc(secs));
     // Rebuild so the date refreshes each build rather than being cached.
     println!("cargo:rerun-if-changed=build.rs");
+    // help.rs embeds ../help/dist with include_dir!, which cargo cannot track on its own: without
+    // this, rebuilding the docs does not rebuild the exe and the app keeps serving stale help.
+    println!("cargo:rerun-if-changed=../help/dist");
 
     tauri_build::build()
 }
