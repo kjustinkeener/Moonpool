@@ -1,0 +1,17 @@
+/* Screenshots in help pages. Filename suffix is the size convention:
+   name-narrow.png (tall sidebar shots, capped at 340px), name-wide.png (up to full width). */
+.sl-markdown-content img {
+	max-width: min(100%, 680px);
+	height: auto;
+	display: block;
+	margin: 1.25rem auto;
+	border-radius: 8px;
+	border: 1px solid var(--sl-color-hairline);
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+.sl-markdown-content img[src*="-narrow"] {
+	max-width: min(100%, 340px);
+}
+.sl-markdown-content img[src*="-wide"] {
+	max-width: 100%;
+}
