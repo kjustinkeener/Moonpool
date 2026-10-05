@@ -207,9 +207,12 @@
           <button onclick={() => pick(onSettings)}><span class="mi"><Icon name="sliders" /></span>{t("common.settings")}</button>
           <button onclick={() => pick(onHelp)}><span class="mi"><Icon name="help" /></span>{t("common.help")}</button>
           <button onclick={() => pick(onAbout)}><span class="mi"><Icon name="info" /></span>{t("common.about")}</button>
-          <button onclick={() => pick(openInstallerWindow)}>
-            <span class="mi"><Icon name="monitor" /></span>{t("sidebar.installMoonpool")}
-          </button>
+          <!-- The installer is Windows-only until the Linux install lands. -->
+          {#if /Windows/i.test(navigator.userAgent)}
+            <button onclick={() => pick(openInstallerWindow)}>
+              <span class="mi"><Icon name="monitor" /></span>{t("sidebar.installMoonpool")}
+            </button>
+          {/if}
           {#each clashes as c (c.port)}
             <!-- formatList, not a hard-coded " and ": the separator and the
                  final conjunction differ per language. -->
