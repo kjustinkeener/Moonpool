@@ -130,7 +130,7 @@ fn installed_help_version() -> Option<String> {
     let path = crate::portable::mp_home()?.join("help/version.txt");
     match std::fs::read_to_string(&path) {
         Ok(s) => Some(s.trim().to_string()),
-        Err(_) => Some(crate::help::HELP_BASELINE_VERSION.to_string()),
+        Err(_) => Some(crate::help::baseline_version().to_string()),
     }
 }
 
