@@ -111,17 +111,25 @@ fn capture_hwnd_raw(hwnd: HWND) -> Result<(u32, u32, Vec<u8>), String> {
 /// PNG too large to hand back as an inline base64 tool result even after compression. A screenshot
 /// exists to confirm a UI change rendered, not for pixel-level inspection, so downsampling first
 /// is the right tradeoff.
-const MAX_DIMENSION: u32 = 320;
+pub const MAX_DIMENSION: u32 = 320;
+
+/// Upper bound for a caller-requested `max_dim` (pipe `screenshot <label> [max_dim]` only).
+pub const MAX_DIMENSION_LIMIT: u32 = 2400;
+
+/// Clamp a caller-requested longer-side cap to `MAX_DIMENSION..=MAX_DIMENSION_LIMIT`.
+pub fn clamp_max_dim(requested: u32) -> u32 {
+    requested.clamp(MAX_DIMENSION, MAX_DIMENSION_LIMIT)
+}
 
 /// Nearest-neighbor downsample `src` (top-down BGRA, `src_w`x`src_h`) so its longer side is at
-/// most `MAX_DIMENSION`. Returns the source unchanged (and its original dimensions) if already
+/// most `max_dim`. Returns the source unchanged (and its original dimensions) if already
 /// within that bound.
-fn downsample(src_w: u32, src_h: u32, src: &[u8]) -> (u32, u32, Vec<u8>) {
+fn downsample(src_w: u32, src_h: u32, src: &[u8], max_dim: u32) -> (u32, u32, Vec<u8>) {
     let longer = src_w.max(src_h);
-    if longer <= MAX_DIMENSION {
+    if longer <= max_dim {
         return (src_w, src_h, src.to_vec());
     }
-    let scale = MAX_DIMENSION as f64 / longer as f64;
+    let scale = max_dim as f64 / longer as f64;
     let dst_w = ((src_w as f64 * scale).round() as u32).max(1);
     let dst_h = ((src_h as f64 * scale).round() as u32).max(1);
 
@@ -138,10 +146,11 @@ fn downsample(src_w: u32, src_h: u32, src: &[u8]) -> (u32, u32, Vec<u8>) {
     (dst_w, dst_h, out)
 }
 
-/// Capture `hwnd`, downsample it, and PNG-encode it, returning the encoded bytes.
-pub fn capture_hwnd_to_png(hwnd: HWND) -> Result<Vec<u8>, String> {
+/// Capture `hwnd`, downsample it so its longer side is at most `max_dim` (already clamped by the
+/// caller; pass `MAX_DIMENSION` for the default), and PNG-encode it, returning the encoded bytes.
+pub fn capture_hwnd_to_png(hwnd: HWND, max_dim: u32) -> Result<Vec<u8>, String> {
     let (raw_w, raw_h, bgra) = capture_hwnd_raw(hwnd)?;
-    let (width, height, mut rgba) = downsample(raw_w, raw_h, &bgra);
+    let (width, height, mut rgba) = downsample(raw_w, raw_h, &bgra, max_dim);
 
     // GDI hands back BGRA; PNG wants RGBA. Swap in place rather than allocating a second buffer.
     let (pixels, _) = rgba.as_chunks_mut::<4>();
@@ -161,4 +170,27 @@ pub fn capture_hwnd_to_png(hwnd: HWND) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("png data: {e}"))?;
     writer.finish().map_err(|e| format!("png finish: {e}"))?;
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clamp_bounds() {
+        assert_eq!(clamp_max_dim(0), MAX_DIMENSION);
+        assert_eq!(clamp_max_dim(1200), 1200);
+        assert_eq!(clamp_max_dim(99_999), MAX_DIMENSION_LIMIT);
+    }
+
+    #[test]
+    fn downsample_respects_cap() {
+        let src = vec![0u8; 1000 * 500 * 4];
+        let (w, h, _) = downsample(1000, 500, &src, 320);
+        assert_eq!((w, h), (320, 160));
+        let (w, h, _) = downsample(1000, 500, &src, 800);
+        assert_eq!((w, h), (800, 400));
+        let (w, h, _) = downsample(1000, 500, &src, 2400);
+        assert_eq!((w, h), (1000, 500));
+    }
 }
