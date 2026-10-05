@@ -1,20 +1,10 @@
 [
   {
-    "id": "example-notepad",
-    "name": "Notepad",
-    "group": "Desktop apps",
-    "type": "desktop",
-    "command": "notepad",
-    "processName": "notepad",
-    "openBrowser": false,
-    "note": "A 'desktop' app shows running when a process named 'processName' (its .exe, without extension) is found, and Stop ends that process."
-  },
-  {
     "id": "example-web-server",
     "name": "Example Web Server",
     "group": "Web apps",
     "type": "web",
-    "command": "python -m http.server 8000 --bind 127.0.0.1 --directory \"{MP_HOME}/dashboards\"",
+    "command": "python3 -m http.server 8000 --bind 127.0.0.1 --directory \"{MP_HOME}/dashboards\"",
     "port": 8000,
     "url": "http://127.0.0.1:8000",
     "openBrowser": true,
@@ -51,13 +41,13 @@
     "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
   },
   {
-    "id": "example-powershell",
-    "name": "PowerShell Session",
+    "id": "example-shell",
+    "name": "Shell Session",
     "group": "CLI tools",
     "type": "cli",
     "cwd": "{MP_HOME}",
-    "command": "powershell -NoLogo -NoProfile -NoExit -Command Get-Date",
-    "note": "A 'cli' app opens an interactive shell in 'cwd'. This one prints the date first, then stays open. Use the unquoted '-NoExit -Command <tokens>' form; leave off '-Command ...' for a plain shell."
+    "command": "sh -c 'date; exec \"${SHELL:-sh}\"'",
+    "note": "A 'cli' app opens an interactive shell in 'cwd'. This one prints the date first, then stays open."
   },
   {
     "id": "docs-browser",
