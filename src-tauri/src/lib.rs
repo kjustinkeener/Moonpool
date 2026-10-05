@@ -411,19 +411,18 @@ const TICKET_TTL_MS: u64 = 24 * 60 * 60 * 1000;
 // Commands
 // ---------------------------------------------------------------------------
 
-/// Generic example manifest (installed mode): the example dashboards plus the
-/// teaching placeholder entries. Seeded into the config dir on first run.
-const EXAMPLE_MANIFEST: &str = include_str!("../resources/apps.example.json");
-/// Portable-mode example manifest: only the launch-immediately example dashboards,
-/// all referenced by `{MP_HOME}` so every tile works from a moved bundle.
-const EXAMPLE_MANIFEST_PORTABLE: &str = include_str!("../resources/apps.example.portable.json");
+/// Example manifest seeded into the config dir on first run. Every entry runs as-is
+/// (Notepad, a shell, the bundled dashboards, a Python web server) and uses `{MP_HOME}`
+/// so it also works from a moved portable bundle.
+const EXAMPLE_MANIFEST_WINDOWS: &str = include_str!("../resources/apps.example.json");
+const EXAMPLE_MANIFEST_LINUX: &str = include_str!("../resources/apps.example.linux.json");
 
-/// The example manifest to seed for the current mode (portable = dashboards only).
+/// The example manifest to seed on this platform.
 fn example_manifest() -> &'static str {
-    if portable::is_portable() {
-        EXAMPLE_MANIFEST_PORTABLE
+    if cfg!(windows) {
+        EXAMPLE_MANIFEST_WINDOWS
     } else {
-        EXAMPLE_MANIFEST
+        EXAMPLE_MANIFEST_LINUX
     }
 }
 /// AI configuration guide, seeded next to the manifest so agents can read it.
@@ -3658,6 +3657,29 @@ mod kill_mode_tests {
         assert_eq!(resolve_kill_mode(None, "web"), "port");
         assert_eq!(resolve_kill_mode(None, "static"), "none");
         assert_eq!(resolve_kill_mode(None, "cli"), "none");
+    }
+}
+
+#[cfg(test)]
+mod example_manifest_tests {
+    use super::{EXAMPLE_MANIFEST_LINUX, EXAMPLE_MANIFEST_WINDOWS};
+
+    #[test]
+    fn seeded_manifests_parse_with_unique_ids_and_no_machine_paths() {
+        for (name, src) in [("windows", EXAMPLE_MANIFEST_WINDOWS), ("linux", EXAMPLE_MANIFEST_LINUX)] {
+            let v: serde_json::Value = serde_json::from_str(src).expect(name);
+            let ids: Vec<&str> = v
+                .as_array()
+                .expect(name)
+                .iter()
+                .map(|e| e["id"].as_str().expect(name))
+                .collect();
+            let mut sorted = ids.clone();
+            sorted.sort();
+            sorted.dedup();
+            assert_eq!(sorted.len(), ids.len(), "{name}: duplicate ids");
+            assert!(!src.contains("C:\\\\projects") && !src.contains("C:/projects"), "{name}: placeholder path");
+        }
     }
 }
 

@@ -1,41 +1,27 @@
 [
   {
-    "id": "notes-app",
-    "name": "Notes App",
+    "id": "example-notepad",
+    "name": "Notepad",
     "group": "Desktop apps",
     "type": "desktop",
-    "cwd": "C:\\projects\\notes-app",
-    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File tools\\dev-run.ps1",
-    "processName": "notes-app",
+    "command": "notepad",
+    "processName": "notepad",
     "openBrowser": false,
-    "note": "A little native app. 'desktop' apps show running when a process named 'processName' (its .exe, without extension) is found."
+    "note": "A 'desktop' app shows running when a process named 'processName' (its .exe, without extension) is found, and Stop ends that process."
   },
   {
-    "id": "metrics-dashboard",
-    "name": "Metrics Dashboard",
+    "id": "example-web-server",
+    "name": "Example Web Server",
     "group": "Web apps",
     "type": "web",
-    "cwd": "C:\\projects\\metrics-dashboard",
-    "command": "npm run dev",
-    "port": 5173,
-    "url": "http://localhost:5173",
-    "openBrowser": true,
-    "note": "A little web dashboard (Vite/React). 'web' apps show running when their port answers, and the browser opens when it goes live."
-  },
-  {
-    "id": "habit-tracker",
-    "name": "Habit Tracker",
-    "group": "Web apps",
-    "type": "web",
-    "cwd": "C:\\projects\\habit-tracker",
-    "command": "python app.py",
+    "command": "python -m http.server 8000 --bind 127.0.0.1 --directory \"{MP_HOME}/dashboards\"",
     "port": 8000,
     "url": "http://127.0.0.1:8000",
     "openBrowser": true,
     "env": {
-      "PORT": "8000"
+      "PYTHONUNBUFFERED": "1"
     },
-    "note": "A small Python web app. Run a foreground command so its logs stream into the terminal; 'env' injects variables like PORT."
+    "note": "Serves the bundled dashboards over HTTP with Python's built-in server (needs Python installed). 'web' apps show running when their port answers, and the browser opens when it goes live. 'env' sets variables for the process; PYTHONUNBUFFERED makes its log lines stream into the terminal immediately."
   },
   {
     "id": "csv-explorer",
@@ -44,7 +30,7 @@
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/csv/index.html",
     "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for CSV/TSV that auto-profiles any file and renders it. Runs offline, no server, no CDN."
+    "note": "Drop-your-data dashboard for CSV/TSV. Auto-profiles any file and renders it; ships differently-shaped sample tabs. Runs offline, no server. {MP_HOME} resolves to Moonpool's folder, so the tile also works from a portable bundle."
   },
   {
     "id": "json-explorer",
@@ -53,7 +39,7 @@
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/json/index.html",
     "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for JSON (arrays, nested objects, or maps)."
+    "note": "Drop-your-data dashboard for JSON (arrays, nested objects, or maps; nested keys flattened automatically)."
   },
   {
     "id": "xlsx-explorer",
@@ -62,25 +48,16 @@
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
     "openBrowser": true,
-    "note": "Bundled example: a drop-your-data dashboard for Excel .xlsx / .xls, parsed offline with a vendored SheetJS."
+    "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
   },
   {
-    "id": "cli-script",
-    "name": "CLI Script",
+    "id": "example-powershell",
+    "name": "PowerShell Session",
     "group": "CLI tools",
     "type": "cli",
-    "cwd": "C:\\projects\\scripts",
-    "command": "pwsh -NoLogo -NoProfile -NoExit -Command python daily_report.py",
-    "note": "Runs a script and keeps an interactive shell open in 'cwd'. Use the unquoted '-NoExit -Command <tokens>' form; leave off '-Command ...' for a plain shell."
-  },
-  {
-    "id": "docs-dashboard",
-    "name": "Docs Dashboard",
-    "group": "Docs",
-    "type": "static",
-    "url": "file:///C:/projects/docs-dashboard/index.html",
-    "openBrowser": true,
-    "note": "A self-contained HTML dashboard. 'static' apps with only a 'url' just open it in the browser (no terminal)."
+    "cwd": "{MP_HOME}",
+    "command": "powershell -NoLogo -NoProfile -NoExit -Command Get-Date",
+    "note": "A 'cli' app opens an interactive shell in 'cwd'. This one prints the date first, then stays open. Use the unquoted '-NoExit -Command <tokens>' form; leave off '-Command ...' for a plain shell."
   },
   {
     "id": "docs-browser",
@@ -89,6 +66,6 @@
     "type": "static",
     "url": "file:///{MP_HOME}/dashboards/docs/index.html",
     "openBrowser": true,
-    "note": "Bundled example: an offline Markdown docs browser hosting Moonpool's own help. {MP_HOME} resolves to Moonpool's folder, so the same entry also works in a portable bundle."
+    "note": "Offline Markdown docs browser hosting Moonpool's own help."
   }
 ]
