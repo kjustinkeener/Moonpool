@@ -173,15 +173,17 @@ is an MCP server over stdio.
 ```
 
 Tools: `moonpool_list_apps`, `moonpool_bootup_launcher`, `moonpool_shutdown_launcher`,
-`moonpool_start_app`, `moonpool_stop_app`, `moonpool_restart_app`,
+`moonpool_raise_launcher`, `moonpool_start_app`, `moonpool_stop_app`, `moonpool_restart_app`,
 `moonpool_app_output` (returns the terminal output as text, `tail_lines` to bound it),
-`moonpool_reload_config`, `moonpool_refresh_app_icons`, `moonpool_raise_launcher`,
-`moonpool_launcher_paths`.
+`moonpool_stop_mcp_server`, `moonpool_reload_config`, `moonpool_read_config`,
+`moonpool_write_config`, `moonpool_restore_config`, `moonpool_refresh_app_icons`,
+`moonpool_launcher_paths`, plus the Windows test tools `moonpool_screenshot`,
+`moonpool_window_state` and `moonpool_reset_mcp_seen`. Full reference: the Automation section
+of Moonpool's built-in help.
 
-The server is a *client* of the resident tray instance, using the same channel described
-below - it fires the command with a ticket and waits for the outcome, so each tool call
-returns success or the actual error instead of leaving you to poll a file. Moonpool must
-already be running; the server does not start it.
+The server is a *client* of the resident tray instance: it sends each command over the
+control pipe (falling back to the channel described below) and returns the real outcome.
+Most tools need Moonpool already running; call `moonpool_bootup_launcher` first if it is not.
 
 ### Checking what's running
 
