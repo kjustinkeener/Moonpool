@@ -15,6 +15,20 @@ that, launch it from the shortcut like any other app.
 Everything Moonpool needs lives under that one `.moonpool\` folder: the program, your
 configuration, and its bundled help.
 
+## Install Moonpool... from the menu
+
+The "..." menu has **Install Moonpool...** in both modes. It opens the same install card.
+From a portable copy you can install it properly. From an installed copy **Install
+Moonpool** is disabled ("Already installed") and **Install portable** stays available.
+
+## Uninstalling
+
+Use Windows Add/Remove Programs (Installed apps), or run `moonpool.exe --uninstall`. This
+removes the Start Menu and desktop shortcuts, the registry entry, and the whole
+`%USERPROFILE%\.moonpool` folder, **including your configuration** (`apps.json`, settings
+and logs). Back up `%USERPROFILE%\.moonpool\moonpool-config` first if you want to keep it.
+Any running Moonpool is stopped as part of uninstalling.
+
 ## Portable mode
 
 Prefer to keep Moonpool on a USB stick or a movable folder? Choose **Portable** during
