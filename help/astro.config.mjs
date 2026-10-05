@@ -40,7 +40,14 @@ export default defineConfig({
 				{
 					label: 'Using Moonpool',
 					items: [
+						{ label: 'The hub window', slug: 'using/hub-window' },
+						{ label: 'Sidebar and menus', slug: 'using/sidebar-and-menus' },
+						{ label: 'Terminal tabs', slug: 'using/terminal' },
+						{ label: 'Shortcuts and zoom', slug: 'using/shortcuts-and-zoom' },
 						{ label: 'Adding Apps', slug: 'guides/adding-apps' },
+						{ label: 'Settings window', slug: 'using/settings-window' },
+						{ label: 'Themes, language and transparency', slug: 'using/appearance' },
+						{ label: 'Example dashboards', slug: 'using/example-dashboards' },
 						{ label: 'Portable Mode', slug: 'guides/portable-mode' },
 						{ label: 'Updating', slug: 'guides/updating' },
 					],
@@ -65,6 +72,12 @@ export default defineConfig({
 						{ label: 'MCP tools', slug: 'automation/mcp-tools' },
 						{ label: 'Command line', slug: 'automation/command-line' },
 						{ label: 'Control verbs', slug: 'automation/control-verbs' },
+					],
+				},
+				{
+					label: 'Platforms',
+					items: [
+						{ label: 'Linux', slug: 'platforms/linux' },
 					],
 				},
 			],

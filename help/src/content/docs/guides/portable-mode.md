@@ -19,7 +19,11 @@ Use the `{MP_HOME}` token in an app's path so it points inside the portable fold
 than at a fixed location on one machine. See [Adding apps](/guides/adding-apps/) for how
 paths resolve.
 
-## Turning it into a portable copy later
+## Choosing portable from the installer
 
-From an installed Moonpool you can export a portable copy to a folder you pick, optionally
-cloning your current apps and settings into it. The original install is left untouched.
+Portable mode is set up from the installer card, which offers **Install portable**
+alongside **Install Moonpool**. Pick a folder and Moonpool creates the `.moonpool\` folder
+there and starts from it with a fresh configuration. The card is also available from the
+"..." menu as **Install Moonpool...** in both installed and portable mode, so you can create
+a portable copy from a running Moonpool. A portable copy starts fresh and does not copy your
+existing apps; copy `apps.json` across by hand if you want them.

@@ -9,8 +9,8 @@ places its icon in the system tray.
 ## Finding the hub
 
 - Click the **tray icon** to raise the hub window.
-- Closing the window hides it back to the tray; Moonpool keeps running.
-- Right-click the tray icon for quick actions.
+- Left-click the tray icon to show the hub. Right-click it for a menu with **Show** and **Quit**.
+- By default, closing the window quits Moonpool. Turn on **Close to tray** in Settings to hide it to the tray instead and keep it running. See [Settings window](/using/settings-window/).
 
 ## Getting help
 
