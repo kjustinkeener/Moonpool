@@ -26,6 +26,11 @@ description: Keyboard shortcuts, mouse shortcuts and UI zoom in the Moonpool hub
 
 Hold Ctrl and scroll the wheel over the hub to zoom. Scrolling up zooms in and down zooms out, in steps of about 10 percent per wheel event.
 
+```text
+Ctrl + wheel up      zoom in
+Ctrl + wheel down    zoom out
+```
+
 - The range is 0.5x to 3x.
 - The window resizes by the same factor, so the layout stays as tight at 2x as at 1x. Once the limit is reached the window stops growing.
 - The factor is saved as `uiScale` in `settings.json` and applied at the next start. The saved window size is already the zoomed size, so it is not scaled again. See [Settings and logs](/configuration/settings-and-logs/).

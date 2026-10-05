@@ -17,6 +17,8 @@ places its icon in the system tray.
 The **Help** entry opens this help site in its own window, and works offline. It is the
 same content published on the web, so you can read it with or without a connection.
 
+![Help window with the section navigation outlined on the left and a page on the right](../../../assets/screenshots/help-window.png)
+
 ## Next
 
 - [Adding apps](/guides/adding-apps/)

@@ -24,6 +24,14 @@ Hover the dot for the word.
 | Launch (play) | Starts the app and opens its terminal tab. Shown when the app is stopped. |
 | Stop (square) | Stops the app. Shown while it is running or starting. |
 
+![One running row, zoomed: status dot, type icon, name and port, then edit, restart and stop buttons](../../../assets/screenshots/sidebar-row-controls.png)
+
+1. Status dot (lit while running).
+2. Type icon.
+3. Edit (pencil).
+4. Restart.
+5. Stop (shown instead of Launch while running).
+
 While a launch or stop is in progress the controls are replaced by a spinner (`Working...`).
 
 Clicking an app's **name** opens or focuses its terminal tab and never launches anything. A tab for a stopped app shows the log from this session. Use Launch or Restart to start it. A `static` app with only a `url` and no `command` has no terminal: Launch opens the URL in your browser.
@@ -38,12 +46,18 @@ When an AI client has used Moonpool's MCP tools for an app, a dimmed sub-row `MC
 
 ## Groups
 
+![Idle sidebar with the five group headers outlined, each with its app count at the right](../../../assets/screenshots/sidebar-groups-narrow.png)
+
 - Click a group heading to collapse or expand it. The count beside it is the number of apps shown. Collapsed groups are remembered.
 - Inside a group, the most recently started app is on top. Apps never started keep their `apps.json` order. A freshly launched app glows and rises to the top.
 
 ## Filter box
 
-Type in **Filter apps...** to narrow the list. It matches app name and group name, ignoring case. If nothing matches, the list shows `No apps match "<text>".`
+Type in **Filter apps...** to narrow the list. It matches app name and group name, ignoring case. If nothing matches, the list shows:
+
+```text
+No apps match "<text>".
+```
 
 ## Right-click menu
 
@@ -61,5 +75,3 @@ Right-click a row for:
 ## Resizing
 
 Drag the divider between the sidebar and the CLI pane. The width is limited to 180 to 620 px (default 280) and is remembered. The divider is locked while the CLI pane is collapsed. See [Terminal](/using/terminal/).
-
-![Hub window with the sidebar expanded](../../../assets/screenshots/hub-expanded.png)

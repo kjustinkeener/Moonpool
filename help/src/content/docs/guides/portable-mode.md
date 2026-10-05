@@ -13,16 +13,29 @@ choose. That folder holds the program, your configuration, and its help content.
 is written to Windows AppData, so moving or copying the folder moves your whole setup with
 it.
 
+```text
+<chosen location>\.moonpool\
+```
+
 ## Making your apps travel too
 
 Use the `{MP_HOME}` token in an app's path so it points inside the portable folder rather
-than at a fixed location on one machine. See [Adding apps](/guides/adding-apps/) for how
-paths resolve.
+than at a fixed location on one machine:
+
+```json title="apps.json"
+{ "cwd": "{MP_HOME}/my-app" }
+```
+
+See [Paths and environment](/configuration/paths-and-environment/) for how paths resolve.
 
 ## Choosing portable from the installer
 
 Portable mode is set up from the installer card, which offers **Install portable**
-alongside **Install Moonpool**. Pick a folder and Moonpool creates the `.moonpool\` folder
+alongside **Install Moonpool**.
+
+![The install card: the Install portable link sits under the main Install Moonpool button](../../../assets/screenshots/installer-window.png)
+
+Pick a folder and Moonpool creates the `.moonpool\` folder
 there and starts from it with a fresh configuration. The card is also available from the
 "..." menu as **Install Moonpool...** in both installed and portable mode, so you can create
 a portable copy from a running Moonpool. A portable copy starts fresh and does not copy your

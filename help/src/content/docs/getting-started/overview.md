@@ -16,6 +16,8 @@ in its own terminal so you never hunt for a window or retype a command.
 - **Travels with you.** Run Moonpool installed on a machine, or from a portable folder
   on a USB stick with all of its data beside it.
 
+![Hub with the CLI Script tab active: apps grouped on the left, one terminal tab per app on the right](../../../assets/screenshots/hub-expanded.png)
+
 ## Next
 
 - [Installing](/getting-started/installing/)

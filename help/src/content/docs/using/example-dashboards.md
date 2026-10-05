@@ -17,19 +17,24 @@ offline, with no server and no CDN.
 
 On startup Moonpool writes the dashboards to `{MP_HOME}\dashboards`:
 
-| Mode | Folder |
-| --- | --- |
-| Installed (Windows) | `%USERPROFILE%\.moonpool\dashboards` |
-| Portable | `dashboards` inside the `.moonpool\` folder beside the exe |
-| Linux | `~/.config/Moonpool/dashboards` (or `$XDG_CONFIG_HOME/Moonpool/dashboards`) |
+```text
+Installed (Windows)  %USERPROFILE%\.moonpool\dashboards
+Portable             <folder with moonpool.exe>\.moonpool\dashboards
+Linux                ~/.config/Moonpool/dashboards   (or $XDG_CONFIG_HOME/Moonpool/dashboards)
+```
 
 Files that already exist are never overwritten, so your edits survive updates. A file you
 delete is written back on the next start.
 
 ## How the apps reference them
 
-Each is a `static` app whose `url` is a `file:///` URL anchored on `{MP_HOME}`, which
-resolves to the install folder or, in portable mode, the bundle folder, so the entry still
+Each is a `static` app whose `url` is a `file:///` URL anchored on `{MP_HOME}`:
+
+```text
+file:///{MP_HOME}/dashboards/csv/index.html
+```
+
+`{MP_HOME}` resolves to the install folder or, in portable mode, the bundle folder, so the entry still
 works from a moved bundle. `file://` URLs are allowed. See
 [Paths and environment](/configuration/paths-and-environment/).
 
@@ -39,7 +44,7 @@ The example entries are written to `apps.json` only when no config file exists y
 already have an `apps.json`, add the dashboard entries yourself (**Edit apps.json** in the
 "..." menu, then **Reload**). Add these four to the array:
 
-```json
+```json title="apps.json"
 {
   "id": "csv-explorer",
   "name": "Sample CSV Explorer",

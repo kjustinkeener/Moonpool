@@ -26,7 +26,14 @@ A token that cannot be resolved is left as written.
 A relative path without `./` (such as `apps\tool`) is left alone and resolves against
 Moonpool's own working folder, which is rarely what you want. Prefer `./` or a token.
 
-```json
+```text
+./apps/notes                       anchored to {MP_HOME}
+{MP_HOME}\apps\notes\notes.exe     token
+{MP_DATA}\dumps                    token
+apps\tool                          left alone, resolves against Moonpool's working folder
+```
+
+```json title="apps.json"
 { "id": "notes", "name": "Notes", "group": "Desktop apps", "type": "desktop",
   "cwd": "./apps/notes",
   "command": "{MP_HOME}\\apps\\notes\\notes.exe",
@@ -41,6 +48,15 @@ and `url` values with a "not portable" badge. See [Portable mode](/guides/portab
 
 `env` is an object of strings. The dialog edits it as one `KEY=VALUE` per line; it splits
 each line at the first `=`, trims both sides, and ignores lines without one.
+
+In the dialog:
+
+```text
+PORT=8091
+NODE_ENV=development
+```
+
+In `apps.json`, as the `env` key of the entry:
 
 ```json
 "env": { "PORT": "8091", "NODE_ENV": "development" }

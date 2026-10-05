@@ -10,7 +10,7 @@ verb is not run.
 
 Find the running program rather than assuming a path:
 
-```powershell
+```powershell frame="terminal"
 $mp = (Get-Process moonpool -ErrorAction SilentlyContinue | Select-Object -First 1).Path
 ```
 
@@ -35,6 +35,14 @@ The verb is not case sensitive. `<id>` is an app's `id` from `apps.json`.
 | `moonpool.exe write-config <file> [token]` | Replaces `apps.json` with the manifest in `<file>`, if the manifest is valid and, when `token` is given, `apps.json` still matches it. |
 | `moonpool.exe restore-config [index or filename]` | With no argument, writes the snapshot list to `dumps\restore-config.json`. With one, restores that snapshot if it is valid. |
 
+```powershell frame="terminal"
+& $mp restart my-app
+```
+
+```powershell frame="terminal"
+& $mp dump my-app C:\temp\my-app.log
+```
+
 An unknown verb is ignored. The program also has startup arguments of its own:
 `moonpool.exe mcp` ([MCP setup](/automation/mcp-setup/)), `--uninstall` (used by Add/Remove
 Programs) and `--wait-pid <pid>` (used when Moonpool relaunches itself). These are honored
@@ -45,7 +53,7 @@ only as the first argument, so an app id such as `--uninstall` cannot trigger th
 The command line prints nothing, so tag a command with `--ticket <key>` (any unique key, in
 any position) and read the result from `state.json` in the config folder.
 
-```powershell
+```powershell frame="terminal"
 & $mp launch my-app --ticket t1
 ```
 
@@ -58,7 +66,19 @@ app) and `tickets`. Poll your ticket until `status` is not `pending`:
 | `ok` | Done. For `dump`, `read-config`, `write-config`, `restore-config` and `paths`, `detail` holds the path, token or report. |
 | `error` | Failed; `detail` says why, for example `unknown app id: x`, `did not reach running in time`, `unknown command`. |
 
-Each ticket is `{ ticket, action, arg, status, detail, ts }` with `ts` in Unix milliseconds.
+Each ticket is `{ ticket, action, arg, status, detail, ts }` with `ts` in Unix milliseconds:
+
+```json title="state.json (tickets entry)"
+{
+  "ticket": "t1",
+  "action": "launch",
+  "arg": "my-app",
+  "status": "error",
+  "detail": "did not reach running in time",
+  "ts": 1767225600000
+}
+```
+
 Finished tickets are dropped after 24 hours, and the list is trimmed toward 50 entries once
 finished tickets are at least 5 minutes old.
 

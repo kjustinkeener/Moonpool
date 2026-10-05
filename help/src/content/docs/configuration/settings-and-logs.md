@@ -26,6 +26,16 @@ settings until you repair it and restart.
 | `cliLogging` | `false` | Keep terminal logs from previous Moonpool sessions. |
 | `logRetentionMb` | `10` | Per-app cap on kept logs from previous sessions. Minimum 1. |
 
+```json title="settings.json"
+{
+  "closeToTray": true,
+  "transparency": 20,
+  "debugLogging": true,
+  "cliLogging": true,
+  "logRetentionMb": 25
+}
+```
+
 Moonpool also stores the UI zoom (`uiScale`, 0.5 to 3.0) and the resolved language
 (`localeResolved`) in this file. Both are written for you.
 
@@ -38,9 +48,15 @@ Everything an app prints in its terminal is also written to a log file:
 ```
 
 - One file per app per Moonpool session. The number is when that Moonpool process started.
-- Stopping and relaunching an app keeps appending to the same file. A dim line
-  `---------- restarted YYYY-MM-DD HH:MM:SS ----------` marks where each new run begins,
-  and the same marker shows in the terminal tab's scrollback.
+- Stopping and relaunching an app keeps appending to the same file. A dim divider line
+  marks where each new run begins, and the same marker shows in the terminal tab's
+  scrollback:
+
+  ```text title="1767225600000.log"
+  Local:   http://localhost:5173/
+  ---------- restarted 2026-10-05 09:14:02 ----------
+  Local:   http://localhost:5173/
+  ```
 - Characters in an `id` other than letters, digits, `-` and `_` become `_` in the folder name.
 - The current session's file is always written and never truncated or deleted by retention.
 - In Settings, **Reveal CLI log folder** opens `cli-output\`.
@@ -54,6 +70,10 @@ for that app's folder only, oldest first.
 | --- | --- |
 | `false` | Deleted at the app's next launch. |
 | `true` | Kept until their combined size passes `logRetentionMb`, then the oldest are deleted. |
+
+![The Logging section of Settings: the keep-logs checkbox, the per-app retention size in MB, and the debug-log checkbox, each with a folder path row](../../../assets/screenshots/settings-logging-section.png)
+
+1. **Keep app output logs between sessions** is `cliLogging`. **Log retention per app** below it is `logRetentionMb`.
 
 ## moonpool.log
 

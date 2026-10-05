@@ -20,12 +20,22 @@ extra step that runs afterward.
 Omit `killMode` to get the default for the app's type, and set it only when Stop leaves
 something running.
 
+![The killMode select in the Edit app dialog, set to "default (by type)", with its hint line listing what each type does by default](../../../assets/screenshots/edit-app-killmode.png)
+
+1. The `killMode` select. "default (by type)" is the same as omitting the key.
+
 - If the field the mode needs is empty (`port` mode with no `port`, for example), the extra
   step is skipped. It is not an error.
 - `killMode` is independent of `type`: `port` works on a `cli` app, `processName` on a
   `web` app.
 - An empty string or an unrecognized value does nothing extra. It does not fall back to the
   type default.
+
+For a desktop app, `processName` mode runs the equivalent of:
+
+```powershell frame="terminal"
+taskkill /IM notes-app.exe /T /F
+```
 
 ## stopCommand
 
@@ -61,7 +71,7 @@ is correct: Restart just runs it again.
 A dev server that sometimes leaves a node process holding its port (this is the default for
 `web`, shown here explicitly):
 
-```json
+```json title="apps.json"
 { "id": "site", "name": "Site", "group": "Web apps", "type": "web",
   "cwd": "C:\\code\\site", "command": "npm run dev", "port": 5173,
   "killMode": "port" }
@@ -69,7 +79,7 @@ A dev server that sometimes leaves a node process holding its port (this is the 
 
 A Docker Compose app:
 
-```json
+```json title="apps.json"
 { "id": "api", "name": "API", "group": "Web apps", "type": "web",
   "cwd": "C:\\code\\api", "command": "docker compose up -d --build", "port": 8080,
   "killMode": "command", "stopCommand": "docker compose stop app" }

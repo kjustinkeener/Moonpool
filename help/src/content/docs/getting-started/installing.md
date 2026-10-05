@@ -12,8 +12,14 @@ Installing copies Moonpool into your user profile under `.moonpool\`, adds Start
 (and optional desktop) shortcuts, and registers an entry in Add/Remove Programs. After
 that, launch it from the shortcut like any other app.
 
-Everything Moonpool needs lives under that one `.moonpool\` folder: the program, your
+![The install card: Install Moonpool button, desktop shortcut checkbox, Install portable link and the install path](../../../assets/screenshots/installer-window.png)
+
+Everything Moonpool needs lives under that one folder: the program, your
 configuration, and its bundled help.
+
+```text title="Installed layout"
+%USERPROFILE%\.moonpool\
+```
 
 ## Install Moonpool... from the menu
 
@@ -23,10 +29,20 @@ Moonpool** is disabled ("Already installed") and **Install portable** stays avai
 
 ## Uninstalling
 
-Use Windows Add/Remove Programs (Installed apps), or run `moonpool.exe --uninstall`. This
-removes the Start Menu and desktop shortcuts, the registry entry, and the whole
+Use Windows Add/Remove Programs (Installed apps), or run:
+
+```powershell frame="terminal"
+moonpool.exe --uninstall
+```
+
+This removes the Start Menu and desktop shortcuts, the registry entry, and the whole
 `%USERPROFILE%\.moonpool` folder, **including your configuration** (`apps.json`, settings
-and logs). Back up `%USERPROFILE%\.moonpool\moonpool-config` first if you want to keep it.
+and logs). Back up this folder first if you want to keep your configuration:
+
+```text
+%USERPROFILE%\.moonpool\moonpool-config
+```
+
 Any running Moonpool is stopped as part of uninstalling.
 
 ## Portable mode

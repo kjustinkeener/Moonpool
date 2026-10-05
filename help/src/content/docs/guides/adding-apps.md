@@ -15,6 +15,26 @@ environment. Moonpool runs the command in its own managed terminal.
 5. Fill in what the type needs: **port** and **url** for web, **processName** for desktop.
 6. Save. The app appears in the sidebar. Use its **Launch** control to start it.
 
+![The type select (1) and the port field (2) in the app editor, with cwd and command between them](../../../assets/screenshots/edit-app-type-and-port.png)
+
+1. The **type** select; its hint says how that type shows Running.
+2. The **port** field, used by `web` apps.
+
+The result is one entry in `apps.json`, for example:
+
+```json title="apps.json"
+{
+  "id": "my-api",
+  "name": "My API",
+  "group": "Dev",
+  "type": "web",
+  "command": "npm run dev",
+  "cwd": "C:\\code\\my-api",
+  "port": 3000,
+  "url": "http://localhost:3000"
+}
+```
+
 Clicking an app's name only opens its terminal tab. It does not start the app.
 
 ## Edit by hand

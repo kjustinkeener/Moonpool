@@ -3,11 +3,11 @@ title: Terminal
 description: Terminal tabs in the hub - opening and closing, collapsing the pane, copy and paste, restarts, and where session logs live.
 ---
 
-![An app running in a terminal tab](../../../assets/screenshots/hub-terminal-tab.png)
-
 Each app runs in its own terminal tab in the CLI pane.
 
 ## Tabs
+
+![Tab strip with Metrics Dashboard active (outlined) and its live log below; each tab has a dot and an x](../../../assets/screenshots/hub-terminal-tab.png)
 
 - Launching an app, or clicking its name in the sidebar, opens its tab. Clicking a name only shows the log and starts nothing.
 - A dot on the tab is lit while the app is running.
@@ -31,7 +31,13 @@ Each terminal keeps 10,000 lines.
 
 ## When a process ends
 
-When the process exits, the terminal prints `[process exited]`. The tab stays open with its output intact.
+When the process exits, the terminal prints:
+
+```text
+[process exited]
+```
+
+The tab stays open with its output intact.
 
 ## Restart
 

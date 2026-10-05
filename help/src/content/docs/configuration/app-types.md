@@ -12,6 +12,11 @@ description: How web, desktop, static and cli apps launch, how Running is detect
 | Launch | Runs `command` in a terminal tab | Runs `command` in a terminal tab | No `command`: opens `url` in the browser. With one: runs it in a terminal tab | Runs `command` in a terminal tab |
 | Default `killMode` | `port` | `processName` | `none` | `none` |
 
+![The Edit app dialog for a web app: type set to web with a one-line description, and a port field filled in](../../../assets/screenshots/edit-app-type-and-port.png)
+
+1. The `type` select. Its hint line describes what that type does.
+2. The `port` field. For a `web` app, Running follows whether this port answers.
+
 ## How Running is decided
 
 Moonpool checks every couple of seconds. An app is Running if any of these holds, whatever
@@ -40,8 +45,14 @@ name.
 ## static
 
 A page. With only a `url`, Launch and Restart open it in your browser and Stop does nothing.
-`http://`, `https://`, `mailto:` and `file://` URLs are opened, so a local page such as
-`file:///{MP_HOME}/dashboards/csv/index.html` works. Pages that need a server (PHP, or anything
+`http://`, `https://`, `mailto:` and `file://` URLs are opened, so a local page works:
+
+```json title="apps.json"
+{ "id": "csv", "name": "CSV dashboard", "group": "Docs", "type": "static",
+  "url": "file:///{MP_HOME}/dashboards/csv/index.html" }
+```
+
+Pages that need a server (PHP, or anything
 fetching local files) need a `command` that starts one and a `port` to track it. See the
 [examples](/configuration/examples/).
 
@@ -49,8 +60,15 @@ fetching local files) need a `command` that starts one and a `port` to track it.
 
 A tool. `command` runs in a terminal tab in `cwd`, and the app stops being Running when the
 command exits. For a shell that stays open, make the command a shell, for example
-`pwsh -NoLogo -NoProfile -NoExit -Command python run.py --flag`. Avoid nested double quotes
-in `command`: they are mangled by the `cmd /c` wrapper.
+this `command`:
+
+```text title="command"
+pwsh -NoLogo -NoProfile -NoExit -Command python run.py --flag
+```
+
+Avoid nested double quotes in `command`: they are mangled by the `cmd /c` wrapper.
+
+![A cli app's terminal tab showing a PowerShell command's output and an open prompt below it](../../../assets/screenshots/terminal-cli-output.png)
 
 ## What clicking does
 

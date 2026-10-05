@@ -7,7 +7,7 @@ Open **Settings** from the hub's "..." menu. Changes save as you make them. Esca
 the window. The matching `settings.json` keys and defaults are in
 [Settings and logs](/configuration/settings-and-logs/).
 
-![Settings window](../../../assets/screenshots/settings-window.png)
+![Settings window: toggles and sliders in the left column, log options in the right](../../../assets/screenshots/settings-window.png)
 
 ## Resetting a control
 
@@ -60,7 +60,7 @@ control reverts.
 
 Open **About** from the "..." menu.
 
-![About window](../../../assets/screenshots/about-window.png)
+![About window with the version line, links, Check for updates and Close buttons](../../../assets/screenshots/about-window.png)
 
 It shows:
 
