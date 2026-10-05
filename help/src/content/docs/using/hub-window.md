@@ -3,7 +3,12 @@ title: The Hub Window
 description: A tour of the Moonpool hub window, its menu, tray icon, update banner, and how it remembers its size and position.
 ---
 
-![Hub window](../../../assets/screenshots/hub-window.png)
+![The hub with three apps running: the outlined areas are numbered 1 to 4](../../../assets/screenshots/hub-window.png)
+
+1. Running apps: a lit status dot and a stop button instead of play.
+2. The tab strip, one tab per opened app, with the active tab highlighted.
+3. Live output from the active app.
+4. The CPU and memory status bar.
 
 ## Layout
 
@@ -24,6 +29,11 @@ The status bar shows one thin bar per CPU core (hover for "Per-core CPU usage"),
 
 The **...** button left of the filter box opens the menu.
 
+![The ... menu button (1) and the Filter apps box (2) at the top of the sidebar](../../../assets/screenshots/sidebar-filter-and-menu.png)
+
+1. The **...** menu button.
+2. The **Filter apps...** box.
+
 | Item | Does |
 | --- | --- |
 | Add app | Opens the app editor. See [Adding apps](/guides/adding-apps/). |
@@ -36,7 +46,13 @@ The **...** button left of the filter box opens the menu.
 
 ### Port conflict warning
 
-If two apps in `apps.json` use the same `port`, a warning row appears at the bottom of the menu, for example `port 3000: App A / App B`. Hover it for the full sentence. Fix the clash in the manifest or the editor; the row disappears once no port is shared.
+If two apps in `apps.json` use the same `port`, a warning row appears at the bottom of the menu, for example:
+
+```text
+port 3000: App A / App B
+```
+
+Hover it for the full sentence. Fix the clash in the manifest or the editor; the row disappears once no port is shared.
 
 ## Empty screen
 
@@ -44,9 +60,21 @@ With no tab open, the CLI pane shows "Pick an app on the left to launch it."
 
 ### Update banner
 
-If **Check for updates on startup** is on and a newer version exists, a banner appears here: "Moonpool {version} is available (you have {current})." with a **Download & install** button and a dismiss button. A newer help bundle uses the same banner. See [Updating](/guides/updating/).
+If **Check for updates on startup** is on and a newer version exists, a banner appears here:
 
-If the update fails, the banner shows `Update failed: <error>` and the button becomes available again so you can retry.
+```text
+Moonpool {version} is available (you have {current}).
+```
+
+It has a **Download & install** button and a dismiss button. A newer help bundle uses the same banner. See [Updating](/guides/updating/).
+
+If the update fails, the banner shows:
+
+```text
+Update failed: <error>
+```
+
+The button becomes available again so you can retry.
 
 If you collapsed the CLI pane, the banner is hidden with it. The chevron that re-expands the pane pulses while an update waits.
 

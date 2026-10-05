@@ -3,7 +3,13 @@ title: Control verbs
 description: The named-pipe protocol and every verb the running Moonpool answers, with arguments, replies and which are for testing.
 ---
 
-Moonpool listens on the named pipe `\\.\pipe\moonpool` (Windows only). It is the channel the
+Moonpool listens on this named pipe (Windows only):
+
+```text
+\\.\pipe\moonpool
+```
+
+It is the channel the
 [MCP server](/automation/mcp-setup/) uses. The same verbs are also reachable from the
 [command line](/automation/command-line/), except the diagnostic verbs below.
 
@@ -12,13 +18,28 @@ Moonpool listens on the named pipe `\\.\pipe\moonpool` (Windows only). It is the
 One JSON object per line in, one JSON line out, in order. A connection can carry many
 requests.
 
-```json
+```json title="request"
 {"cmd": "restart", "args": ["my-app"]}
 ```
 
-```json
+```json title="reply"
 {"ok": true, "result": "..."}
 {"ok": false, "error": "unknown app id: ..."}
+```
+
+A request and its reply from PowerShell:
+
+```powershell frame="terminal"
+$p = New-Object System.IO.Pipes.NamedPipeClientStream('.', 'moonpool', 'InOut')
+$p.Connect(2000)
+$w = New-Object System.IO.StreamWriter($p); $w.AutoFlush = $true
+$r = New-Object System.IO.StreamReader($p)
+$w.WriteLine('{"cmd":"ping"}')
+$r.ReadLine()
+```
+
+```json title="reply"
+{"ok":true,"result":"pong"}
 ```
 
 - `args` is a list of strings and may be omitted. Other fields are ignored.
@@ -51,6 +72,16 @@ requests.
 | `read-config` | none | Path of `dumps\read-config.json`, which holds `token`, `valid`, `error`, `path`, `manifest_text`. |
 | `write-config` | `<source-file>` [`token`] | The new version token. Errors: `stale token: ...`, `rejected invalid manifest: ...`, `cannot read source ...`. |
 | `restore-config` | [`index` or `filename`] | No argument: path of `dumps\restore-config.json` (`count`, `snapshots`). With one: `restored <file> (<n> apps); new version token <token>`. |
+
+Example exchanges:
+
+```json title="request, reply"
+{"cmd": "launch", "args": ["nope"]}
+{"ok": false, "error": "unknown app id: nope"}
+
+{"cmd": "restore-config", "args": ["1"]}
+{"ok": true, "result": "restored 1767225600000.json (6 apps); new version token <token>"}
+```
 
 `write-config` and `restore-config` load the new manifest at once, record a snapshot in
 `apps.json.history\`, and refresh the window.

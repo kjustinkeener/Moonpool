@@ -14,7 +14,13 @@ updates on startup** in Settings) and whenever you press **Check for updates** i
 window. The About button installs a newer version straight away and restarts Moonpool.
 
 At startup, a found update shows as a banner on the hub's empty screen (the one shown when
-no app tab is open): "Moonpool X is available". Click **Download & install** and Moonpool
+no app tab is open):
+
+```text
+Moonpool X is available
+```
+
+Click **Download & install** and Moonpool
 replaces itself and relaunches, or dismiss it with the x. See
 [Settings window](/using/settings-window/).
 

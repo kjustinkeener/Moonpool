@@ -11,10 +11,24 @@ Tools that take `app_id` need the app's `id` from `apps.json`. It must use only 
 digits, `.`, `_` and `-`, and not start with `-`, otherwise the call fails with "invalid
 app_id".
 
-Tools that act on the hub fail with "Moonpool is not running - call moonpool_bootup_launcher
-first" when it is not running. Calls that wait for an outcome time out after 45 seconds.
+Tools that act on the hub fail with this message when it is not running:
+
+```text
+Moonpool is not running - call moonpool_bootup_launcher first
+```
+
+Calls that wait for an outcome time out after 45 seconds.
 
 ## Launcher and apps
+
+Example `moonpool_list_apps` result:
+
+```text
+site  [running] (managed by Moonpool)  Site
+notes-app  [stopped]  [mcp: stopped]  Notes App
+
+Hub: running
+```
 
 | Tool | Parameters | Behavior |
 | --- | --- | --- |

@@ -8,10 +8,16 @@ that runs `moonpool.exe` with the single argument `mcp`.
 
 ## Register the server
 
-Installed, the program is `%USERPROFILE%\.moonpool\moonpool.exe`. Portable, it is the
-`moonpool.exe` inside your `.moonpool\` folder. Use that full path as `command`.
+Installed, the program is:
 
-```json
+```text
+%USERPROFILE%\.moonpool\moonpool.exe
+```
+
+Portable, it is the `moonpool.exe` inside your `.moonpool\` folder. Use that full path as
+`command`. For a host that reads a `.mcp.json`:
+
+```json title=".mcp.json" {5}
 {
   "mcpServers": {
     "moonpool": {
@@ -23,7 +29,14 @@ Installed, the program is `%USERPROFILE%\.moonpool\moonpool.exe`. Portable, it i
 }
 ```
 
-In a JSON file the backslashes must be doubled, as above. The server announces itself as
+In a JSON file the backslashes must be doubled, as above. A host with a command-line
+registration, such as Claude Code, can add it in one step:
+
+```powershell frame="terminal"
+claude mcp add moonpool -- "$env:USERPROFILE\.moonpool\moonpool.exe" mcp
+```
+
+The server announces itself as
 `moonpool`, speaks MCP protocol revision `2025-06-18`, and exposes tools only (it lists no
 resources or prompts). Tools appear to the agent as `moonpool_*`; see
 [MCP tools](/automation/mcp-tools/).
@@ -43,15 +56,25 @@ resources or prompts). Tools appear to the agent as `moonpool_*`; see
 
 Some hosts run their tools inside a packaged (Store/MSIX) sandbox that redirects AppData to a
 private per-package copy. Moonpool detects this when its config folder or exe resolves under
-`...\Packages\<package>\LocalCache\...`, or when a hub is running but `state.json` cannot be
-read. Every tool then returns an error that names the cause, rather than empty or stale data.
+a path like this:
+
+```text
+...\Packages\<package>\LocalCache\...
+```
+
+It also detects it when a hub is running but `state.json` cannot be read. Every tool then
+returns an error that names the cause, rather than empty or stale data.
 Use the [command line](/automation/command-line/) from a shell outside the sandbox instead.
 
 ## Apps that have their own MCP server
 
 Many apps in Moonpool are themselves reached by an MCP host through an `<exe> mcp` helper
 process. Moonpool looks for a process whose name matches the app's `processName` and whose
-first argument is `mcp`.
+first argument is `mcp`, such as:
+
+```text
+notes-app.exe mcp
+```
 
 - While one is attached, the app's sidebar shows an **MCP** sub-item as running, and
   `moonpool_list_apps` appends `[mcp: running]` to the app's line. The helper does not count

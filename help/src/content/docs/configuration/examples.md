@@ -11,7 +11,7 @@ commas. Change the ids, names and paths to match your own setup.
 Running while port 5173 answers. The browser opens once it does. Stop also frees the port,
 which is the default for `web`.
 
-```json
+```json title="apps.json"
 {
   "id": "site",
   "name": "Site",
@@ -27,7 +27,7 @@ which is the default for `web`.
 
 ## Web app that reads its port from the environment
 
-```json
+```json title="apps.json"
 {
   "id": "habit-tracker",
   "name": "Habit Tracker",
@@ -47,7 +47,7 @@ which is the default for `web`.
 
 Running while a process named `notes-app` exists. Stop kills that process by name.
 
-```json
+```json title="apps.json"
 {
   "id": "notes-app",
   "name": "Notes App",
@@ -63,7 +63,7 @@ Running while a process named `notes-app` exists. Stop kills that process by nam
 
 No terminal. Launch opens the page.
 
-```json
+```json title="apps.json"
 {
   "id": "team-board",
   "name": "Team board",
@@ -78,7 +78,7 @@ No terminal. Launch opens the page.
 Moonpool runs the server in a terminal, tracks it by port, and opens the page when it
 answers.
 
-```json
+```json title="apps.json"
 {
   "id": "docs-site",
   "name": "Docs",
@@ -97,7 +97,7 @@ answers.
 
 Runs in a terminal tab. The `-NoExit` keeps the shell open after the script finishes.
 
-```json
+```json title="apps.json"
 {
   "id": "backup",
   "name": "Backup script",
@@ -114,7 +114,7 @@ Runs in a terminal tab. The `-NoExit` keeps the shell open after the script fini
 runs `stopCommand` instead of killing the port's owner, which on Windows would be Docker
 Desktop. See [Stop and restart](/configuration/stop-and-restart/#docker-apps-on-windows).
 
-```json
+```json title="apps.json"
 {
   "id": "api",
   "name": "API",
@@ -136,7 +136,7 @@ If you would rather leave the container running when you stop the app, use
 
 Paths anchor to the portable folder, so the entry still works after the folder moves.
 
-```json
+```json title="apps.json"
 {
   "id": "notes",
   "name": "Notes",

@@ -6,17 +6,24 @@ description: Installing Moonpool on Linux, the GNOME tray caveat, updates and pl
 Moonpool runs on Linux through WebKitGTK. It is developed mainly on Windows, so Linux is
 supported but less battle-tested.
 
-![Hub window](../../../assets/screenshots/hub-window.png)
-
 ## Install
 
 Download a package from the project's Releases page.
 
-| Package | Install | Updates |
-| --- | --- | --- |
-| AppImage | `chmod +x Moonpool_*.AppImage`, then run it | Moonpool updates itself |
-| `.deb` | `sudo apt install ./Moonpool_*_amd64.deb` | Your package manager |
-| RPM | Your distribution's RPM tool | Your package manager |
+| Package | Updates |
+| --- | --- |
+| AppImage | Moonpool updates itself |
+| `.deb` | Your package manager |
+| RPM (install with your distribution's RPM tool) | Your package manager |
+
+```bash title="AppImage"
+chmod +x Moonpool_*.AppImage
+./Moonpool_*.AppImage
+```
+
+```bash title=".deb"
+sudo apt install ./Moonpool_*_amd64.deb
+```
 
 The `.deb` pulls in its runtime dependencies. The AppImage needs the WebKitGTK and
 AppIndicator libraries present, for example on Debian or Ubuntu:
@@ -25,7 +32,12 @@ AppIndicator libraries present, for example on Debian or Ubuntu:
 sudo apt-get install -y libwebkit2gtk-4.1-0 libayatana-appindicator3-1
 ```
 
-On Fedora or Arch use the equivalents (`webkit2gtk4.1`, `libayatana-appindicator`).
+On Fedora or Arch use the equivalents:
+
+```text
+webkit2gtk4.1
+libayatana-appindicator
+```
 
 ## Tray on GNOME
 
@@ -50,11 +62,11 @@ use your package manager. See [Updating](/guides/updating/).
 
 ## Config location
 
-| What | Path |
-| --- | --- |
-| Config folder | `~/.config/Moonpool/` (or `$XDG_CONFIG_HOME/Moonpool/`) |
-| `apps.json` | `~/.config/Moonpool/apps.json` |
-| Example dashboards | `~/.config/Moonpool/dashboards/` |
+```text
+~/.config/Moonpool/              (or $XDG_CONFIG_HOME/Moonpool/)
+~/.config/Moonpool/apps.json
+~/.config/Moonpool/dashboards/   (example dashboards)
+```
 
 `apps.json` is seeded from the example on first run. See
 [Configuration overview](/configuration/overview/).

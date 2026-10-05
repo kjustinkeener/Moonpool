@@ -24,6 +24,18 @@ dialog or by hand. Both write the same file.
 | `icons\` | Optional `<id>.png` (also `.ico`, `.svg`, `.jpg`, `.jpeg`, `.webp`) icon overrides. |
 | `state.json` | Live status snapshot, refreshed every couple of seconds. |
 
+A typical config folder:
+
+```text
+moonpool-config\
+  apps.json
+  apps.json.history\
+  settings.json
+  state.json
+  cli-output\<id>\
+  icons\<id>.png
+```
+
 On first run Moonpool seeds `apps.json` with example entries. A file that already exists is
 never overwritten.
 
@@ -46,7 +58,7 @@ does not know are dropped, and JSON has no comments, so keep notes in the `note`
 The file is a JSON array of objects. Four keys are required on every entry: `id`, `name`,
 `group`, `type`. Everything else is optional. See [App fields](/configuration/fields/).
 
-```json
+```json title="apps.json"
 [
   { "id": "site", "name": "Site", "group": "Web apps", "type": "web",
     "cwd": "C:\\code\\site", "command": "npm run dev", "port": 5173,
@@ -80,12 +92,22 @@ A single bad entry rejects the whole file.
 | `static` entry with no `url` | `requires a url` |
 | Any other type with no `command` | `requires a command` |
 
+Errors name the entry by position, for example:
+
+```text
+apps.json entry 2 (site) requires a command
+```
+
 ### The id
 
 The `id` is the entry's permanent key. It names the log folder and icon file, and it is what
 you pass to `moonpool.exe launch <id>` and to agents. The dialog derives it from the name
 when you add an app (lowercase, with runs of other characters turned into `-`) and never
-changes it afterward, so renaming an app keeps its id.
+changes it afterward, so renaming an app keeps its id. The name `Habit Tracker` gets this id:
+
+```text
+habit-tracker
+```
 
 ## If the file is bad
 
@@ -99,6 +121,10 @@ Every successful save, agent write and restore, and every reload that finds chan
 content, copies the validated manifest into `apps.json.history\`, keeping the newest 10. To
 roll back by hand, copy a snapshot over `apps.json` and Reload. Nothing is restored
 automatically.
+
+```powershell frame="terminal"
+Copy-Item "$env:USERPROFILE\.moonpool\moonpool-config\apps.json.history\<snapshot>" "$env:USERPROFILE\.moonpool\moonpool-config\apps.json"
+```
 
 ## Agents
 

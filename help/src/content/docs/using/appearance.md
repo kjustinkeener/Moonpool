@@ -8,6 +8,11 @@ All three apply instantly to every open Moonpool window.
 
 ## Themes
 
+![Language (1) and Theme (2) pickers at the top of Settings](../../../assets/screenshots/settings-language-theme.png)
+
+1. Language picker.
+2. Theme picker.
+
 | Theme | Theme | Theme |
 | --- | --- | --- |
 | Auto (system) | Dark | Light |
@@ -20,15 +25,21 @@ All three apply instantly to every open Moonpool window.
 **Auto (system)** follows the operating system's light or dark preference and switches live
 when the OS does. Any other choice is fixed.
 
-The theme is stored in the webview's `localStorage` (key `moonpool.theme`), not in
-`settings.json`. If storage is unavailable it falls back to Auto.
+The theme is stored in the webview's `localStorage`, not in `settings.json`. If storage is
+unavailable it falls back to Auto.
+
+```text
+localStorage key: moonpool.theme
+```
 
 ## Languages
 
 Auto follows the OS language. Otherwise pick one of 14, each shown in its own language:
 
+```text
 English, Deutsch, Español, Français, Italiano, 日本語, 한국어, Nederlands, Polski,
-Português (Brasil), Русский, Türkçe, 简体中文, 繁體中文.
+Português (Brasil), Русский, Türkçe, 简体中文, 繁體中文
+```
 
 The picker applies instantly to the hub and the other windows. The choice is saved as
 `locale` in `settings.json`.
