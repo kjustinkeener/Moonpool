@@ -7,7 +7,7 @@
 //! Two dispatch shapes, matching what `dispatch_control` already does for the same actions:
 //!
 //! - `ping`, `show`, `quit`, `dump`, `paths`, `screenshot`, `stop-mcp`, `window-state`,
-//!   `reset-mcp-seen`, `read-config`, `write-config`, `restore-config`:
+//!   `reset-mcp-seen`, `open-window` (UI-owned), `read-config`, `write-config`, `restore-config`:
 //!   answered directly here, calling the SAME functions `dispatch_control` calls - one code
 //!   path, no drift from the argv path or from what a click does.
 //! - `launch`, `stop`, `restart`, `reload`, `refresh-icons`: these are UI-owned today (terminal
@@ -61,6 +61,7 @@ const UI_OWNED_ACTIONS: &[&str] = &[
     "reload",
     "refresh-icons",
     "help",
+    "open-window",
 ];
 
 #[derive(Deserialize)]
@@ -155,6 +156,10 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
         "paths" => json!({ "ok": true, "result": hub_paths_report(app) }),
         "screenshot" => screenshot(app, arg.as_deref(), req.args.get(1).map(String::as_str)),
         "stop-mcp" => stop_mcp(app, arg.as_deref()),
+        "open-window" => match open_window_arg(&req.args) {
+            Ok(a) => run_ui_action(app, "open-window", Some(a)).await,
+            Err(e) => json!({ "ok": false, "error": e }),
+        },
         "window-state" => window_state(app, arg.as_deref()),
         "reset-mcp-seen" => reset_mcp_seen_cmd(app, arg.as_deref()),
         "read-config" => {
@@ -220,6 +225,39 @@ fn screenshot(app: &AppHandle, label: Option<&str>, max_dim: Option<&str>) -> Va
             "result": base64::engine::general_purpose::STANDARD.encode(png)
         }),
         Err(e) => json!({ "ok": false, "error": e }),
+    }
+}
+
+/// Window kinds `open-window` accepts. `terminal` selects an app's terminal tab and widens the
+/// hub so the CLI pane is showing; `cli` only widens the hub. The rest open the same windows the
+/// menu items open (the frontend calls the same `open*Window` helpers).
+const OPEN_WINDOW_KINDS: &[&str] = &[
+    "settings",
+    "about",
+    "editor",
+    "installer",
+    "help",
+    "terminal",
+    "cli",
+];
+
+/// Validate `open-window <kind> [app-id]` and fold it into the single `arg` string the
+/// `control://command` event carries: `kind` or `kind:app-id`.
+fn open_window_arg(args: &[String]) -> Result<String, String> {
+    let Some(kind) = args.first() else {
+        return Err(format!(
+            "missing window kind - expected one of {OPEN_WINDOW_KINDS:?}"
+        ));
+    };
+    if !OPEN_WINDOW_KINDS.contains(&kind.as_str()) {
+        return Err(format!(
+            "unknown window kind '{kind}' - expected one of {OPEN_WINDOW_KINDS:?}"
+        ));
+    }
+    match args.get(1) {
+        Some(id) if !id.is_empty() => Ok(format!("{kind}:{id}")),
+        _ if kind == "terminal" => Err("terminal needs an app id".to_string()),
+        _ => Ok(kind.clone()),
     }
 }
 
@@ -375,7 +413,24 @@ async fn write_frame<W: AsyncWrite + Unpin>(w: &mut W, v: &Value) -> std::io::Re
 
 #[cfg(test)]
 mod tests {
-    use super::{reply, Request, UI_OWNED_ACTIONS};
+    use super::{open_window_arg, reply, Request, UI_OWNED_ACTIONS};
+
+    fn v(a: &[&str]) -> Vec<String> {
+        a.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn open_window_arg_validates_kind_and_id() {
+        assert_eq!(open_window_arg(&v(&["settings"])).unwrap(), "settings");
+        assert_eq!(open_window_arg(&v(&["editor", "x"])).unwrap(), "editor:x");
+        assert_eq!(
+            open_window_arg(&v(&["terminal", "x"])).unwrap(),
+            "terminal:x"
+        );
+        assert!(open_window_arg(&v(&["terminal"])).is_err());
+        assert!(open_window_arg(&v(&["bogus"])).is_err());
+        assert!(open_window_arg(&[]).is_err());
+    }
 
     #[test]
     fn request_without_args_defaults_to_empty_vec() {
