@@ -27,8 +27,12 @@ static WORDMARK: &[u8] = include_bytes!("../../src/assets/moonpool-wordmark-text
 
 /// Version of the help content bundled in this build. Written to `help/version.txt`
 /// on first seed and compared against the updater manifest's `help.version`.
-/// Bump when the bundled baseline help content changes.
-pub const HELP_BASELINE_VERSION: &str = "2026.09.22";
+/// Read from the repo's `help/version.txt` at compile time, so bumping that one file is the
+/// only step (a separate hard-coded copy went stale and stopped new bundled docs from being
+/// seeded over an older install).
+pub fn baseline_version() -> &'static str {
+    include_str!("../../help/version.txt").trim()
+}
 
 /// Write the embedded baseline help to `{MP_HOME}/help` on first run, then stamp
 /// `version.txt`. If `version.txt` already exists we do nothing: either the current
@@ -49,7 +53,7 @@ pub fn seed(app: &AppHandle) {
     let index_file = dest.join("index.html");
     if index_file.exists()
         && std::fs::read_to_string(&version_file)
-            .map(|version| version.trim() >= HELP_BASELINE_VERSION)
+            .map(|version| version.trim() >= baseline_version())
             .unwrap_or(false)
     {
         return; // matching baseline or a newer downloaded bundle is already staged
@@ -62,7 +66,7 @@ pub fn seed(app: &AppHandle) {
     }
     let mut written = 0usize;
     write_dir(app, &HELP, &dest, &mut written);
-    if let Err(e) = std::fs::write(&version_file, HELP_BASELINE_VERSION) {
+    if let Err(e) = std::fs::write(&version_file, baseline_version()) {
         crate::log_line(app, &format!("help: write version.txt failed: {e}"));
     }
     crate::log_line(
