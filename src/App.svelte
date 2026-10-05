@@ -19,6 +19,7 @@
     openSettingsWindow,
     openAboutWindow,
     openEditorWindow,
+    openInstallerWindow,
     updateCheck,
     updateApply,
     helpApply,
@@ -540,6 +541,43 @@
           case "help":
             await openHelpWindow();
             return done(true, null);
+          case "open-window": {
+            // Diagnostic verb: same helpers the menu items call. arg = `kind[:app-id]`.
+            const [kind, ...rest] = (arg ?? "").split(":");
+            const wid = rest.join(":");
+            switch (kind) {
+              case "settings":
+                await openSettingsWindow();
+                break;
+              case "about":
+                await openAboutWindow();
+                break;
+              case "installer":
+                await openInstallerWindow();
+                break;
+              case "help":
+                await openHelpWindow();
+                break;
+              case "editor":
+                if (wid && !apps.some((a) => a.id === wid))
+                  return done(false, `unknown app id: ${wid}`);
+                await openEditorWindow(wid || undefined);
+                break;
+              case "cli":
+                await expandCli();
+                break;
+              case "terminal": {
+                const target = apps.find((a) => a.id === wid);
+                if (!target) return done(false, `unknown app id: ${wid}`);
+                handleSelect(target);
+                await expandCli();
+                break;
+              }
+              default:
+                return done(false, `unknown window kind: ${kind}`);
+            }
+            return done(true, null);
+          }
           case "reload":
             await handleReload();
             return done(true, null);
