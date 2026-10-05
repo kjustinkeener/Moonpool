@@ -61,7 +61,7 @@ Pipe only, Windows only. The command line does not accept these.
 
 | Verb | Args | Result |
 | --- | --- | --- |
-| `screenshot` | [`window`] | Base64 of a PNG of that Moonpool window (default `main`). Windows allowed: `main`, `settings`, `about`, `installer`, `editor`, `help`. Errors: `unknown window '<name>'`, `window '<name>' is not open`. Not written to disk. |
+| `screenshot` | [`window`] [`max_dim`] | Base64 of a PNG of that Moonpool window (default `main`). Optional `max_dim` caps the longer side in pixels (clamped to 320-2400, default 320; the MCP tool always uses the default). A non-integer `max_dim` is an error. Windows allowed: `main`, `settings`, `about`, `installer`, `editor`, `help`. Errors: `unknown window '<name>'`, `window '<name>' is not open`. Not written to disk. |
 | `window-state` | [`window`] | JSON string: `{"open":false}`, or `open`, `visible`, `minimized`, `maximized`, `x`, `y`, `width`, `height`. |
 | `stop-mcp` | `<id>` | `stopped`. Kills the app's `<processName> mcp` helper, not the app. Errors: `missing app id`, `unknown app id: <id>`. |
 | `reset-mcp-seen` | [`<id>`] | `<id>: cleared` or `<id>: was not marked seen`; with no id, `cleared <n> entries`. Clears the remembered MCP-helper sightings. |

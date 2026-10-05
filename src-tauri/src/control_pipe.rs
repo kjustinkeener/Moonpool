@@ -153,7 +153,7 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
             reply(status, detail)
         }
         "paths" => json!({ "ok": true, "result": hub_paths_report(app) }),
-        "screenshot" => screenshot(app, arg.as_deref()),
+        "screenshot" => screenshot(app, arg.as_deref(), req.args.get(1).map(String::as_str)),
         "stop-mcp" => stop_mcp(app, arg.as_deref()),
         "window-state" => window_state(app, arg.as_deref()),
         "reset-mcp-seen" => reset_mcp_seen_cmd(app, arg.as_deref()),
@@ -187,8 +187,18 @@ fn reply(status: &str, detail: String) -> Value {
 /// is rejected before a window lookup even happens, so this can never be pointed at another
 /// process's window. See `screenshot.rs` for why `PrintWindow` is safe to use this way, and why
 /// PNG (not raw BMP) keeps this small enough to hand back inline.
-fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
+fn screenshot(app: &AppHandle, label: Option<&str>, max_dim: Option<&str>) -> Value {
     let label = label.unwrap_or("main");
+    // Optional second arg: longer-side cap, clamped to 320..=2400; absent keeps the default.
+    let max_dim = match max_dim {
+        None => crate::screenshot::MAX_DIMENSION,
+        Some(v) => match v.parse::<u32>() {
+            Ok(n) => crate::screenshot::clamp_max_dim(n),
+            Err(_) => {
+                return json!({ "ok": false, "error": format!("bad max_dim '{v}' - expected an integer") })
+            }
+        },
+    };
     if !ALL_WINDOWS.contains(&label) {
         return json!({
             "ok": false,
@@ -204,7 +214,7 @@ fn screenshot(app: &AppHandle, label: Option<&str>) -> Value {
     };
     // `result` must stay a plain string: `pipe_reply_to_result` (mcp.rs) reads it via
     // `Value::as_str`, the same shape every other verb here returns (dump's file path, etc).
-    match crate::screenshot::capture_hwnd_to_png(hwnd) {
+    match crate::screenshot::capture_hwnd_to_png(hwnd, max_dim) {
         Ok(png) => json!({
             "ok": true,
             "result": base64::engine::general_purpose::STANDARD.encode(png)
