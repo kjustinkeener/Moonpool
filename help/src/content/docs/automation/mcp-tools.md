@@ -1,0 +1,54 @@
+---
+title: MCP tools
+description: Every tool the Moonpool MCP server exposes, with parameters, results and error cases.
+---
+
+All tools return text, except `moonpool_screenshot`, which returns a PNG image. A failure
+comes back as a tool result flagged as an error, with the reason as text. For setup see
+[MCP setup](/automation/mcp-setup/).
+
+Tools that take `app_id` need the app's `id` from `apps.json`. It must use only letters,
+digits, `.`, `_` and `-`, and not start with `-`, otherwise the call fails with "invalid
+app_id".
+
+Tools that act on the hub fail with "Moonpool is not running - call moonpool_bootup_launcher
+first" when it is not running. Calls that wait for an outcome time out after 45 seconds.
+
+## Launcher and apps
+
+| Tool | Parameters | Behavior |
+| --- | --- | --- |
+| `moonpool_list_apps` | none | One line per app: `id  [running]` or `[stopped]`, `(managed by Moonpool)` when applicable, `[mcp: running]` or `[mcp: stopped]` when an MCP helper has been seen, then the name. Ends with a `Hub:` line saying whether Moonpool is running. Read from `state.json`. |
+| `moonpool_bootup_launcher` | none | Starts Moonpool itself and waits up to 20 s for it to be resident. Returns "Moonpool started", or "Moonpool is already running". |
+| `moonpool_shutdown_launcher` | none | Same as Quit in the tray menu. Waits up to 10 s for the process to exit. Returns "Moonpool shut down", or "Moonpool is not running". |
+| `moonpool_raise_launcher` | none | Brings the Moonpool window to the front. Returns "window shown". |
+| `moonpool_start_app` | `app_id` (required) | Starts the app and opens its terminal tab. Returns "launched" once it is running, or the reason it was not (`unknown app id: <id>`, `did not reach running in time` after 25 s). |
+| `moonpool_stop_app` | `app_id` (required) | Stops the app. Returns "stopped", or an error such as `still running after stop` (after 15 s). |
+| `moonpool_restart_app` | `app_id` (required) | Stop, wait for the port and process to free, start. Returns "restarted". |
+| `moonpool_app_output` | `app_id` (required), `tail_lines` (integer, default 200, minimum 1) | The app's terminal output for the current Moonpool session, ANSI codes removed. When the log is longer than `tail_lines`, the text starts with a line giving the full log's path. Fails with `no console output recorded for '<id>' (not launched this session)` if the app has not run. |
+| `moonpool_stop_mcp_server` | `app_id` (required) | Kills the app's attached MCP helper process and leaves the app running. Returns "stopped". Does nothing if the app has no `processName`. |
+| `moonpool_refresh_app_icons` | none | Re-fetches every app icon. Returns "icons refreshed". |
+
+## Configuration
+
+These read and change `apps.json` through the hub, never the file on disk. The guards are
+described in [Configuration](/configuration/overview/#agents).
+
+| Tool | Parameters | Behavior |
+| --- | --- | --- |
+| `moonpool_read_config` | none | JSON text with `manifest_text` (the file's exact contents), `token`, `valid`, `error` (null when valid) and `path`. `token` is `none` when the file is missing or empty. |
+| `moonpool_write_config` | `manifest` (required, the full new `apps.json` text), `expected_token` (required, from the last read) | Validates the manifest and replaces `apps.json`, then loads it. Returns `apps.json updated; new version token <token>`. A stale token fails with `stale token: apps.json changed since it was read ...`. An invalid manifest fails with `rejected invalid manifest: ...`. Either way the file is untouched. An empty `expected_token` is refused. |
+| `moonpool_restore_config` | `snapshot` (optional) | With no value, JSON text listing the saved snapshots newest first (`index`, `filename`, `millis`, `app_count`, `valid`). With an index (1 = newest) or a filename, validates that snapshot and restores it. Returns `restored <file> (<n> apps); new version token <token>`. No token is needed: a restore overwrites the current file on purpose. |
+| `moonpool_reload_config` | none | Re-reads `apps.json`. Returns "apps.json reloaded". |
+| `moonpool_launcher_paths` | none | Lists the hub's config folder, `apps.json`, `state.json`, log, dumps folder, icons folder, portable flag and exe path, then the same for the MCP process. Use it when an edit does not take effect. |
+
+## Windows and testing (Windows only)
+
+`window` is one of `main`, `settings`, `about`, `installer`, `editor` or `help`, and defaults
+to `main`. An unknown name fails with `unknown window '<name>'`.
+
+| Tool | Parameters | Behavior |
+| --- | --- | --- |
+| `moonpool_screenshot` | `window` (optional) | Captures that Moonpool window's own content as an inline PNG. Fails with `window '<name>' is not open` if it is not showing. It cannot capture any other app. |
+| `moonpool_window_state` | `window` (optional) | JSON text: `{"open":false}` when the window is not open, otherwise `open`, `visible`, `minimized`, `maximized`, `x`, `y`, `width`, `height`. Intended for tests. |
+| `moonpool_reset_mcp_seen` | `app_id` (optional) | Test only. Clears the remembered "an MCP helper was seen" record for one app, or for every app when omitted, so the sidebar's MCP sub-item hides again until a helper is seen. |

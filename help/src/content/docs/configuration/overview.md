@@ -102,7 +102,7 @@ automatically.
 
 ## Agents
 
-An AI agent can use Moonpool's MCP server (`moonpool.exe mcp`) instead of touching the file:
+An AI agent can use Moonpool's MCP server (`moonpool.exe mcp`) instead of touching the file. Setup and the full tool list are in [MCP setup](/automation/mcp-setup/) and [MCP tools](/automation/mcp-tools/):
 
 | Tool | What it does |
 | --- | --- |

@@ -57,6 +57,16 @@ export default defineConfig({
 						{ label: 'Settings and logs', slug: 'configuration/settings-and-logs' },
 					],
 				},
+				{
+					label: 'Automation',
+					items: [
+						{ label: 'Overview', slug: 'automation/overview' },
+						{ label: 'MCP setup', slug: 'automation/mcp-setup' },
+						{ label: 'MCP tools', slug: 'automation/mcp-tools' },
+						{ label: 'Command line', slug: 'automation/command-line' },
+						{ label: 'Control verbs', slug: 'automation/control-verbs' },
+					],
+				},
 			],
 		}),
 	],
