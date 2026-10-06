@@ -99,7 +99,7 @@ Use the [command line](/automation/command-line/) from a shell outside the sandb
 
 Many apps in Moonpool are themselves reached by an MCP host through an `<exe> mcp` helper
 process. Moonpool looks for a process whose name matches the app's `processName` and whose
-first argument is `mcp`, such as `notes-app.exe mcp`. If the server runs under another name, such as a renamed copy, set the app's `mcpProcessName` wildcard (see [Fields](/configuration/fields/#mcpprocessname)); a process matching it counts without the `mcp` argument.
+first argument is `mcp`, such as `notes-app.exe mcp`. If the server runs under another name, such as a renamed copy, set the app's `mcpProcessName` wildcard (see [Fields](/apps/fields/#mcpprocessname)); a process matching it counts without the `mcp` argument.
 
 - While one is attached, the app's sidebar shows an MCP sub-row as running, and
   `moonpool_list_apps` appends `[mcp: running]` to the app's line. The helper does not count
@@ -108,7 +108,7 @@ first argument is `mcp`, such as `notes-app.exe mcp`. If the server runs under a
   folder), so the MCP sub-row stays visible as stopped, and `moonpool_list_apps` shows
   `[mcp: stopped]`, after the helper exits.
 - The MCP sub-row is controlled by the `showMcpProcesses` setting
-  ([Settings window](/using/settings-window/)).
+  ([Settings window](/using/settings/)).
 - `moonpool_stop_mcp_server` kills the helper and leaves the app alone. There is no start
   counterpart: the host that owns the helper starts it again on its next tool call.
 
@@ -121,7 +121,7 @@ first argument is `mcp`, such as `notes-app.exe mcp`. If the server runs under a
 - **An edit does not show up.** Call `moonpool_launcher_paths` and compare the hub's folders
   with the MCP process's. See [Sandboxed hosts](#sandboxed-hosts).
 
-More in [Troubleshooting](/reference/troubleshooting/#mcp-and-script-errors).
+More in [Troubleshooting](/support/troubleshooting/#mcp-and-script-errors).
 
 ## See also
 

@@ -112,7 +112,7 @@ Runs in a terminal tab. The `-NoExit` keeps the shell open after the script fini
 
 `command` already recreates the container and exits, so Running comes from the port. Stop
 runs `stopCommand` instead of killing the port's owner, which on Windows would be Docker
-Desktop. See [Stop and restart](/configuration/stop-and-restart/#docker-apps-on-windows).
+Desktop. See [Stop and restart](/apps/stop-and-restart/#docker-apps-on-windows).
 
 ```json title="apps.json"
 {
@@ -151,5 +151,5 @@ Paths anchor to the portable folder, so the entry still works after the folder m
 
 ## See also
 
-- [Example dashboards](/using/example-dashboards/): the dashboards that ship with Moonpool.
-- [App fields](/configuration/fields/)
+- [Example dashboards](/getting-started/example-dashboards/): the dashboards that ship with Moonpool.
+- [App fields](/apps/fields/)

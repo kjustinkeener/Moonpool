@@ -6,7 +6,7 @@ description: Every control in the Settings and About windows, what it does, and 
 Open **Settings** from the hub's "..." menu. Changes save as you make them. Escape closes
 the window. This page is the full list of settings. Each one is saved in `settings.json`
 under the key shown; the file itself is described in
-[settings.json](/configuration/settings-and-logs/).
+[settings.json](/data/settings-json/).
 
 ![Settings window: toggles and sliders in the left column, log options in the right](../../../assets/screenshots/settings-window.png)
 
@@ -20,8 +20,8 @@ reset.
 
 | Control | Key | Default | What it does |
 | --- | --- | --- | --- |
-| Language | `locale` | Auto (system) | Language of Moonpool's own text. Applies instantly. See [Themes, language and transparency](/using/appearance/). |
-| Theme | none (browser storage) | Auto (system) | Colour theme. The button opens a theme browser with a preview of every theme; clicking one applies it instantly. See [Themes, language and transparency](/using/appearance/). |
+| Language | `locale` | Auto (system) | Language of Moonpool's own text. Applies instantly. See [Themes, language and transparency](/using/themes-and-language/). |
+| Theme | none (browser storage) | Auto (system) | Colour theme. The button opens a theme browser with a preview of every theme; clicking one applies it instantly. See [Themes, language and transparency](/using/themes-and-language/). |
 | Close to tray | `closeToTray` | off | On: closing the window hides Moonpool to the tray. Off: closing quits. |
 | Minimize to tray | `minimizeToTray` | on | On: minimizing hides Moonpool to the tray and it leaves the taskbar. Off: minimizes to the taskbar. |
 | Always on top | `alwaysOnTop` | off | Keeps every Moonpool window above other windows. |
@@ -29,8 +29,8 @@ reset.
 | Show in taskbar | `showInTaskbar` | on | Keeps the taskbar button visible. |
 | Show CPU/memory status bar | `showStatusbar` | on | Live CPU and memory bar at the bottom of the hub. |
 | Show MCP processes | `showMcpProcesses` | on | Shows an app's MCP process as an MCP sub-row in the sidebar while its MCP tools are in use. |
-| Background transparency | `transparency` | 0% | Slider from 0 to 90 in steps of 5. See [Themes, language and transparency](/using/appearance/#transparency). |
-| Check for updates on startup | `checkOnStartup` | on | Checks GitHub for a newer version at launch and shows a banner if one is found. See [Updating](/guides/updating/). |
+| Background transparency | `transparency` | 0% | Slider from 0 to 90 in steps of 5. See [Themes, language and transparency](/using/themes-and-language/#transparency). |
+| Check for updates on startup | `checkOnStartup` | on | Checks GitHub for a newer version at launch and shows a banner if one is found. See [Updating](/data/updating/). |
 
 ### Tray and taskbar lockout
 
@@ -52,7 +52,7 @@ Under each log group a path field shows the location, with two buttons:
 - **Copy** puts the path on the clipboard (**Copy CLI log folder path**, **Copy log file path**).
 
 Log file formats, the restart divider and retention rules are in
-[Logs](/configuration/logs/).
+[Logs](/data/logs/).
 
 If a checkbox cannot be saved, a red message at the top of the window says so and the
 checkbox reverts.

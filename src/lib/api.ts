@@ -347,7 +347,7 @@ export async function openHelpWindow(): Promise<void> {
     return;
   }
   const w = new WebviewWindow("help", {
-    url: "help://localhost/getting-started/overview/",
+    url: "help://localhost/",
     title: "Moonpool Help",
     width: 1000,
     height: 720,

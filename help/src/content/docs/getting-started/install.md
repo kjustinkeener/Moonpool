@@ -55,8 +55,8 @@ Any running Moonpool is stopped as part of uninstalling.
 ## Portable mode
 
 Prefer a USB stick or a movable folder? Click **Install portable** on the install card and
-pick a folder. See [Portable mode](/guides/portable-mode/).
+pick a folder. See [Portable mode](/data/portable-mode/).
 
 ## Next
 
-- [Your first app](/getting-started/first-launch/)
+- [Your first app](/getting-started/first-app/)

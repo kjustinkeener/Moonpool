@@ -42,7 +42,7 @@ apps\tool                          left alone, resolves against Moonpool's worki
 
 Both forms keep working when you move the portable folder. A fixed path such as
 `C:\tools\notes` does not travel. In portable mode the Edit app dialog marks absolute `cwd`
-and `url` values with a "not portable" badge. See [Portable mode](/guides/portable-mode/).
+and `url` values with a "not portable" badge. See [Portable mode](/data/portable-mode/).
 
 ## Environment
 
