@@ -183,7 +183,7 @@ export const pl: PartialDict = {
   "editor.commandHint":
     "Polecenie uruchamiane we wbudowanym terminalu, aby wystartować aplikację, np. 'npm run dev' lub 'python app.py'. Zostaw puste dla wpisu z samym adresem URL.",
   "editor.portHint":
-    "Lokalny port TCP, na którym nasłuchuje aplikacja. Moonpool pokazuje stan „działa”, gdy ten port odpowiada, i zwalnia go po zatrzymaniu. Używany przez aplikacje typu web.",
+    "Lokalny port TCP, na którym nasłuchuje aplikacja. Moonpool pokazuje stan „działa”, gdy ten port odpowiada. Przy zatrzymaniu kończy też proces nasłuchujący na tym porcie, ale tylko gdy killMode ma wartość port (domyślnie dla aplikacji typu web).",
   "editor.killModeHint": "Zatrzymanie zawsze kończy terminal uruchomiony przez Moonpool. To ustawienie wybiera jeden dodatkowy krok sprzątania dla aplikacji, które go przeżywają. Zostaw wartość domyślną, chyba że po zatrzymaniu coś nadal działa.",
   "editor.killModeDefault": "domyślnie (wg typu)",
   "editor.killNoteDefault": "Domyślnie wg typu: desktop kończy według processName, web kończy to, co zajmuje port, static i cli nie robią nic więcej.",
@@ -193,7 +193,7 @@ export const pl: PartialDict = {
   "editor.killNoteNone": "Przy zatrzymaniu kończy tylko terminal uruchomiony przez Moonpool. Odpowiednie dla aplikacji Docker Compose, których polecenie tworzy kontener od nowa.",
   "editor.stopCommandHint": "Uruchamiane w cwd, gdy killMode ma wartość command, np. docker compose stop app. Kończy się, zanim ponowne uruchomienie wystartuje aplikację.",
   "editor.processNameHint":
-    "Dla aplikacji desktopowych: nazwa procesu lub pliku wykonywalnego (bez .exe) używana do wykrywania działania i zatrzymywania aplikacji. W systemie Linux może mieć najwyżej 15 znaków.",
+    "Dla aplikacji desktopowych: nazwa procesu lub pliku wykonywalnego (bez .exe) używana do wykrywania działania. Przy zatrzymaniu kończy też wszystkie procesy o tej nazwie, gdy killMode ma wartość processName (domyślnie dla aplikacji desktopowych). W systemie Linux może mieć najwyżej 15 znaków.",
   "editor.mcpProcessNameHint":
     "Opcjonalne. Wzorzec z symbolami wieloznacznymi (* dla dowolnego ciągu znaków, ? dla jednego znaku) nazwy procesu serwera MCP tej aplikacji, gdy nie jest to processName, np. mog lub destiny-mcp-*. Wielkość liter nie ma znaczenia, wzorzec dotyczy całej nazwy; .exe jest opcjonalne. Pasujący proces pojawia się jako wiersz serwera MCP aplikacji i nie wymaga argumentu mcp.",
   "editor.urlHint":

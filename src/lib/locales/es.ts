@@ -181,7 +181,7 @@ export const es: PartialDict = {
   "editor.commandHint":
     "El comando que se ejecuta en la terminal integrada para iniciar la app, p. ej. 'npm run dev' o 'python app.py'. Déjalo vacío si la entrada es solo una URL estática.",
   "editor.portHint":
-    "El puerto TCP local en el que escucha la app. Moonpool la marca «en ejecución» cuando ese puerto responde, y lo libera al detenerla. Lo usan las apps web.",
+    "El puerto TCP local en el que escucha la app. Moonpool la marca «en ejecución» cuando ese puerto responde. Al detenerla, también cierra lo que escuche en este puerto, pero solo cuando killMode es port (el valor predeterminado de las apps web).",
   "editor.killModeHint": "Detener siempre cierra la terminal que inició Moonpool. Aquí eliges un paso de limpieza adicional para las apps que la sobreviven. Déjalo en predeterminado salvo que Detener deje algo en ejecución.",
   "editor.killModeDefault": "predeterminado (según el tipo)",
   "editor.killNoteDefault": "Predeterminado según el tipo: desktop termina por processName, web termina lo que ocupe port, static y cli no hacen nada más.",
@@ -191,7 +191,7 @@ export const es: PartialDict = {
   "editor.killNoteNone": "Al detener, solo termina la terminal que inició Moonpool. Es lo correcto para apps de Docker Compose cuyo comando recrea el contenedor.",
   "editor.stopCommandHint": "Se ejecuta en cwd cuando killMode es command, p. ej. docker compose stop app. Termina antes de que un reinicio vuelva a lanzar la app.",
   "editor.processNameHint":
-    "Para apps de escritorio: el nombre del proceso o ejecutable (sin .exe) que se usa para detectar si está en ejecución y para detenerla. En Linux no puede pasar de 15 caracteres.",
+    "Para apps de escritorio: el nombre del proceso o ejecutable (sin .exe) que se usa para detectar si está en ejecución. Al detenerla, también cierra todos los procesos con este nombre cuando killMode es processName (el valor predeterminado de las apps de escritorio). En Linux no puede pasar de 15 caracteres.",
   "editor.mcpProcessNameHint":
     "Opcional. Un patrón con comodines (* para cualquier cantidad de caracteres, ? para uno) del nombre de proceso del servidor MCP de esta app, cuando no es processName, p. ej. mog o destiny-mcp-*. No distingue mayúsculas, aplica al nombre completo; .exe es opcional. Un proceso que coincida aparece como la fila del servidor MCP de la app y no necesita el argumento mcp.",
   "editor.urlHint":

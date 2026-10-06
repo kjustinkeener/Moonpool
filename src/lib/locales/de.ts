@@ -183,7 +183,7 @@ export const de: PartialDict = {
   "editor.commandHint":
     "Der Befehl, der im eingebetteten Terminal die App startet, z. B. 'npm run dev' oder 'python app.py'. Für einen reinen URL-Eintrag leer lassen.",
   "editor.portHint":
-    "Der lokale TCP-Port, auf dem die App lauscht. Moonpool meldet „läuft“, sobald dieser Port antwortet, und gibt ihn beim Stoppen frei. Wird von Web-Apps genutzt.",
+    "Der lokale TCP-Port, auf dem die App lauscht. Moonpool meldet „läuft“, sobald dieser Port antwortet. Beim Stoppen beendet Moonpool außerdem, was auf diesem Port lauscht, aber nur wenn killMode port ist (Standard bei Web-Apps).",
   "editor.killModeHint": "Beim Stoppen wird immer das von Moonpool gestartete Terminal beendet. Hier wählst du einen zusätzlichen Aufräumschritt für Apps, die es überleben. Auf „default“ lassen, außer „Stoppen“ lässt etwas weiterlaufen.",
   "editor.killModeDefault": "default (nach Typ)",
   "editor.killNoteDefault": "Standard je nach Typ: desktop beendet über processName, web beendet, was port belegt, static und cli tun nichts zusätzlich.",
@@ -193,7 +193,7 @@ export const de: PartialDict = {
   "editor.killNoteNone": "Beim Stoppen wird nur das von Moonpool gestartete Terminal beendet. Richtig für Docker-Compose-Apps, deren Befehl den Container neu erstellt.",
   "editor.stopCommandHint": "Wird in cwd ausgeführt, wenn killMode command ist, z. B. docker compose stop app. Wird beendet, bevor ein Neustart die App wieder startet.",
   "editor.processNameHint":
-    "Für Desktop-Apps: der Prozess- bzw. Programmname (ohne .exe), an dem der Betrieb erkannt und die App gestoppt wird. Unter Linux höchstens 15 Zeichen.",
+    "Für Desktop-Apps: der Prozess- bzw. Programmname (ohne .exe), an dem der Betrieb erkannt wird. Beim Stoppen werden außerdem alle Prozesse mit diesem Namen beendet, wenn killMode processName ist (Standard bei Desktop-Apps). Unter Linux höchstens 15 Zeichen.",
   "editor.mcpProcessNameHint":
     "Optional. Ein Platzhaltermuster (* für beliebig viele Zeichen, ? für genau eines) für den Prozessnamen des MCP-Servers dieser App, falls er nicht processName ist, z. B. mog oder destiny-mcp-*. Groß-/Kleinschreibung egal, gilt für den ganzen Namen; .exe ist optional. Ein passender Prozess erscheint als MCP-Server-Zeile der App und braucht das Argument mcp nicht.",
   "editor.urlHint":

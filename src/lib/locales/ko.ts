@@ -178,7 +178,7 @@ export const ko: PartialDict = {
   "editor.commandHint":
     "앱을 시작하기 위해 내장 터미널에서 실행할 명령입니다 (예: 'npm run dev' 또는 'python app.py'). URL만 사용하는 항목이면 비워 두세요.",
   "editor.portHint":
-    "앱이 대기하는 로컬 TCP 포트입니다. 이 포트가 응답하면 Moonpool이 실행 중으로 표시하고, 중지할 때 포트를 해제합니다. web 앱에서 사용합니다.",
+    "앱이 대기하는 로컬 TCP 포트입니다. 이 포트가 응답하면 Moonpool이 실행 중으로 표시합니다. 중지할 때 이 포트에서 대기 중인 프로세스도 종료하지만, killMode가 port일 때만 해당합니다 (web 앱의 기본값).",
   "editor.killModeHint": "중지하면 항상 Moonpool이 시작한 터미널이 종료됩니다. 이 설정은 그 뒤에도 살아남는 앱을 위해 정리 단계를 하나 더 고릅니다. 중지해도 무언가 계속 실행되는 경우가 아니면 기본값으로 두세요.",
   "editor.killModeDefault": "기본값 (유형별)",
   "editor.killNoteDefault": "유형별 기본값: desktop은 processName으로 종료하고, web은 port를 사용 중인 대상을 종료하며, static과 cli는 추가로 하는 일이 없습니다.",
@@ -188,7 +188,7 @@ export const ko: PartialDict = {
   "editor.killNoteNone": "중지할 때 Moonpool이 시작한 터미널만 종료합니다. 명령이 컨테이너를 다시 만드는 Docker Compose 앱에 적합합니다.",
   "editor.stopCommandHint": "killMode가 command일 때 cwd에서 실행됩니다 (예: docker compose stop app). 다시 시작하기 전에 끝납니다.",
   "editor.processNameHint":
-    "desktop 앱용: 실행 여부를 감지하고 중지할 때 사용하는 프로세스/실행 파일 이름입니다 (.exe 제외). Linux에서는 15자 이하여야 합니다.",
+    "desktop 앱용: 실행 여부를 감지하는 데 사용하는 프로세스/실행 파일 이름입니다 (.exe 제외). killMode가 processName이면 (desktop 앱의 기본값) 중지할 때 이 이름의 프로세스도 모두 종료합니다. Linux에서는 15자 이하여야 합니다.",
   "editor.mcpProcessNameHint":
     "선택 사항. 이 앱의 MCP 서버 프로세스 이름이 processName이 아닐 때 쓰는 와일드카드 패턴입니다(* 는 임의의 문자열, ? 는 한 글자). 예: mog 또는 destiny-mcp-*. 대소문자를 구분하지 않고 이름 전체에 일치하며 .exe는 생략할 수 있습니다. 일치하는 프로세스는 앱의 MCP 서버 행으로 표시되며 mcp 인수가 필요하지 않습니다.",
   "editor.urlHint":
