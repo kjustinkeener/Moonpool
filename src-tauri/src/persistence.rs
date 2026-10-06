@@ -80,17 +80,34 @@ fn replace_file(source: &Path, destination: &Path) -> io::Result<()> {
         .encode_wide()
         .chain(Some(0))
         .collect();
-    let moved = unsafe {
-        MoveFileExW(
-            source.as_ptr(),
-            destination.as_ptr(),
-            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
-        )
-    };
-    if moved == 0 {
-        Err(io::Error::last_os_error())
-    } else {
-        Ok(())
+    // A scanner or indexer that opens the just-replaced file for a moment makes the next replace
+    // fail with access denied / sharing violation. That is transient (seen as a ~1-in-10 failure
+    // of the repeated-replacement test), so retry briefly before reporting it.
+    const ERROR_ACCESS_DENIED: i32 = 5;
+    const ERROR_SHARING_VIOLATION: i32 = 32;
+    const ERROR_LOCK_VIOLATION: i32 = 33;
+    let mut attempt = 0;
+    loop {
+        let moved = unsafe {
+            MoveFileExW(
+                source.as_ptr(),
+                destination.as_ptr(),
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+            )
+        };
+        if moved != 0 {
+            return Ok(());
+        }
+        let error = io::Error::last_os_error();
+        let transient = matches!(
+            error.raw_os_error(),
+            Some(ERROR_ACCESS_DENIED | ERROR_SHARING_VIOLATION | ERROR_LOCK_VIOLATION)
+        );
+        attempt += 1;
+        if !transient || attempt >= 20 {
+            return Err(error);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10 * attempt.min(5)));
     }
 }
 
