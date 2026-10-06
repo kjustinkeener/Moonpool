@@ -42,7 +42,7 @@ One JSON object. Keys you leave out take their defaults:
 
 Moonpool also stores the UI zoom (`uiScale`, 0.5 to 3.0) and the resolved language
 (`localeResolved`) in this file. You do not need to set either. The theme is not here: it is
-kept in the webview's storage (see [Appearance](/using/appearance/)).
+kept in the webview's storage (see [Themes, language and transparency](/using/appearance/)).
 
 ## Reading and repair
 

@@ -1,17 +1,17 @@
 ---
-title: Appearance
+title: Themes, language and transparency
 description: Themes, languages, background transparency and UI scale.
 ---
 
 Theme, language and transparency are set in the [Settings window](/using/settings-window/).
 All three apply instantly to every open Moonpool window.
 
-## Themes
-
 ![Language (1) and Theme (2) pickers at the top of Settings](../../../assets/screenshots/settings-language-theme.png)
 
 1. Language picker.
 2. Theme button. It shows the current theme's name and opens the theme browser.
+
+## Themes
 
 The theme browser is its own window. It has one preview card per theme, each drawn in that
 theme's own colors (text, panel, input, button, status dots, the gauge gradient and the

@@ -14,7 +14,7 @@ Moonpool, so it always describes the version you run. Moonpool updates itself; s
   run side by side, one per folder, each with its own apps, tray icon and control channel.
   See [Portable mode](/guides/portable-mode/#several-copies-at-once).
 - **Theme browser.** 68 themes, each previewed in its own colors. See
-  [Appearance](/using/appearance/).
+  [Themes, language and transparency](/using/appearance/).
 - **Runnable examples.** A fresh `apps.json` holds example apps that all run as they are.
   The example dashboards now live in an app-owned `dashboards/examples` folder that updates
   with Moonpool. See [Example dashboards](/using/example-dashboards/).

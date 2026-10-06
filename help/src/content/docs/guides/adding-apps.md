@@ -1,5 +1,5 @@
 ---
-title: Adding Apps
+title: Adding apps
 description: Register an app or dev server so Moonpool can launch and manage it.
 ---
 

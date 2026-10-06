@@ -17,11 +17,11 @@ offline, with no server and no CDN.
 
 On startup Moonpool writes the dashboards to `{MP_HOME}\dashboards\examples`:
 
-```text
-Installed (Windows)  %USERPROFILE%\.moonpool\dashboards\examples
-Portable             <your .moonpool folder, the one holding moonpool.exe>\dashboards\examples
-Linux                ~/.config/Moonpool/dashboards/examples   (or $XDG_CONFIG_HOME/Moonpool/dashboards/examples)
-```
+| Mode | Folder |
+| --- | --- |
+| Installed (Windows) | `%USERPROFILE%\.moonpool\dashboards\examples` |
+| Portable | `<your .moonpool folder, the one holding moonpool.exe>\dashboards\examples` |
+| Linux | `~/.config/Moonpool/dashboards/examples` (or `$XDG_CONFIG_HOME/Moonpool/dashboards/examples`) |
 
 The `examples` folder belongs to Moonpool: it is replaced whenever Moonpool updates, so
 edits there are lost. To customise a dashboard, copy its folder and the shared `_lib`
@@ -48,9 +48,10 @@ works from a moved bundle. `file://` URLs are allowed. See
 
 The example entries are written to `apps.json` only when no config file exists yet. If you
 already have an `apps.json`, add the dashboard entries yourself (**Edit apps.json** in the
-"..." menu, then **Reload**). Add these four to the array:
+"..." menu, then **Reload**). Add these four inside the top-level array, separated from
+your other entries by commas:
 
-```json title="apps.json"
+```jsonc title="apps.json (excerpt)"
 {
   "id": "csv-explorer",
   "name": "Sample CSV Explorer",

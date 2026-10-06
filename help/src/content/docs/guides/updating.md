@@ -17,6 +17,12 @@ Releases, compares versions, and only offers a strictly newer one. It checks:
   version straight away and restarts Moonpool. Otherwise it says you are on the latest
   version, or shows the error.
 
+The About window shows the version you run, under the name:
+
+![The top of the About window: the logo, the name (1), and the version line below it](../../../assets/screenshots/about-header.png)
+
+1. The name. The line below it is the version and build date.
+
 Every download is verified against Moonpool's minisign signing key before it is applied, so
 a tampered or corrupted download is rejected. Moonpool never installs an older version.
 

@@ -58,8 +58,9 @@ NODE_ENV=development
 
 In `apps.json`, as the `env` key of the entry:
 
-```json
-"env": { "PORT": "8091", "NODE_ENV": "development" }
+```json title="apps.json (one entry)"
+{ "id": "habits", "name": "Habits", "group": "Web apps", "type": "web", "command": "python app.py",
+  "env": { "PORT": "8091", "NODE_ENV": "development" } }
 ```
 
 - The launched command inherits Moonpool's environment plus `env`. Entries in `env` win.

@@ -8,13 +8,7 @@ that runs `moonpool.exe` with the single argument `mcp`.
 
 ## Register the server
 
-Installed, the program is:
-
-```text
-%USERPROFILE%\.moonpool\moonpool.exe
-```
-
-Portable, it is the `moonpool.exe` inside your `.moonpool\` folder. Use that full path as
+Installed, the program is `%USERPROFILE%\.moonpool\moonpool.exe`. Portable, it is the `moonpool.exe` inside your `.moonpool\` folder. Use that full path as
 `command`. For a host that reads a `.mcp.json`:
 
 ```json title=".mcp.json" {5}
@@ -91,11 +85,7 @@ instructions name the folder, so the agent can see which copy it is talking to.
 
 Some hosts run their tools inside a packaged (Store/MSIX) sandbox that redirects AppData to a
 private per-package copy. Moonpool detects this when its config folder or exe resolves under
-a path like this:
-
-```text
-...\Packages\<package>\LocalCache\...
-```
+a path like `...\Packages\<package>\LocalCache\...`.
 
 It also detects it when the control channel answers but `state.json` cannot be read. The
 tools that read or write files (`moonpool_app_output`, `moonpool_read_config`,
@@ -109,19 +99,15 @@ Use the [command line](/automation/command-line/) from a shell outside the sandb
 
 Many apps in Moonpool are themselves reached by an MCP host through an `<exe> mcp` helper
 process. Moonpool looks for a process whose name matches the app's `processName` and whose
-first argument is `mcp`, such as:
+first argument is `mcp`, such as `notes-app.exe mcp`.
 
-```text
-notes-app.exe mcp
-```
-
-- While one is attached, the app's sidebar shows an **MCP** sub-item as running, and
+- While one is attached, the app's sidebar shows an MCP sub-row as running, and
   `moonpool_list_apps` appends `[mcp: running]` to the app's line. The helper does not count
   as the app itself running.
 - Once a helper has been seen, Moonpool remembers it (in `mcp_seen.json` in the config
-  folder), so the sub-item stays visible as stopped, and `moonpool_list_apps` shows
+  folder), so the MCP sub-row stays visible as stopped, and `moonpool_list_apps` shows
   `[mcp: stopped]`, after the helper exits.
-- The sub-item is controlled by the `showMcpProcesses` setting
+- The MCP sub-row is controlled by the `showMcpProcesses` setting
   ([Settings window](/using/settings-window/)).
 - `moonpool_stop_mcp_server` kills the helper and leaves the app alone. There is no start
   counterpart: the host that owns the helper starts it again on its next tool call.

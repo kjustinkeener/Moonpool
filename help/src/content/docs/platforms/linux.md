@@ -17,27 +17,34 @@ Download a package from the project's Releases page.
 | `.deb` | Your package manager |
 | RPM (install with your distribution's RPM tool) | Your package manager |
 
-```bash title="AppImage"
+```bash title="AppImage" frame="terminal"
 chmod +x Moonpool_*.AppImage
 ./Moonpool_*.AppImage
 ```
 
-```bash title=".deb"
+```bash title=".deb" frame="terminal"
 sudo apt install ./Moonpool_*_amd64.deb
+```
+
+```bash title="RPM" frame="terminal"
+sudo dnf install ./Moonpool-*.x86_64.rpm
 ```
 
 The `.deb` pulls in its runtime dependencies. The AppImage needs the WebKitGTK and
 AppIndicator libraries present, for example on Debian or Ubuntu:
 
-```bash
+```bash frame="terminal"
 sudo apt-get install -y libwebkit2gtk-4.1-0 libayatana-appindicator3-1
 ```
 
 On Fedora or Arch use the equivalents:
 
-```text
-webkit2gtk4.1
-libayatana-appindicator
+```bash title="Fedora" frame="terminal"
+sudo dnf install webkit2gtk4.1 libayatana-appindicator-gtk3
+```
+
+```bash title="Arch" frame="terminal"
+sudo pacman -S webkit2gtk-4.1 libayatana-appindicator
 ```
 
 ## Tray on GNOME
@@ -45,7 +52,7 @@ libayatana-appindicator
 Stock GNOME does not show tray icons, so Moonpool's tray icon will not appear until the
 AppIndicator extension is installed and enabled:
 
-```bash
+```bash frame="terminal"
 sudo apt-get install -y gnome-shell-extension-appindicator
 gnome-extensions enable ubuntu-appindicators@ubuntu.com
 ```

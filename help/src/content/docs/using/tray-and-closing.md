@@ -32,7 +32,7 @@ minimized, and it leaves the taskbar. Turn it off to minimize to the taskbar as 
 ![Settings: Close to tray and Minimize to tray (1), and the Background transparency slider (2)](../../../assets/screenshots/settings-tray-and-transparency.png)
 
 1. **Close to tray** and **Minimize to tray**.
-2. **Background transparency**. See [Appearance](/using/appearance/#transparency).
+2. **Background transparency**. See [Themes, language and transparency](/using/appearance/#transparency).
 
 ## Tray and taskbar lockout
 
