@@ -82,6 +82,24 @@ Hub-Fenster, port = Port, process = Prozess, background = Hintergrund, tab = Tab
 beenden, launch = starten. Windows SmartScreen: "Der Computer wurde durch Windows geschützt",
 "Weitere Informationen", "Trotzdem ausführen", "Unbekannter Herausgeber".
 
+## Terms (Russian)
+
+Use the app's catalog first (`src/lib/locales/ru.ts`). The catalog addresses the user with the polite
+plural lowercase "вы"/"ваш"; follow it. Quotes are «». Words the catalog does not settle: app =
+приложение, dev server = сервер разработки, tray = трей, hub (the resident Moonpool instance) = хаб,
+hub window = главное окно, port = порт, process = процесс, log = журнал, backup = резервная копия,
+portable mode = портативный режим, sidebar = боковая панель, verb (control command) = команда, AI
+agent = ИИ-агент. Windows SmartScreen strings are kept in English with the Russian in parentheses.
+
+## Terms (Turkish)
+
+Use the app's catalog first (`src/lib/locales/tr.ts`). Address the user with the formal "siz", as the
+catalog does. Words the catalog does not settle: app = uygulama, dev server = geliştirme sunucusu, tray =
+sistem tepsisi (tepsi where the catalog says so), hub = merkez, hub window = merkez penceresi, port =
+bağlantı noktası, process = süreç (not "işlem", the catalog uses "süreç"), log = günlük, backup = yedek,
+portable mode = taşınabilir mod, sidebar = kenar çubuğu, verb = fiil, session = oturum. Windows
+SmartScreen strings are kept in English with the Turkish in parentheses.
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
