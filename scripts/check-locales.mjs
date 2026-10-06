@@ -9,8 +9,9 @@
 //  2. A translation drops or mistypes a placeholder ("{versoin}", or the
 //     translator just omits "{error}"). The string renders with a literal
 //     "{versoin}" in it, or silently loses the value. -> MISMATCH, hard fail.
-//  3. A translation lags behind English. That is legal here (missing keys fall
-//     back), but it should be visible, not invisible. -> reported, soft.
+//  3. A translation lags behind English. The runtime tolerates it (missing keys
+//     fall back to English), but that must never happen silently. -> MISSING,
+//     hard fail, so every locale carries every en.ts key.
 //
 // Placeholders that are literal user-facing text rather than slots are listed in
 // LITERAL_TOKENS: `{MP_HOME}` is typed by the user into a path, so it appears in
@@ -88,8 +89,10 @@ for (const file of files) {
     }
   }
   if (missing.length) {
-    console.warn(`\n${file}: ${missing.length} untranslated key(s) (falls back to English):`);
-    for (const k of missing) console.warn(`  - ${k}`);
+    failed = true;
+    console.error(`
+${file}: ${missing.length} key(s) missing (would fall back to English):`);
+    for (const k of missing) console.error(`  - ${k}`);
   }
 }
 
