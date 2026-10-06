@@ -17,7 +17,7 @@ was der Standard für `web` ist.
   "name": "Site",
   "group": "Web apps",
   "type": "web",
-  "cwd": "C:\code\site",
+  "cwd": "C:\\code\\site",
   "command": "npm run dev",
   "port": 5173,
   "url": "http://localhost:5173",
@@ -33,7 +33,7 @@ was der Standard für `web` ist.
   "name": "Habit Tracker",
   "group": "Web apps",
   "type": "web",
-  "cwd": "C:\code\habits",
+  "cwd": "C:\\code\\habits",
   "command": "python app.py",
   "port": 8091,
   "url": "http://127.0.0.1:8091",
@@ -53,7 +53,7 @@ Läuft, solange ein Prozess namens `notes-app` existiert. Stoppen beendet diesen
   "name": "Notes App",
   "group": "Desktop apps",
   "type": "desktop",
-  "cwd": "C:\code\notes-app",
+  "cwd": "C:\\code\\notes-app",
   "command": "npm run tauri dev",
   "processName": "notes-app"
 }
@@ -84,7 +84,7 @@ antwortet.
   "name": "Docs",
   "group": "Docs",
   "type": "static",
-  "cwd": "C:\code\docs\public",
+  "cwd": "C:\\code\\docs\\public",
   "command": "python -m http.server 8090",
   "port": 8090,
   "url": "http://localhost:8090",
@@ -103,7 +103,7 @@ Läuft in einem Terminal-Tab. Das `-NoExit` hält die Shell offen, nachdem das S
   "name": "Backup script",
   "group": "CLI tools",
   "type": "cli",
-  "cwd": "C:\code\scripts",
+  "cwd": "C:\\code\\scripts",
   "command": "pwsh -NoLogo -NoProfile -NoExit -Command .\backup.ps1 -Verbose"
 }
 ```
@@ -120,7 +120,7 @@ Desktop wäre. Siehe [Stoppen und neu starten](/de/apps/stop-and-restart/#docker
   "name": "API",
   "group": "Web apps",
   "type": "web",
-  "cwd": "C:\code\api",
+  "cwd": "C:\\code\\api",
   "command": "docker compose up -d --build",
   "port": 8080,
   "url": "http://localhost:8080",

@@ -57,7 +57,7 @@ Die Datei ist ein JSON-Array aus Objekten. Vier Schlüssel sind in jedem Eintrag
 ```json title="apps.json"
 [
   { "id": "site", "name": "Site", "group": "Web apps", "type": "web",
-    "cwd": "C:\code\site", "command": "npm run dev", "port": 5173,
+    "cwd": "C:\\code\\site", "command": "npm run dev", "port": 5173,
     "url": "http://localhost:5173", "openBrowser": true }
 ]
 ```
