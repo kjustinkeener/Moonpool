@@ -66,7 +66,7 @@ If **Check for updates on startup** is on and a newer version exists, a banner a
 Moonpool {version} is available (you have {current}).
 ```
 
-It has a **Download & install** button and a dismiss button. A newer help bundle uses the same banner. See [Updating](/guides/updating/).
+It has a **Download & install** button and a dismiss button. See [Updating](/guides/updating/).
 
 If the update fails, the banner shows:
 

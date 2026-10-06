@@ -4,11 +4,10 @@
 # then publishes a DRAFT GitHub Release containing the per-OS bundles. On Windows it also
 # publishes the CUSTOM updater artifacts that Moonpool's in-app self-updater reads:
 #   - moonpool.exe   the raw, self-installing/self-updating executable (the download)
-#   - help.zip       the built Starlight help site, delivered as a second update component
-#   - update.json    { version, notes, url, signature, help:{version,url,signature} }
-# Both signatures are minisign signatures verified in-app against the committed public
-# key (src-tauri/src/update.rs). The help component lets help content refresh through the
-# normal update flow between binary releases. This replaces tauri-plugin-updater +
+#   - update.json    { version, notes, url, signature }
+# The signature is a minisign signature verified in-app against the committed public
+# key (src-tauri/src/update.rs). The help site is embedded in the exe, so it updates
+# only with the app. This replaces tauri-plugin-updater +
 # latest.json; the NSIS/MSI bundles are still built but are no longer the update path.
 #
 # Required repository secrets (Settings -> Secrets and variables -> Actions):
@@ -139,15 +138,8 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           filename=$(basename "$image")
           url="https://github.com/kjustinkeener/Moonpool/releases/download/${GITHUB_REF_NAME}/${filename}"
-          # Help component, same as Windows but built here with its own file name so the
-          # two jobs never race over one asset (the zip bytes, hence the signature, differ).
-          help_version=$(tr -d '[:space:]' < help/version.txt)
-          (cd help/dist && zip -qr ../../help-linux.zip .)
-          npx tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" help-linux.zip
-          help_signature=$(base64 --decode help-linux.zip.sig)
-          help_url="https://github.com/kjustinkeener/Moonpool/releases/download/${GITHUB_REF_NAME}/help-linux.zip"
-          node -e 'const fs=require("fs"); const a=process.argv; fs.writeFileSync("linux-update.json", JSON.stringify({version:a[1],notes:"",url:a[2],signature:a[3],help:{version:a[4],url:a[5],signature:a[6]}}))' "$version" "$url" "$signature" "$help_version" "$help_url" "$help_signature"
-          gh release upload "$GITHUB_REF_NAME" "$image" help-linux.zip linux-update.json --clobber
+          node -e 'const fs=require("fs"); const a=process.argv; fs.writeFileSync("linux-update.json", JSON.stringify({version:a[1],notes:"",url:a[2],signature:a[3]}))' "$version" "$url" "$signature"
+          gh release upload "$GITHUB_REF_NAME" "$image" linux-update.json --clobber
 
       # Publish the custom self-updater artifacts (Windows only): the raw exe plus a
       # minisign-signed update.json that the in-app updater reads from Releases/latest.
@@ -185,29 +177,12 @@ jobs:
           $version = "${{ github.ref_name }}".TrimStart("v")
           $url = "https://github.com/kjustinkeener/Moonpool/releases/download/${{ github.ref_name }}/moonpool.exe"
 
-          # Help content bundle: zip the built Starlight site, sign it with the SAME key,
-          # and advertise it as a second component so the in-app updater refreshes help
-          # through the normal update flow. Its version comes from help/version.txt (the
-          # single source the Rust baseline also reads), so a help-only fix ships by
-          # bumping that file without bumping the app version.
-          $helpDist = "help/dist"
-          if (-not (Test-Path $helpDist)) { throw "help dist not found at $helpDist" }
-          $helpVersion = (Get-Content "help/version.txt" -Raw).Trim()
-          $helpZip = "help.zip"
-          if (Test-Path $helpZip) { Remove-Item $helpZip }
-          Compress-Archive -Path "$helpDist/*" -DestinationPath $helpZip
-          npx tauri signer sign --private-key "$env:TAURI_SIGNING_PRIVATE_KEY" --password "$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD" $helpZip
-          $helpSigB64 = (Get-Content "$helpZip.sig" -Raw).Trim()
-          $helpMinisig = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($helpSigB64))
-          $helpUrl = "https://github.com/kjustinkeener/Moonpool/releases/download/${{ github.ref_name }}/help.zip"
-
           $manifest = [ordered]@{
             version   = $version
             notes     = ""
             url       = $url
             signature = $minisig
-            help      = [ordered]@{ version = $helpVersion; url = $helpUrl; signature = $helpMinisig }
           }
           $manifest | ConvertTo-Json -Depth 4 | Set-Content -Path update.json -Encoding utf8
 
-          gh release upload ${{ github.ref_name }} $exe help.zip update.json --clobber
+          gh release upload ${{ github.ref_name }} $exe update.json --clobber

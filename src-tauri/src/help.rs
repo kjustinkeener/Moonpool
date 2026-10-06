@@ -3,10 +3,9 @@
 //! self-contained (one file, nothing beside it) and the docs work with no network.
 //!
 //! Unlike the example dashboards (`dashboards.rs`, user-owned, never clobbered), the
-//! help site is APP-owned content the updater replaces (`update::help_apply`). So the
-//! seed is version-gated: on first run we write the embedded baseline and stamp a
-//! `version.txt`; if that stamp is already present we leave the directory alone (a
-//! newer downloaded bundle, or the current baseline, is already in place).
+//! help site is APP-owned content that ships only inside the exe. So the seed is
+//! version-gated: we write the embedded copy and stamp a `version.txt`, and rewrite it
+//! whenever that stamp differs from this build's (an app update brought new help).
 
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
@@ -26,18 +25,15 @@ static BRAND_ICON: &[u8] = include_bytes!("../../src/assets/app-icon.png");
 static WORDMARK: &[u8] = include_bytes!("../../src/assets/moonpool-wordmark-text.png");
 
 /// Version of the help content bundled in this build. Written to `help/version.txt`
-/// on first seed and compared against the updater manifest's `help.version`.
-/// Read from the repo's `help/version.txt` at compile time, so bumping that one file is the
+/// on seed and compared on the next launch. Read from the repo's `help/version.txt` at compile time, so bumping that one file is the
 /// only step (a separate hard-coded copy went stale and stopped new bundled docs from being
 /// seeded over an older install).
 pub fn baseline_version() -> &'static str {
     include_str!("../../help/version.txt").trim()
 }
 
-/// Write the embedded baseline help to `{MP_HOME}/help` on first run, then stamp
-/// `version.txt`. If `version.txt` already exists we do nothing: either the current
-/// baseline or a newer downloaded bundle is already present, and either is correct.
-/// Best-effort: individual write failures are logged, not fatal.
+/// Write the embedded help to `{MP_HOME}/help`, then stamp `version.txt`. Skipped
+/// when the stamp already matches this build and the tree is intact. Best-effort: individual write failures are logged, not fatal.
 pub fn seed(app: &AppHandle) {
     let Some(home) = crate::portable::mp_home() else {
         crate::log_line(app, "help: no MP_HOME; skipping seed");
@@ -48,16 +44,18 @@ pub fn seed(app: &AppHandle) {
     // Version-gated, but also guard against a stamped-but-empty tree: an earlier
     // build whose `help/dist` had not been built yet could write `version.txt` over
     // an empty directory, and the gate would then skip forever, leaving the help
-    // window blank. Preserve a matching or newer downloaded bundle, but replace an
-    // older embedded baseline when the app ships revised bundled help.
+    // window blank. Any other stamp (older, or one left by the retired help-only
+    // download) is replaced so the pages always match the running app.
     let index_file = dest.join("index.html");
     if index_file.exists()
         && std::fs::read_to_string(&version_file)
-            .map(|version| version.trim() >= baseline_version())
+            .map(|version| version.trim() == baseline_version())
             .unwrap_or(false)
     {
-        return; // matching baseline or a newer downloaded bundle is already staged
+        return; // this build's help is already in place
     }
+    // Clear the old tree first so pages removed from the help don't linger.
+    let _ = std::fs::remove_dir_all(&dest);
     if version_file.exists() {
         crate::log_line(
             app,

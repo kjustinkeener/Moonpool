@@ -3082,8 +3082,8 @@ pub fn run() {
             // Write the embedded example dashboards to {MP_HOME}/dashboards on first
             // run (skips files that already exist, so user edits are preserved).
             dashboards::seed(&handle);
-            // Write the embedded baseline help site to {MP_HOME}/help on first run
-            // (version-gated: skipped once a version.txt stamp is present).
+            // Write the embedded help site to {MP_HOME}/help (version-gated: rewritten
+            // only when this build's help version differs from the stamped one).
             help::seed(&handle);
             build_tray(&handle, &locale)?;
             apply_tray_visible(&handle, show_in_tray);
@@ -3284,8 +3284,7 @@ pub fn run() {
             portable::export_portable,
             portable::reveal_path,
             update::update_check,
-            update::update_apply,
-            update::help_apply
+            update::update_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moonpool");
