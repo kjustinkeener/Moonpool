@@ -45,7 +45,7 @@ Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_con
 - **App ids are restricted.** The MCP server accepts only letters, digits, `.`, `_` and `-`,
   and never a leading `-`, so an id cannot be read as a command-line flag.
 - **Screenshots are Moonpool only.** `moonpool_screenshot` captures one of Moonpool's own six
-  windows (`main`, `settings`, `about`, `installer`, `editor`, `help`), never the screen or
+  windows (`main`, `settings`, `about`, `installer`, `editor`, `help`, `themes`), never the screen or
   another app. The PNG is built in memory and returned inline; Moonpool does not save it to a
   file.
 - **No authentication on the pipe.** Moonpool adds no login or token to the control pipe. Any

@@ -24,6 +24,7 @@
     updateApply,
     helpApply,
     openHelpWindow,
+    openThemesWindow,
     type UpdateInfo,
     type HelpComponent,
   } from "./lib/api";
@@ -557,6 +558,9 @@
                 break;
               case "help":
                 await openHelpWindow();
+                break;
+              case "themes":
+                await openThemesWindow();
                 break;
               case "editor":
                 if (wid && !apps.some((a) => a.id === wid))
