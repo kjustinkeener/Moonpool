@@ -3,7 +3,7 @@ title: Sidebar and menus
 description: Sidebar rows, status dots, groups, the filter box, the row context menu, and resizing the sidebar.
 ---
 
-The sidebar lists every app in `apps.json`, grouped by each app's `group` field. See [App fields](/configuration/fields/).
+The sidebar lists every app in `apps.json`, grouped by each app's `group` field. See [App fields](/apps/fields/).
 
 ## Rows
 
@@ -51,7 +51,7 @@ under the app. Its dot is lit and the tooltip reads "MCP client attached" while 
 is connected. A stop button ends that process.
 
 The row finds the process by `processName` plus the `mcp` argument, or by the app's
-`mcpProcessName` pattern when one is set. See [fields](/configuration/fields/#mcpprocessname).
+`mcpProcessName` pattern when one is set. See [fields](/apps/fields/#mcpprocessname).
 
 Hide these rows with **Show MCP processes** in Settings. See
 [MCP setup](/automation/mcp-setup/#apps-that-have-their-own-mcp-server).
@@ -88,4 +88,4 @@ Right-click a row for:
 
 ## Resizing
 
-Drag the divider between the sidebar and the CLI pane. The width is limited to 180 to 620 px (default 280) and is remembered. The divider is locked while the CLI pane is collapsed. See [Terminal tabs](/using/terminal/).
+Drag the divider between the sidebar and the CLI pane. The width is limited to 180 to 620 px (default 280) and is remembered. The divider is locked while the CLI pane is collapsed. See [Terminal tabs](/using/terminal-tabs/).

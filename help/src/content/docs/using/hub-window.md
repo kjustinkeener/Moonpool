@@ -16,7 +16,7 @@ description: A tour of the Moonpool hub window, its menu, the apps.json error ba
 | --- | --- |
 | Title bar | Minimize, maximize and close. |
 | Sidebar | The filter box, the **...** menu, and your apps grouped by `group`. See [Sidebar and menus](/using/sidebar-and-menus/). |
-| CLI pane | One terminal tab per opened app. See [Terminal tabs](/using/terminal/). |
+| CLI pane | One terminal tab per opened app. See [Terminal tabs](/using/terminal-tabs/). |
 | Status bar | Live CPU and memory, along the bottom. |
 
 Drag the divider between the sidebar and the CLI pane to resize the sidebar.
@@ -26,7 +26,7 @@ Drag the divider between the sidebar and the CLI pane to resize the sidebar.
 ![The status bar: per-core CPU bars on the left, the memory bar on the right](../../../assets/screenshots/status-bar.png)
 
 The status bar shows one thin bar per CPU core (hover for "Per-core CPU usage"), then a
-memory bar with a `used/total GB` label. Turn it off with **Show CPU/memory status bar** in Settings (`showStatusbar`; see [Settings window](/using/settings-window/)). The change applies immediately.
+memory bar with a `used/total GB` label. Turn it off with **Show CPU/memory status bar** in Settings (`showStatusbar`; see [Settings window](/using/settings/)). The change applies immediately.
 
 ## The ... menu
 
@@ -39,13 +39,13 @@ The **...** button left of the filter box opens the menu.
 
 | Item | Does |
 | --- | --- |
-| Add app | Opens the app editor. See [Adding apps](/guides/adding-apps/). |
+| Add app | Opens the app editor. See [Adding apps](/apps/add-an-app/). |
 | Edit apps.json | Opens `apps.json` in your default editor for hand editing. |
-| Reload | Re-reads `apps.json` from disk (also F5, see [Shortcuts and zoom](/using/shortcuts-and-zoom/)). |
+| Reload | Re-reads `apps.json` from disk (also F5, see [Shortcuts and zoom](/using/keyboard-shortcuts/)). |
 | Settings | Opens the Settings window. |
 | Help | Opens this help. |
 | About | Opens the About window, with the version and update check. |
-| Install Moonpool... | Windows only. Opens the installer window, to install the app or make a portable copy. See [Installing](/getting-started/installing/) and [Portable mode](/guides/portable-mode/). |
+| Install Moonpool... | Windows only. Opens the installer window, to install the app or make a portable copy. See [Installing](/getting-started/install/) and [Portable mode](/data/portable-mode/). |
 
 ### Port conflict warning
 
@@ -71,7 +71,7 @@ delete or set icon, so a bad file is never overwritten.
 
 If the file is already broken when Moonpool starts, there is no earlier list to keep: the
 banner says no apps are loaded and the sidebar is empty. Fix the file and reload, or roll
-back to a recent good copy (see [If the file is bad](/configuration/overview/#if-the-file-is-bad)).
+back to a recent good copy (see [If the file is bad](/apps/apps-json/#if-the-file-is-bad)).
 
 ## Empty screen
 
@@ -79,7 +79,7 @@ With no tab open, the CLI pane shows "Pick an app on the left to launch it." It 
 two things that appear only while no tab is open:
 
 - **The update banner**, when a newer version was found at startup. See
-  [Updating](/guides/updating/).
+  [Updating](/data/updating/).
 - **Copy prompt**, a ready-made prompt that hands setting up your apps to an AI agent. See
   [AI agents: quick start](/automation/quick-start/#copy-prompt).
 
@@ -94,6 +94,6 @@ first run opens at 1200x780, at the position Windows picks.
 If the saved position is no longer on any connected display (for example an unplugged
 monitor), the position is ignored and the saved size is used at the default location. The
 file is `window-state.json` in the config folder (see
-[Where the config lives](/configuration/overview/#where-the-config-lives)).
+[Where the config lives](/apps/apps-json/#where-the-config-lives)).
 
 The sidebar width and whether the CLI pane is collapsed are remembered too.

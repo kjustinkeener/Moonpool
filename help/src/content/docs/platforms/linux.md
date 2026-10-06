@@ -66,7 +66,7 @@ Only the AppImage self-updates. It reads `linux-update.json` from GitHub Release
 the minisign signature, and replaces the AppImage file in place, so keep it in a folder you
 can write to. `.deb` and RPM installs are never overwritten by Moonpool: the update check
 can still report a newer version, but installing it from Moonpool fails with a message to
-use your package manager. See [Updating](/guides/updating/).
+use your package manager. See [Updating](/data/updating/).
 
 ## Config location
 
@@ -77,12 +77,12 @@ use your package manager. See [Updating](/guides/updating/).
 ```
 
 `apps.json` is seeded from the example on first run. See
-[Configuration overview](/configuration/overview/).
+[Configuration overview](/apps/apps-json/).
 
 ## Differences from Windows
 
 - Launch commands run through `$SHELL -c <command>` (`/bin/sh` if `SHELL` is unset), so use syntax your shell understands.
-- Stop kills the process group, then does the extra cleanup chosen by `killMode`. Freeing a port under `killMode: "port"` uses `lsof`, falling back to `fuser`; install `lsof` if your distribution does not ship it. See [Stop and restart](/configuration/stop-and-restart/).
+- Stop kills the process group, then does the extra cleanup chosen by `killMode`. Freeing a port under `killMode: "port"` uses `lsof`, falling back to `fuser`; install `lsof` if your distribution does not ship it. See [Stop and restart](/apps/stop-and-restart/).
 - A `desktop` app's `processName` must be 15 characters or fewer. Linux truncates a process name to 15 characters, so a longer name is never detected as running and cannot be stopped by name. `web` apps match on their port and are unaffected.
 - Icons are found from an app's `src-tauri/icons/`, `public/favicon.*`, `icon.png` or its live favicon. Extracting an icon from a binary is Windows-only.
 - Reveal buttons open the containing folder rather than selecting the file.
@@ -92,4 +92,4 @@ use your package manager. See [Updating](/guides/updating/).
 ## See also
 
 - [Windows](/platforms/windows/#what-differs-by-platform): a table of what differs by platform.
-- [Updating](/guides/updating/#linux)
+- [Updating](/data/updating/#linux)

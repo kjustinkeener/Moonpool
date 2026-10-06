@@ -36,7 +36,7 @@ The result is one entry in `apps.json`, for example:
 }
 ```
 
-Clicking an app's name only opens its terminal tab; see [App states](/reference/glossary/#app-states).
+Clicking an app's name only opens its terminal tab; see [App states](/support/glossary/#app-states).
 
 ## The app editor
 
@@ -51,14 +51,14 @@ Clicking an app's name only opens its terminal tab; see [App states](/reference/
 
 Choose **Edit apps.json** in the same menu, save the file, then choose **Reload**. The
 format, validation rules and recovery options are in the
-[Configuration overview](/configuration/overview/).
+[Configuration overview](/apps/apps-json/).
 
 ## Where to go next
 
-- [App fields](/configuration/fields/): every key and what it does.
-- [App types](/configuration/app-types/): how each type launches and shows Running.
-- [Stop and restart](/configuration/stop-and-restart/): what to set when Stop leaves something running, and why Docker apps need care.
-- [Paths and environment](/configuration/paths-and-environment/): `{MP_HOME}`, `./` paths and `env`.
-- [Examples](/configuration/examples/): complete entries to copy.
-- [Portable mode](/guides/portable-mode/)
-- [Updating](/guides/updating/)
+- [App fields](/apps/fields/): every key and what it does.
+- [App types](/apps/types/): how each type launches and shows Running.
+- [Stop and restart](/apps/stop-and-restart/): what to set when Stop leaves something running, and why Docker apps need care.
+- [Paths and environment](/apps/paths-and-environment/): `{MP_HOME}`, `./` paths and `env`.
+- [Examples](/apps/examples/): complete entries to copy.
+- [Portable mode](/data/portable-mode/)
+- [Updating](/data/updating/)

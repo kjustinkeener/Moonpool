@@ -9,7 +9,7 @@ Each app runs in its own terminal tab in the CLI pane.
 
 ![Tab strip with Metrics Dashboard active (outlined) and its live log below; each tab has a dot and an x](../../../assets/screenshots/hub-terminal-tab.png)
 
-- Launching an app, or clicking its name in the sidebar, opens its tab. Clicking a name starts nothing; see [App states](/reference/glossary/#app-states).
+- Launching an app, or clicking its name in the sidebar, opens its tab. Clicking a name starts nothing; see [App states](/support/glossary/#app-states).
 - A dot on the tab is lit while the app is running.
 - The **x** on a tab closes the tab. It does not stop the app. Click the name again to reopen the tab; it shows this session's log.
 
@@ -61,4 +61,4 @@ instead of being wiped.
 
 ## Session logs
 
-Everything an app prints is also written to a log file under `cli-output\`, one file per app per Moonpool session. Location, retention and the **Keep app output logs between sessions** setting are in [Logs](/configuration/logs/).
+Everything an app prints is also written to a log file under `cli-output\`, one file per app per Moonpool session. Location, retention and the **Keep app output logs between sessions** setting are in [Logs](/data/logs/).

@@ -53,4 +53,4 @@ answer directly.
 - Several Moonpool copies: register each under its own name. See
   [More than one Moonpool](/automation/mcp-setup/#more-than-one-moonpool).
 
-More symptoms in [Troubleshooting](/reference/troubleshooting/#mcp-and-script-errors).
+More symptoms in [Troubleshooting](/support/troubleshooting/#mcp-and-script-errors).

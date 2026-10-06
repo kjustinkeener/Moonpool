@@ -25,7 +25,7 @@ it.
 | Config folder | `%USERPROFILE%\.moonpool\moonpool-config\` | `<chosen location>\.moonpool\moonpool-config\` |
 | Window browser profile, window size and position | In the config folder | In the config folder, so they travel too |
 | Start Menu, desktop shortcut, Add/Remove entry | Yes | None |
-| Updates | Replaces its own exe | The same, inside the `.moonpool\` folder. See [Updating](/guides/updating/#portable-copies). |
+| Updates | Replaces its own exe | The same, inside the `.moonpool\` folder. See [Updating](/data/updating/#portable-copies). |
 | Remove | Add/Remove Programs or `--uninstall` | Delete the folder |
 
 Neither mode writes to Windows AppData.
@@ -55,7 +55,7 @@ icon, window, settings, logs and [control channel](/automation/control-verbs/).
 - Copies do not know about each other's apps. Two copies that both start the same server on
   the same port will still clash, and a Stop that works by process name or port can end
   something another copy started; see
-  [Stop and restart](/configuration/stop-and-restart/#several-moonpools-or-your-own-processes).
+  [Stop and restart](/apps/stop-and-restart/#several-moonpools-or-your-own-processes).
 
 ## Making your apps travel too
 
@@ -69,7 +69,7 @@ holds `moonpool.exe`, which is the `.moonpool\` folder itself, not the folder yo
 
 Here `{MP_HOME}/my-app` is `<chosen location>\.moonpool\my-app`. A path that starts with
 `./` is anchored the same way. Tokens and `./` paths also work in an installed Moonpool.
-See [Paths and environment](/configuration/paths-and-environment/) for how paths resolve.
+See [Paths and environment](/apps/paths-and-environment/) for how paths resolve.
 
 ## Choosing portable from the installer
 

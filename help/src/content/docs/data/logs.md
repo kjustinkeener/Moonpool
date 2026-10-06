@@ -12,7 +12,7 @@ Moonpool keeps four kinds of output:
 | Dump | Where you ask, or the session log's own path | Until you delete it |
 | Scrollback | In the terminal tab | 10,000 lines, until Moonpool quits |
 
-The config folder is listed in [Where the config lives](/configuration/overview/#where-the-config-lives).
+The config folder is listed in [Where the config lives](/apps/apps-json/#where-the-config-lives).
 
 ## Session logs
 
@@ -63,7 +63,7 @@ control commands and errors. Turn it on before you reproduce a problem.
 
 ## Reveal and Copy
 
-In [Settings](/using/settings-window/#right-column-logs), under each log group:
+In [Settings](/using/settings/#right-column-logs), under each log group:
 
 - **Reveal CLI log folder** and **Reveal log file** open the folder in your file manager.
 - **Copy CLI log folder path** and **Copy log file path** put the path on the clipboard.

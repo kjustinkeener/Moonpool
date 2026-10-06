@@ -42,7 +42,7 @@ file:///{MP_HOME}/dashboards/examples/csv/index.html
 
 `{MP_HOME}` resolves to the install folder or, in portable mode, the bundle folder, so the entry still
 works from a moved bundle. `file://` URLs are allowed. See
-[Paths and environment](/configuration/paths-and-environment/).
+[Paths and environment](/apps/paths-and-environment/).
 
 ## Example apps appear only on first run
 
@@ -86,9 +86,9 @@ your other entries by commas:
 }
 ```
 
-Field meanings are in [App fields](/configuration/fields/).
+Field meanings are in [App fields](/apps/fields/).
 
 ## See also
 
-- [Examples](/configuration/examples/): more complete entries to copy.
-- [App types](/configuration/app-types/#static)
+- [Examples](/apps/examples/): more complete entries to copy.
+- [App types](/apps/types/#static)

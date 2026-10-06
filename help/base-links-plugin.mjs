@@ -1,4 +1,4 @@
-// Prefix root-absolute links ("/guides/updating/") with the site base.
+// Prefix root-absolute links ("/data/updating/") with the site base.
 //
 // Astro rewrites its own asset URLs and Starlight's chrome for `base`, but a
 // root-absolute href written in Markdown is emitted verbatim. This is a Satteri hast

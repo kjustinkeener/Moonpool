@@ -32,10 +32,10 @@ export default defineConfig({
 		outDir: 'dist-web',
 		markdown: { processor: satteri({ hastPlugins: [baseLinksPlugin(webBase)] }) },
 	}),
-	// Keep the help root useful without exposing a separate Home page.
+	// Older Moonpool builds (v0.3.15 and earlier) opened the help at this path. The root is now
+	// the overview page itself. Astro does not prefix redirect targets with `base`, so do it here.
 	redirects: {
-		// Astro does not prefix redirect targets with `base`, so do it here.
-		'/': (webBase ? webBase.replace(/\/+$/, '') : '') + '/getting-started/overview/',
+		'/getting-started/overview': (webBase ? webBase.replace(/\/+$/, '') : '') + '/',
 	},
 	integrations: [
 		starlight({
@@ -44,16 +44,15 @@ export default defineConfig({
 			// No external social links in bundled app help.
 			social: [],
 			// Two-level navigation: category label -> pages.
-			// Pages are grouped by task, not by folder: slugs stay where they were so links
-			// from the app and between pages keep working.
+			// Folders match these groups. The overview is the site root (index).
 			sidebar: [
 				{
 					label: 'Getting started',
 					items: [
-						{ label: 'What is Moonpool', slug: 'getting-started/overview' },
-						{ label: 'Installing', slug: 'getting-started/installing' },
-						{ label: 'Your first app', slug: 'getting-started/first-launch' },
-						{ label: 'Example dashboards', slug: 'using/example-dashboards' },
+						{ label: 'What is Moonpool', slug: 'index' },
+						{ label: 'Installing', slug: 'getting-started/install' },
+						{ label: 'Your first app', slug: 'getting-started/first-app' },
+						{ label: 'Example dashboards', slug: 'getting-started/example-dashboards' },
 						{ label: "What's new", slug: 'getting-started/whats-new' },
 					],
 				},
@@ -62,33 +61,33 @@ export default defineConfig({
 					items: [
 						{ label: 'The hub window', slug: 'using/hub-window' },
 						{ label: 'Sidebar and menus', slug: 'using/sidebar-and-menus' },
-						{ label: 'Terminal tabs', slug: 'using/terminal' },
+						{ label: 'Terminal tabs', slug: 'using/terminal-tabs' },
 						{ label: 'Tray, close and minimize', slug: 'using/tray-and-closing' },
-						{ label: 'Shortcuts and zoom', slug: 'using/shortcuts-and-zoom' },
-						{ label: 'Settings window', slug: 'using/settings-window' },
-						{ label: 'Themes, language and transparency', slug: 'using/appearance' },
+						{ label: 'Shortcuts and zoom', slug: 'using/keyboard-shortcuts' },
+						{ label: 'Settings window', slug: 'using/settings' },
+						{ label: 'Themes, language and transparency', slug: 'using/themes-and-language' },
 					],
 				},
 				{
 					label: 'Configuring apps',
 					items: [
-						{ label: 'Overview', slug: 'configuration/overview' },
-						{ label: 'Adding apps', slug: 'guides/adding-apps' },
-						{ label: 'Examples', slug: 'configuration/examples' },
-						{ label: 'App types', slug: 'configuration/app-types' },
-						{ label: 'App fields', slug: 'configuration/fields' },
-						{ label: 'Paths and environment', slug: 'configuration/paths-and-environment' },
-						{ label: 'Stop and restart', slug: 'configuration/stop-and-restart' },
+						{ label: 'Overview', slug: 'apps/apps-json' },
+						{ label: 'Adding apps', slug: 'apps/add-an-app' },
+						{ label: 'Examples', slug: 'apps/examples' },
+						{ label: 'App types', slug: 'apps/types' },
+						{ label: 'App fields', slug: 'apps/fields' },
+						{ label: 'Paths and environment', slug: 'apps/paths-and-environment' },
+						{ label: 'Stop and restart', slug: 'apps/stop-and-restart' },
 					],
 				},
 				{
-					label: 'Data, logs and recovery',
+					label: 'Data, updates and recovery',
 					items: [
-						{ label: 'Logs', slug: 'configuration/logs' },
-						{ label: 'Backup and recovery', slug: 'configuration/backup-and-recovery' },
-						{ label: 'settings.json', slug: 'configuration/settings-and-logs' },
-						{ label: 'Portable mode', slug: 'guides/portable-mode' },
-						{ label: 'Updating', slug: 'guides/updating' },
+						{ label: 'Logs', slug: 'data/logs' },
+						{ label: 'Backup and recovery', slug: 'data/backup-and-recovery' },
+						{ label: 'settings.json', slug: 'data/settings-json' },
+						{ label: 'Portable mode', slug: 'data/portable-mode' },
+						{ label: 'Updating', slug: 'data/updating' },
 					],
 				},
 				{
@@ -110,10 +109,10 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Help',
+					label: 'Support',
 					items: [
-						{ label: 'Troubleshooting and FAQ', slug: 'reference/troubleshooting' },
-						{ label: 'Glossary', slug: 'reference/glossary' },
+						{ label: 'Troubleshooting and FAQ', slug: 'support/troubleshooting' },
+						{ label: 'Glossary', slug: 'support/glossary' },
 					],
 				},
 			],

@@ -6,18 +6,18 @@ description: Highlights of recent Moonpool releases, and where to find the full 
 The full notes for every release are on the project's
 [Releases page](https://github.com/kjustinkeener/Moonpool/releases). This help ships inside
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
-[Updating](/guides/updating/).
+[Updating](/data/updating/).
 
 ## 0.3.16
 
 - **Several Moonpools at once.** The installed Moonpool and any number of portable copies can
   run side by side, one per folder, each with its own apps, tray icon and control channel.
-  See [Portable mode](/guides/portable-mode/#several-copies-at-once).
+  See [Portable mode](/data/portable-mode/#several-copies-at-once).
 - **Theme browser.** 68 themes, each previewed in its own colors. See
-  [Themes, language and transparency](/using/appearance/).
+  [Themes, language and transparency](/using/themes-and-language/).
 - **Runnable examples.** A fresh `apps.json` holds example apps that all run as they are.
   The example dashboards now live in an app-owned `dashboards/examples` folder that updates
-  with Moonpool. See [Example dashboards](/using/example-dashboards/).
+  with Moonpool. See [Example dashboards](/getting-started/example-dashboards/).
 - **apps.json errors are shown.** A banner over the sidebar shows the error, and a failed
   Reload keeps the last list that loaded. See
   [When apps.json has an error](/using/hub-window/#when-appsjson-has-an-error).
@@ -29,16 +29,16 @@ Moonpool, so it always describes the version you run. Moonpool updates itself; s
 ## 0.3.15
 
 - A restarted app keeps its earlier output, with a dated "restarted" divider. See
-  [Terminal tabs](/using/terminal/#restart).
+  [Terminal tabs](/using/terminal-tabs/#restart).
 - Each app has its own `cli-output` folder, so log pruning never touches another app's logs.
 - `killMode` and `stopCommand` are in the app editor. See
-  [Stop and restart](/configuration/stop-and-restart/).
+  [Stop and restart](/apps/stop-and-restart/).
 - Launched apps no longer inherit Moonpool's own WebView2 profile.
 
 ## 0.3.14
 
 - Session logs can be kept between sessions, with a size cap per app. See
-  [Logs](/configuration/logs/).
+  [Logs](/data/logs/).
 - Reveal and Copy buttons for the log folders in Settings.
 - Fixes to the Help window's title bar.
 

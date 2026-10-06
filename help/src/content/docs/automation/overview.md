@@ -8,7 +8,7 @@ the same resident Moonpool (the tray instance, called the hub here).
 
 Each Moonpool copy is its own hub: the installed one and every portable copy run
 independently, each with its own control channel. A surface always reaches the copy whose
-`moonpool.exe` it uses. See [Portable mode](/guides/portable-mode/#several-copies-at-once).
+`moonpool.exe` it uses. See [Portable mode](/data/portable-mode/#several-copies-at-once).
 
 | Surface | What it is | Reference |
 | --- | --- | --- |

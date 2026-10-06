@@ -33,7 +33,7 @@ Ctrl + wheel down    zoom out
 
 - The range is 0.5x to 3x.
 - The window resizes by the same factor, so the layout stays as tight at 2x as at 1x. Once the limit is reached the window stops growing.
-- The factor is saved as `uiScale` in `settings.json` and applied at the next start. The saved window size is already the zoomed size, so it is not scaled again. See [settings.json](/configuration/settings-and-logs/).
+- The factor is saved as `uiScale` in `settings.json` and applied at the next start. The saved window size is already the zoomed size, so it is not scaled again. See [settings.json](/data/settings-json/).
 
 - Zoom applies to the hub window only. Settings, About, the app editor and Help keep their
   own size.
@@ -44,5 +44,5 @@ scroll back the same number of notches, or quit Moonpool, set `uiScale` to `1` i
 
 ## See also
 
-- [Themes, language and transparency](/using/appearance/)
+- [Themes, language and transparency](/using/themes-and-language/)
 - [Sidebar and menus](/using/sidebar-and-menus/)
