@@ -112,6 +112,7 @@ taskbar = 작업 표시줄. Windows SmartScreen strings stay in English with a K
 (추가 정보, 실행, 알 수 없는 게시자). Error strings printed by Moonpool's backend, Node or Vite stay in
 English; strings the app catalog translates (update banner, "name은 필수입니다.", the apps.json
 banners) use the catalog text.
+
 ## Terms (French)
 
 Address form follows the app catalog (`src/lib/locales/fr.ts`): vous. Use the catalog first. Words it does not settle: app = app, dev server = serveur de développement, tray = zone de notification, hub window = fenêtre du hub, sidebar = barre latérale, CLI pane = panneau CLI, log = journal (log file: fichier journal), backup = sauvegarde, portable mode = mode portable, process = processus, background = arrière-plan, tab = onglet, launch = lancer, stop = arrêter, restart = redémarrer, kill (a process) = arrêter or terminer. Windows SmartScreen: « Windows a protégé votre ordinateur », « Informations complémentaires », « Exécuter quand même » (English in parentheses on first mention).
@@ -119,7 +120,7 @@ Address form follows the app catalog (`src/lib/locales/fr.ts`): vous. Use the ca
 ## Terms (Italian)
 
 Address form follows the app catalog (`src/lib/locales/it.ts`): tu. Use the catalog first. Words it does not settle: app = app, dev server = server di sviluppo, tray = area di notifica (the catalog also says barra delle applicazioni in the close/minimize labels, copied verbatim), hub window = finestra hub, sidebar = barra laterale, log = registro (log file: file di registro), backup = backup, portable mode = modalità portatile, process = processo, background = in background, tab = scheda, launch = avviare, stop = arrestare, restart = riavviare, kill (a process) = terminare. Windows SmartScreen strings are kept in English with an Italian translation in parentheses.
-/^>>>>>>> help-tr-/d
+
 ## Terms (Dutch)
 
 Use the app's catalog first (`src/lib/locales/nl.ts`). The address form follows the app catalog: "je"/"jouw" throughout, never "u". Words the catalog does not settle: tray = systeemvak,
@@ -139,7 +140,24 @@ log = dziennik, backup = kopia zapasowa, portable mode = tryb przenośny (the ap
 "nieprzenośna"), kill (a process) = zakończyć, launch = uruchomić, running = działa, control channel =
 kanał sterowania, command line = wiersz poleceń, installer window = karta instalacji. Windows
 SmartScreen strings stay English with a Polish gloss in parentheses.
->>>>>>> help-tr-nl-pl
+
+## Terms (Russian)
+
+Use the app's catalog first (`src/lib/locales/ru.ts`). The catalog addresses the user with the polite
+plural lowercase "вы"/"ваш"; follow it. Quotes are «». Words the catalog does not settle: app =
+приложение, dev server = сервер разработки, tray = трей, hub (the resident Moonpool instance) = хаб,
+hub window = главное окно, port = порт, process = процесс, log = журнал, backup = резервная копия,
+portable mode = портативный режим, sidebar = боковая панель, verb (control command) = команда, AI
+agent = ИИ-агент. Windows SmartScreen strings are kept in English with the Russian in parentheses.
+
+## Terms (Turkish)
+
+Use the app's catalog first (`src/lib/locales/tr.ts`). Address the user with the formal "siz", as the
+catalog does. Words the catalog does not settle: app = uygulama, dev server = geliştirme sunucusu, tray =
+sistem tepsisi (tepsi where the catalog says so), hub = merkez, hub window = merkez penceresi, port =
+bağlantı noktası, process = süreç (not "işlem", the catalog uses "süreç"), log = günlük, backup = yedek,
+portable mode = taşınabilir mod, sidebar = kenar çubuğu, verb = fiil, session = oturum. Windows
+SmartScreen strings are kept in English with the Turkish in parentheses.
 
 ## Sidebar and site strings
 
