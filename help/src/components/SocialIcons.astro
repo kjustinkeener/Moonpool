@@ -1,9 +1,11 @@
 ---
 // Web build only (registered in astro.config.mjs when HELP_BASE is set): a "Download" link
 // to the Moonpool product page in the header. The in-app build keeps Starlight's default.
+import { WEB_STRINGS } from '../../locales.mjs';
+const { download } = WEB_STRINGS[Astro.locals.starlightRoute.lang] ?? WEB_STRINGS.en;
 ---
 
-<a class="download" href="https://fasterdb.com/software/moonpool/">Download</a>
+<a class="download" href="https://fasterdb.com/software/moonpool/">{download}</a>
 
 <style>
 	.download {

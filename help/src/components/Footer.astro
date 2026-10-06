@@ -2,10 +2,12 @@
 // Web build only (registered in astro.config.mjs when HELP_BASE is set): Starlight's footer
 // plus a link back to FasterDB. The in-app build keeps Starlight's default.
 import Default from '@astrojs/starlight/components/Footer.astro';
+import { WEB_STRINGS } from '../../locales.mjs';
+const { footer } = WEB_STRINGS[Astro.locals.starlightRoute.lang] ?? WEB_STRINGS.en;
 ---
 
 <Default {...Astro.props}><slot /></Default>
-<p class="fasterdb">Moonpool is free software from <a href="https://fasterdb.com/">FasterDB</a></p>
+<p class="fasterdb">{footer} <a href="https://fasterdb.com/">FasterDB</a></p>
 
 <style>
 	.fasterdb {
