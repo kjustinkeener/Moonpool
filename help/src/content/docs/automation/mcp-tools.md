@@ -58,7 +58,7 @@ described in [Configuration](/configuration/overview/#agents).
 
 ## Windows and testing (Windows only)
 
-`window` is one of `main`, `settings`, `about`, `installer`, `editor` or `help`, and defaults
+`window` is one of `main`, `settings`, `about`, `installer`, `editor`, `help` or `themes`, and defaults
 to `main`. An unknown name fails with `unknown window '<name>'`.
 
 | Tool | Parameters | Behavior |

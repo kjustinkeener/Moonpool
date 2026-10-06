@@ -20,7 +20,7 @@ reset.
 | Control | Default | What it does |
 | --- | --- | --- |
 | Language | Auto (system) | Language of Moonpool's own text. Applies instantly. See [Appearance](/using/appearance/). |
-| Theme | Auto (system) | Colour theme. Applies instantly. See [Appearance](/using/appearance/). |
+| Theme | Auto (system) | Colour theme. The button opens a theme browser with a preview of every theme; clicking one applies it instantly. See [Appearance](/using/appearance/). |
 | Close to tray | off | On: closing the window hides Moonpool to the tray. Off: closing quits. |
 | Minimize to tray | on | On: minimizing hides Moonpool to the tray and it leaves the taskbar. Off: minimizes to the taskbar. |
 | Always on top | off | Keeps the hub, Settings and About windows above other windows. |
