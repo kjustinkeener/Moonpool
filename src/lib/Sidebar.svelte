@@ -74,6 +74,17 @@
 
   let menuOpen = $state(false);
 
+  // The load error reads "invalid <full path>: <parse error>; file preserved". The banner
+  // already names apps.json, and the path alone fills the clamped lines, so show only the
+  // parse error (line/column). The tooltip keeps the full text, path included.
+  const manifestErrorShort = $derived(
+    manifestError
+      ? manifestError
+          .replace(/^(?:invalid|cannot read) .+?\.json: /s, "")
+          .replace(/; file preserved\.?$/, "")
+      : "",
+  );
+
   function pick(fn: () => void) {
     menuOpen = false;
     fn();
@@ -255,8 +266,8 @@
           >{manifestLoaded ? t("sidebar.manifestErrorStale") : t("sidebar.manifestErrorEmpty")}</span
         >
       </div>
-      <!-- Clamped to a few lines (the path alone can be long); the full text is the tooltip. -->
-      <p class="me-detail" title={manifestError}>{manifestError}</p>
+      <!-- Clamped to a few lines; the full text (with the file's path) is the tooltip. -->
+      <p class="me-detail" title={manifestError}>{manifestErrorShort}</p>
       <p class="me-hint">{t("sidebar.manifestErrorHint")}</p>
       <div class="me-actions">
         <button onclick={onEditFile}><Icon name="pencil" size={13} />{t("sidebar.editJson")}</button>
