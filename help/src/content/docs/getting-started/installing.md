@@ -3,14 +3,20 @@ title: Installing
 description: How to install Moonpool, and how portable mode differs.
 ---
 
-Moonpool is its own installer. The download is a single `moonpool.exe`.
+This page is for Windows. On Windows, Moonpool is its own installer: the download is a
+single `moonpool.exe`. Linux has no install card or portable chooser; see
+[Linux](/platforms/linux/).
 
 ## Installed mode
 
-Run the downloaded `moonpool.exe`. On first launch it shows a one-button install card.
-Installing copies Moonpool into your user profile under `.moonpool\`, adds Start Menu
-(and optional desktop) shortcuts, and registers an entry in Add/Remove Programs. After
-that, launch it from the shortcut like any other app.
+Run the downloaded `moonpool.exe`. On first launch it shows the install card. It has three
+controls: the **Install Moonpool** button, a **desktop shortcut** checkbox (on by default)
+and an **Install portable** link.
+
+Installing copies Moonpool into your user profile under `.moonpool\`, adds a Start Menu
+shortcut (and a desktop one if the box is ticked), and registers an entry in Add/Remove
+Programs. Then it starts the installed copy and closes. The file you downloaded stays where
+it was; you can delete it. After that, launch Moonpool from the shortcut like any other app.
 
 ![The install card: Install Moonpool button, desktop shortcut checkbox, Install portable link and the install path](../../../assets/screenshots/installer-window.png)
 
@@ -23,16 +29,17 @@ configuration, and its bundled help.
 
 ## Install Moonpool... from the menu
 
-The "..." menu has **Install Moonpool...** in both modes. It opens the same install card.
+On Windows the "..." menu has **Install Moonpool...** in both modes. It opens the same install card.
 From a portable copy you can install it properly. From an installed copy **Install
 Moonpool** is disabled ("Already installed") and **Install portable** stays available.
 
 ## Uninstalling
 
-Use Windows Add/Remove Programs (Installed apps), or run:
+Use Windows Add/Remove Programs (Installed apps), or run the installed copy with
+`--uninstall`. It is not on your PATH, so give its full path:
 
 ```powershell frame="terminal"
-moonpool.exe --uninstall
+& "$env:USERPROFILE\.moonpool\moonpool.exe" --uninstall
 ```
 
 This removes the Start Menu and desktop shortcuts, the registry entry, and the whole
@@ -47,8 +54,8 @@ Any running Moonpool is stopped as part of uninstalling.
 
 ## Portable mode
 
-Prefer to keep Moonpool on a USB stick or a movable folder? Choose **Portable** during
-setup and pick a folder. Moonpool creates a single `.moonpool\` folder inside it holding
+Prefer to keep Moonpool on a USB stick or a movable folder? Click **Install portable** on
+the install card and pick a folder. Moonpool creates a single `.moonpool\` folder inside it holding
 the program and all of its data, so you can move or copy the whole folder to another PC
 and run it there. Nothing is written to Windows AppData.
 

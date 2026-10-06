@@ -5,7 +5,7 @@ description: A tour of the Moonpool hub window, its menu, tray icon, update bann
 
 ![The hub with three apps running: the outlined areas are numbered 1 to 4](../../../assets/screenshots/hub-window.png)
 
-1. Running apps: a lit status dot and a stop button instead of play.
+1. Two of the running apps: a lit status dot and a stop button instead of play.
 2. The tab strip, one tab per opened app, with the active tab highlighted.
 3. Live output from the active app.
 4. The CPU and memory status bar.
@@ -42,7 +42,7 @@ The **...** button left of the filter box opens the menu.
 | Settings | Opens the Settings window. |
 | Help | Opens this help. |
 | About | Opens the About window, with the version and update check. |
-| Install Moonpool... | Opens the installer window, to install the app or make a portable copy. See [Installing](/getting-started/installing/) and [Portable mode](/guides/portable-mode/). |
+| Install Moonpool... | Windows only. Opens the installer window, to install the app or make a portable copy. See [Installing](/getting-started/installing/) and [Portable mode](/guides/portable-mode/). |
 
 ### When apps.json has an error
 
@@ -92,7 +92,7 @@ Update failed: <error>
 
 The button becomes available again so you can retry.
 
-If you collapsed the CLI pane, the banner is hidden with it. The chevron that re-expands the pane pulses while an update waits.
+The banner shows only while no tab is open. If you collapsed the CLI pane, the banner is hidden with it, and the chevron that re-expands the pane pulses while an update waits.
 
 ### Copy prompt for AI agents
 
@@ -105,13 +105,13 @@ Moonpool writes `AI-README.md` next to `apps.json` and refreshes it at each laun
 | Action | Result |
 | --- | --- |
 | Left-click | Shows the hub window (restores it if minimized or hidden). |
-| Right-click | Menu with **Show** and **Quit** only. |
+| Right-click | Menu with **Show Moonpool** and **Quit** only (in your language). |
 
 **Quit** exits Moonpool and, on Windows, stops every app Moonpool launched, including their child processes. Apps that were already running before Moonpool saw them (shown as running without "managed by Moonpool") are left alone. On Linux and macOS, quitting does not reliably stop launched apps. Whether the tray icon and taskbar button are visible is controlled by Settings (`showInTray`, `showInTaskbar`).
 
 ## Closing and minimizing
 
-The close button quits Moonpool by default (`closeToTray` is `false`). Turn on **Close to tray** in Settings and closing hides the window to the tray instead; Moonpool keeps running and the tray icon or **Show** brings it back. **Minimize to tray** (`minimizeToTray`, default on) hides the window to the tray when it is minimized.
+The close button quits Moonpool by default (`closeToTray` is `false`). Turn on **Close to tray** in Settings and closing hides the window to the tray instead; Moonpool keeps running and the tray icon or **Show Moonpool** brings it back. **Minimize to tray** (`minimizeToTray`, default on) hides the window to the tray when it is minimized.
 
 ## Size, position and maximized state
 
@@ -121,4 +121,4 @@ The sidebar width and whether the CLI pane is collapsed are remembered too.
 
 ## Always on top
 
-**Always on top** in Settings keeps the hub, and the Settings and About windows, above other windows. It is off by default.
+**Always on top** in Settings keeps every Moonpool window (the hub, Settings, About, the app editor, the theme browser, the installer and Help) above other windows. It is off by default.

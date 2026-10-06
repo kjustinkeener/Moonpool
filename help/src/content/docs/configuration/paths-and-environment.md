@@ -7,7 +7,7 @@ description: The {MP_HOME} and {MP_DATA} tokens, ./ paths, which fields expand t
 
 | Token | Expands to |
 | --- | --- |
-| `{MP_HOME}` | Portable: the folder holding `moonpool.exe`. Installed on Windows: `%USERPROFILE%\.moonpool`. |
+| `{MP_HOME}` | Portable: the folder holding `moonpool.exe` (the `.moonpool\` folder). Installed on Windows: `%USERPROFILE%\.moonpool`. Linux: `$XDG_CONFIG_HOME/Moonpool`, else `~/.config/Moonpool`, the same folder as `{MP_DATA}`. |
 | `{MP_DATA}` | The config folder, the one that holds `apps.json`. |
 
 A token that cannot be resolved is left as written.

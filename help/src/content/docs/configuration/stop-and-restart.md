@@ -12,7 +12,7 @@ extra step that runs afterward.
 
 | `killMode` | Extra step on Stop | Reads | Default for |
 | --- | --- | --- | --- |
-| `processName` | Force-kills every process with that name, and its children (`taskkill /IM <name>.exe /T /F` on Windows, `pkill -KILL -x` elsewhere). | `processName` | `desktop` |
+| `processName` | Force-kills every process with that name. On Windows its children too (`taskkill /IM <name>.exe /T /F`). Elsewhere `pkill -KILL -x <name>`: an exact, case-sensitive name match, children not included. | `processName` | `desktop` |
 | `port` | Force-kills whatever process is listening on `port`. | `port` | `web` |
 | `command` | Runs `stopCommand` in `cwd` and waits for it to finish. | `stopCommand`, `cwd`, `env` | nothing |
 | `none` | Nothing. | nothing | `static`, `cli` |
@@ -49,7 +49,7 @@ the machine uses. If two copies register the same app, or you also run it by han
 
 ## stopCommand
 
-Used only when `killMode` is `command`. It runs through `cmd /c` on Windows and `sh -c`
+Used only when `killMode` is `command`. It runs through `cmd /c` on Windows and `$SHELL -c`
 elsewhere, in `cwd`, with your `env` added. `{MP_HOME}` and `{MP_DATA}` work in it. Moonpool
 waits for it to finish before doing anything else, so a Restart never relaunches while it
 is still running. Its exit code is ignored. If it is still running after 60 seconds,

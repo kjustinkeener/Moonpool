@@ -12,12 +12,13 @@ environment. Moonpool runs the command in its own managed terminal.
 2. Enter a **name** and pick a **group**.
 3. Pick the **type**: `web` (server on a port), `desktop` (native app), `static` (a page) or `cli` (a command).
 4. Set the **command** and the **cwd** it runs in.
-5. Fill in what the type needs: **port** and **url** for web, **processName** for desktop.
+5. Fill in what the type needs: **port** and **url** for web, **processName** for desktop,
+   **url** for static. A `static` app with only a `url` needs no **command** or **cwd**.
 6. Save. The app appears in the sidebar. Use its **Launch** control to start it.
 
 ![The type select (1) and the port field (2) in the app editor, with cwd and command between them](../../../assets/screenshots/edit-app-type-and-port.png)
 
-1. The **type** select; its hint says how that type shows Running.
+1. The **type** select; its hint says how that type runs.
 2. The **port** field, used by `web` apps.
 
 The result is one entry in `apps.json`, for example:

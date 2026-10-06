@@ -57,7 +57,8 @@ Everything an app prints in its terminal is also written to a log file:
   ---------- restarted 2026-10-05 09:14:02 ----------
   Local:   http://localhost:5173/
   ```
-- Characters in an `id` other than letters, digits, `-` and `_` become `_` in the folder name.
+- Characters in an `id` other than letters, digits, `-` and `_` become `_` in the folder
+  name. So `.` becomes `_`. Letters outside English are kept.
 - The current session's file is always written and never truncated or deleted by retention.
 - In Settings, **Reveal CLI log folder** opens `cli-output\`.
 

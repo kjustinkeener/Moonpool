@@ -37,17 +37,23 @@ When the process exits, the terminal prints:
 [process exited]
 ```
 
-The tab stays open with its output intact.
+The tab stays open with its output intact. The `[process exited]` line is shown in your
+language.
 
 ## Restart
 
-**Restart** (or Launch on a stopped app) starts a new run in the same tab. Earlier output stays in the window, followed by a dim divider:
+**Restart** (or Launch on a stopped app) starts a new run in the same tab. The tab is
+rebuilt, and the earlier output of this session is replayed into it from the session log.
+
+If the app already ran earlier in this session, Moonpool first writes a dim divider to the
+session log, so it shows between the old output and the new run:
 
 ```text
----------- restarted 2026-01-31 14:02:11 ----------
+---------- restarted 2026-10-05 09:14:02 ----------
 ```
 
-The same divider is written to the session log. If the new run begins by clearing the screen, the earlier output is pushed into scrollback instead of being wiped.
+If the new run begins by clearing the screen, the earlier output is pushed into scrollback
+instead of being wiped.
 
 ## Session logs
 

@@ -8,14 +8,14 @@ places its icon in the system tray.
 
 ## Finding the hub
 
-- Click the **tray icon** to raise the hub window.
-- Left-click the tray icon to show the hub. Right-click it for a menu with **Show** and **Quit**.
+- Left-click the tray icon to show the hub. Right-click it for a menu with **Show Moonpool**
+  and **Quit**.
 - By default, closing the window quits Moonpool. Turn on **Close to tray** in Settings to hide it to the tray instead and keep it running. See [Settings window](/using/settings-window/).
 
 ## Getting help
 
-The **Help** entry opens this help site in its own window, and works offline. It is the
-same content published on the web, so you can read it with or without a connection.
+**Help**, in the **...** menu at the top of the sidebar, opens this help in its own window.
+It works offline and always matches the version you run.
 
 ![Help window with the section navigation outlined on the left and a page on the right](../../../assets/screenshots/help-window.png)
 

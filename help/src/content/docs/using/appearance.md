@@ -58,9 +58,9 @@ The picker applies instantly to the hub and the other windows. The choice is sav
 
 - Hovering the pointer over a window wakes it to fully opaque at once. When the pointer leaves, it fades back to your setting over about 2 seconds.
 - Terminals follow the same tint rather than adding their own.
-- Each window (hub, Settings, About) applies the setting itself, and Settings updates the others live as you drag the slider.
+- Each window (hub, Settings, About, the app editor and the theme browser) applies the setting itself, and Settings updates the others live as you drag the slider.
 
 ## UI scale
 
-Zoom the whole interface with the keyboard or mouse wheel. See
+Zoom the whole interface with Ctrl + mouse wheel. There is no keyboard zoom. See
 [Shortcuts and zoom](/using/shortcuts-and-zoom/).

@@ -19,7 +19,9 @@ $mp = "$env:USERPROFILE\.moonpool\moonpool.exe"
 ```
 
 With several copies running, `Get-Process moonpool` lists all of them, so pick by `Path`
-rather than taking the first.
+rather than taking the first. It also lists idle `moonpool.exe mcp` helpers that MCP hosts
+started, so a `moonpool` process does not prove a hub is running. Ask the control channel
+with `ping` instead ([Control verbs](/automation/control-verbs/)).
 
 ## Verbs
 
@@ -38,7 +40,7 @@ The verb is not case sensitive. `<id>` is an app's `id` from `apps.json`.
 | `moonpool.exe quit` | Quits Moonpool, same as the tray menu. |
 | `moonpool.exe dump <id> [out-path]` | Without `out-path`, reports the path of the app's log for this session. With it, copies the log there as plain text with ANSI codes removed. |
 | `moonpool.exe paths` | Reports the config folder, `apps.json`, `state.json`, log, dumps folder, icons folder, portable flag and exe path the running Moonpool uses. |
-| `moonpool.exe read-config` | Writes `apps.json`, its version token and validity to `dumps\read-config.json` in the config folder. |
+| `moonpool.exe read-config` | Writes `dumps\read-config.json` in the config folder, holding `token`, `valid`, `error`, `path` and `manifest_text` (the exact contents of `apps.json`). |
 | `moonpool.exe write-config <file> [token]` | Replaces `apps.json` with the manifest in `<file>`, if the manifest is valid and, when `token` is given, `apps.json` still matches it. |
 | `moonpool.exe restore-config [index or filename]` | With no argument, writes the snapshot list to `dumps\restore-config.json`. With one, restores that snapshot if it is valid. |
 
@@ -58,7 +60,11 @@ only as the first argument, so an app id such as `--uninstall` cannot trigger th
 ## Reading the outcome
 
 The command line prints nothing, so tag a command with `--ticket <key>` (any unique key, in
-any position) and read the result from `state.json` in the config folder.
+any position) and read the result from `state.json` in the config folder. That is
+`%USERPROFILE%\.moonpool\moonpool-config\` installed, `<your .moonpool folder>\moonpool-config\`
+for a portable copy, and `~/.config/Moonpool/` on Linux (see
+[Configuration overview](/configuration/overview/#where-the-config-lives)). `show` and `quit`
+write no ticket.
 
 ```powershell frame="terminal"
 & $mp launch my-app --ticket t1
