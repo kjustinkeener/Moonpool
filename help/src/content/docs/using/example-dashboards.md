@@ -15,23 +15,29 @@ offline, with no server and no CDN.
 
 ## Where they live
 
-On startup Moonpool writes the dashboards to `{MP_HOME}\dashboards`:
+On startup Moonpool writes the dashboards to `{MP_HOME}\dashboards\examples`:
 
 ```text
-Installed (Windows)  %USERPROFILE%\.moonpool\dashboards
-Portable             <folder with moonpool.exe>\.moonpool\dashboards
-Linux                ~/.config/Moonpool/dashboards   (or $XDG_CONFIG_HOME/Moonpool/dashboards)
+Installed (Windows)  %USERPROFILE%\.moonpool\dashboards\examples
+Portable             <folder with moonpool.exe>\.moonpool\dashboards\examples
+Linux                ~/.config/Moonpool/dashboards/examples   (or $XDG_CONFIG_HOME/Moonpool/dashboards/examples)
 ```
 
-Files that already exist are never overwritten, so your edits survive updates. A file you
-delete is written back on the next start.
+The `examples` folder belongs to Moonpool: it is replaced whenever Moonpool updates, so
+edits there are lost. To customise a dashboard, copy its folder and the shared `_lib`
+folder up into `dashboards` and point your app at the copy. Moonpool never changes
+anything else in `dashboards`.
+
+Versions before 0.3.16 wrote the examples straight into `dashboards`. Those copies stay
+where they are and no longer receive updates; apps pointing at them keep working. To get
+the updated versions, change their `url` to the `dashboards/examples/...` path below.
 
 ## How the apps reference them
 
 Each is a `static` app whose `url` is a `file:///` URL anchored on `{MP_HOME}`:
 
 ```text
-file:///{MP_HOME}/dashboards/csv/index.html
+file:///{MP_HOME}/dashboards/examples/csv/index.html
 ```
 
 `{MP_HOME}` resolves to the install folder or, in portable mode, the bundle folder, so the entry still
@@ -50,7 +56,7 @@ already have an `apps.json`, add the dashboard entries yourself (**Edit apps.jso
   "name": "Sample CSV Explorer",
   "group": "Dashboards",
   "type": "static",
-  "url": "file:///{MP_HOME}/dashboards/csv/index.html",
+  "url": "file:///{MP_HOME}/dashboards/examples/csv/index.html",
   "openBrowser": true
 },
 {
@@ -58,7 +64,7 @@ already have an `apps.json`, add the dashboard entries yourself (**Edit apps.jso
   "name": "Sample JSON Explorer",
   "group": "Dashboards",
   "type": "static",
-  "url": "file:///{MP_HOME}/dashboards/json/index.html",
+  "url": "file:///{MP_HOME}/dashboards/examples/json/index.html",
   "openBrowser": true
 },
 {
@@ -66,7 +72,7 @@ already have an `apps.json`, add the dashboard entries yourself (**Edit apps.jso
   "name": "Sample Excel Explorer",
   "group": "Dashboards",
   "type": "static",
-  "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
+  "url": "file:///{MP_HOME}/dashboards/examples/xlsx/index.html",
   "openBrowser": true
 },
 {
@@ -74,7 +80,7 @@ already have an `apps.json`, add the dashboard entries yourself (**Edit apps.jso
   "name": "Moonpool Docs",
   "group": "Docs",
   "type": "static",
-  "url": "file:///{MP_HOME}/dashboards/docs/index.html",
+  "url": "file:///{MP_HOME}/dashboards/examples/docs/index.html",
   "openBrowser": true
 }
 ```

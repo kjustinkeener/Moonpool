@@ -49,7 +49,7 @@ A page. With only a `url`, Launch and Restart open it in your browser and Stop d
 
 ```json title="apps.json"
 { "id": "csv", "name": "CSV dashboard", "group": "Docs", "type": "static",
-  "url": "file:///{MP_HOME}/dashboards/csv/index.html" }
+  "url": "file:///{MP_HOME}/dashboards/examples/csv/index.html" }
 ```
 
 Pages that need a server (PHP, or anything

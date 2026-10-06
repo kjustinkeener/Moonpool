@@ -18,7 +18,7 @@
     "name": "Sample CSV Explorer",
     "group": "Dashboards",
     "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/csv/index.html",
+    "url": "file:///{MP_HOME}/dashboards/examples/csv/index.html",
     "openBrowser": true,
     "note": "Drop-your-data dashboard for CSV/TSV. Auto-profiles any file and renders it; ships differently-shaped sample tabs. Runs offline, no server. {MP_HOME} resolves to Moonpool's folder, so the tile also works from a portable bundle."
   },
@@ -27,7 +27,7 @@
     "name": "Sample JSON Explorer",
     "group": "Dashboards",
     "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/json/index.html",
+    "url": "file:///{MP_HOME}/dashboards/examples/json/index.html",
     "openBrowser": true,
     "note": "Drop-your-data dashboard for JSON (arrays, nested objects, or maps; nested keys flattened automatically)."
   },
@@ -36,7 +36,7 @@
     "name": "Sample Excel Explorer",
     "group": "Dashboards",
     "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/xlsx/index.html",
+    "url": "file:///{MP_HOME}/dashboards/examples/xlsx/index.html",
     "openBrowser": true,
     "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
   },
@@ -54,7 +54,7 @@
     "name": "Moonpool Docs",
     "group": "Docs",
     "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/docs/index.html",
+    "url": "file:///{MP_HOME}/dashboards/examples/docs/index.html",
     "openBrowser": true,
     "note": "Offline Markdown docs browser hosting Moonpool's own help."
   }

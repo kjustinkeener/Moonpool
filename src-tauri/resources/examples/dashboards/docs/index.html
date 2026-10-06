@@ -254,7 +254,8 @@ MyMoonpool/                  <- the movable folder ({MP_HOME})
 |  |- apps.json
 |  |- settings.json
 |  |- webview/               <- webview profile (localStorage travels with the bundle)
-|- dashboards/               <- these example dashboards
+|- dashboards/               <- your own dashboards
+|  |- examples/              <- these example dashboards (replaced on update)
 ```
 
 The presence of the `moonpool.portable` flag file next to the executable is what
@@ -267,14 +268,14 @@ So a bundle keeps working after you move it, reference files by a portable token
 relative path rather than an absolute one:
 
 ```jsonc
-{ "type": "static", "url": "file:///{MP_HOME}/dashboards/docs/index.html" }
+{ "type": "static", "url": "file:///{MP_HOME}/dashboards/examples/docs/index.html" }
 ```
 
 `{MP_HOME}` expands to the bundle folder wherever it currently lives, and a `./`
 relative path anchors to the same place, so this entry is equivalent:
 
 ```jsonc
-{ "type": "static", "url": "./dashboards/docs/index.html" }
+{ "type": "static", "url": "./dashboards/examples/docs/index.html" }
 ```
 
 The app editor flags absolute, `%VAR%`, and UNC paths so you can spot anything that
@@ -338,7 +339,7 @@ your own file, parsed entirely in the browser.
 | JSON     | JSON          | native                   |
 | Excel    | .xlsx / .xls  | SheetJS (Apache-2.0)     |
 
-They share one design system and one analyzer under `dashboards/_lib/`, so a single
+They share one design system and one analyzer under `dashboards/examples/_lib/`, so a single
 field-mapping strip (X axis, measures, group-by, chart type) reshapes any file. Point
 one at your own export and you have a dashboard in a click.
 

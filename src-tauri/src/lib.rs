@@ -3096,8 +3096,8 @@ pub fn run() {
             *lock(&handle.state::<HubState>().manifest) = manifest;
             *lock(&handle.state::<HubState>().manifest_error) = manifest_error;
             seed_ai_readme(&handle);
-            // Write the embedded example dashboards to {MP_HOME}/dashboards on first
-            // run (skips files that already exist, so user edits are preserved).
+            // Write the embedded example dashboards to {MP_HOME}/dashboards/examples
+            // (app-owned: replaced when this build differs from the stamped one).
             dashboards::seed(&handle);
             // Write the embedded help site to {MP_HOME}/help (version-gated: rewritten
             // only when this build's help version differs from the stamped one).

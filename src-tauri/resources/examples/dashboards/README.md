@@ -8,6 +8,10 @@ Windows, macOS, and Linux.
 They serve two purposes: a polished example of what a local dashboard can look like,
 and working templates you can copy and point at your own data or docs.
 
+**This `examples` folder is replaced every time Moonpool updates.** To customise a
+dashboard, copy its folder (and `_lib`) up into the parent `dashboards` folder first;
+Moonpool never touches anything there.
+
 ## What is here
 
 | Folder  | What it is | Source format |
