@@ -45,6 +45,9 @@ MCP server only:
   `moonpool_bootup_launcher` / `moonpool_shutdown_launcher` start and stop only that copy;
 - help, `dashboards/examples` and `apps.json` are seeded; altering the stamps re-seeds
   (stale files removed) while the user's own files in `dashboards/` survive;
+- a broken `apps.json`: Reload is refused and keeps the last list, `list` carries
+  `manifestError` and `moonpool_list_apps` leads with it; a restart with the file still
+  broken starts with no list (`manifestLoaded: false`); fixing it and reloading clears it;
 - a launched `cli` example app's process dies when the hub quits;
 - `quit` over the channel ends the hub and frees the lock (a relaunch becomes the hub);
 - a `--wait-pid <old hub>` relaunch waits, then takes over when the old hub exits.

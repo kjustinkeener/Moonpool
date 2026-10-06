@@ -420,6 +420,54 @@ scenario("seeds are replaced on a stamp change; user dashboards survive", async 
   assert(fs.existsSync(path.join(help, "index.html")), "help index missing after re-seed");
 });
 
+/** `moonpool_list_apps` through a one-shot `moonpool.exe mcp` of this copy. */
+async function mcpListApps(copy) {
+  const m = mcpClient(copy);
+  try {
+    await m.request("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "e2e", version: "0" } });
+    return await m.tool("moonpool_list_apps");
+  } finally {
+    await m.close();
+  }
+}
+
+scenario("a broken apps.json keeps the last list and is reported", async () => {
+  if (!(await pingUp(B))) hubB = await startHub(B);
+  const file = path.join(B.appDir, "moonpool-config", "apps.json");
+  const good = fs.readFileSync(file, "utf8");
+  await waitFrontend(B); // a reload of the good file: also proves the UI is up
+  try {
+    // Reload with a broken file: refused, the last list stays, list + mcp say so.
+    fs.writeFileSync(file, "[ { broken");
+    const r = await call(B.endpoint, "reload", [], 50000);
+    assert(r.reply?.ok === false, `reload of a broken file: ${JSON.stringify(r)}`);
+    assert(/apps\.json has an error/.test(r.reply.error), `reload error: ${r.reply.error}`);
+    let snap = JSON.parse(await ok(B.endpoint, "list"));
+    assert(typeof snap.manifestError === "string" && snap.manifestError, `no manifestError: ${JSON.stringify(snap)}`);
+    assert(snap.manifestLoaded === undefined, `manifestLoaded set after a good load: ${snap.manifestLoaded}`);
+    assert((snap.apps || []).some((a) => a.id === plat.cliApp.id), "last good list was dropped");
+    let list = await mcpListApps(B);
+    assert(!list.isError && list.text.startsWith("apps.json has an error:"), `list_apps: ${list.text}`);
+    assert(list.text.includes("last one that loaded") && list.text.includes(plat.cliApp.id), list.text);
+
+    // Restart with the file still broken: no list at all, flagged as never loaded.
+    await quitHub(B, hubPids(B)[0]);
+    hubB = await startHub(B);
+    snap = JSON.parse(await ok(B.endpoint, "list"));
+    assert(snap.manifestError && snap.manifestLoaded === false, `startup: ${JSON.stringify(snap)}`);
+    assert((snap.apps || []).length === 0, "apps listed from a broken file");
+    list = await mcpListApps(B);
+    assert(list.text.includes("no apps are loaded"), `list_apps at startup: ${list.text}`);
+  } finally {
+    fs.writeFileSync(file, good);
+  }
+  // Fixed and reloaded: the error clears.
+  await waitFrontend(B);
+  const snap = JSON.parse(await ok(B.endpoint, "list"));
+  assert(snap.manifestError === undefined, `error survived a good reload: ${snap.manifestError}`);
+  assert((snap.apps || []).some((a) => a.id === plat.cliApp.id), "list not back after the fix");
+});
+
 scenario("mcp bootup/shutdown drive only their own copy", async () => {
   await quitHub(B, hubPids(B)[0]);
   hubB = null;
