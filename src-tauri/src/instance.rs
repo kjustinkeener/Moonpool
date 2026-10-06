@@ -458,7 +458,9 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn named_lock_is_per_copy_and_exclusive() {
-        let tag = format!("{}-{}", std::process::id(), id_for_dir(&scratch("lock")));
+        let dir = scratch("lock");
+        let tag = format!("{}-{}", std::process::id(), id_for_dir(&dir));
+        let _ = std::fs::remove_dir_all(&dir);
         let a = format!(r"Local\moonpool-test-lock-a-{tag}");
         let b = format!(r"Local\moonpool-test-lock-b-{tag}");
         let la = try_lock_named(&a).unwrap().expect("first take of a");

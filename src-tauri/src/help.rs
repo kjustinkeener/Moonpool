@@ -537,7 +537,7 @@ mod tests {
 
     #[test]
     fn resolve_rejects_traversal_in_every_spelling() {
-        let root = scratch("root").join("help");
+        let root = std::env::temp_dir().join("moonpool-help-never-created");
         for bad in [
             "/../secret.txt",
             "/a/../../secret.txt",
