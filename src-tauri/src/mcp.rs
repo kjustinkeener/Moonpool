@@ -6,11 +6,12 @@
 //! or keep in sync with the commands it exposes.
 //!
 //! What it is NOT: the hub. This process is a *client* of the resident tray
-//! instance, driving it through the very control channel documented in
-//! AI-README.md - spawn ourselves with `<action> <id> --ticket <key>`, then poll
-//! `state.json` until that ticket resolves. The payoff over calling the exe
-//! directly is that the poll happens here, so every tool call returns the real
-//! outcome synchronously instead of leaving the caller to watch a file.
+//! instance, driving it over the control channel (`control.rs`: a named pipe on
+//! Windows, a Unix socket on Linux/macOS), which is also how it knows whether a hub
+//! is up at all: a `ping` answered or not. Every tool call returns the real outcome
+//! synchronously. The older channel documented in AI-README.md (spawn ourselves
+//! with `<action> <id> --ticket <key>`, then poll `state.json`) survives only as a
+//! fallback for a hub build that predates the channel.
 //!
 //! The protocol is hand-rolled: MCP over stdio is newline-delimited JSON-RPC 2.0,
 //! serde_json is already a dependency, and a full async SDK (plus tokio) would
@@ -71,6 +72,11 @@ fn read_state() -> Option<Value> {
 /// Subcommand tokens that mark a moonpool process as NOT the resident tray hub -
 /// an MCP server (`mcp`), a control-action spawn (`launch`/`--ticket`/...), or the
 /// installer/updater helpers. The hub is a moonpool process carrying none of these.
+///
+/// This scan is only a SAFETY NET now (an improved error message, and the old-hub argv
+/// fallback in `control`): liveness is decided by pinging the control channel. Every verb either
+/// dispatcher answers must be listed (a test enforces it), since a helper process missing here
+/// reads as a hub.
 const NON_HUB_TOKENS: &[&str] = &[
     "mcp",
     "launch",
@@ -79,29 +85,34 @@ const NON_HUB_TOKENS: &[&str] = &[
     "dump",
     "reload",
     "refresh-icons",
+    "help",
     "show",
     "quit",
     "paths",
     "read-config",
     "write-config",
     "restore-config",
+    "ping",
+    "list",
+    "open-window",
+    "screenshot",
+    "window-state",
+    "stop-mcp",
+    "reset-mcp-seen",
     "--ticket",
     "--uninstall",
     "--wait-pid",
 ];
 
-/// Whether a real Moonpool tray hub is resident to receive commands. Checked before
-/// every action: without it, spawning the exe would start a NEW instance that opens
-/// a window and ignores the argv (the single-instance callback only fires in the
-/// *second* process), which looks like a silent no-op - or worse, boots the
-/// installer.
+/// Whether something that LOOKS like a Moonpool tray hub is in the process table. Unreliable by
+/// nature (a hub started by the argv fallback carries a helper token in its own cmdline and is
+/// invisible; a second moonpool-named exe counts), so it never decides liveness - `hub_alive` /
+/// `ping_state` do. It is used only to improve an error message when the channel is unreachable,
+/// and to gate the old-hub argv fallback in `control`.
 ///
-/// Critically this must EXCLUDE the other short-lived moonpool processes: the idle
-/// `moonpool.exe mcp` stdio servers (one per agent session) and transient
-/// control-action spawns. Matching on name alone counted those as a hub, so
-/// `control()` skipped its refusal and fired a command with nothing resident to
-/// answer it - the cold-start installer bug. We identify the hub as the one
-/// moonpool process whose argv carries no subcommand token.
+/// It must EXCLUDE the other short-lived moonpool processes: the idle `moonpool.exe mcp` stdio
+/// servers (one per agent session) and transient control-action spawns. We identify the hub as
+/// the one moonpool process whose argv carries no subcommand token.
 fn hub_running() -> bool {
     use sysinfo::{ProcessRefreshKind, RefreshKind, System};
     let me = std::process::id();
@@ -124,6 +135,218 @@ fn hub_running() -> bool {
 // Driving the control channel
 // ---------------------------------------------------------------------------
 
+/// What a probe of the control channel found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PipeState {
+    /// Nothing is listening: no hub (pipe missing / socket absent or refusing).
+    Down,
+    /// A hub answered.
+    Up,
+    /// Something owns the channel but did not answer in time (hung hub, or busy past retries).
+    Unreachable,
+}
+
+/// Why a channel call failed.
+#[derive(Debug, PartialEq, Eq)]
+enum CallError {
+    /// Could not connect because nothing is listening.
+    Down,
+    /// Connected or tried to, but no usable answer within the budget.
+    Unreachable(String),
+    /// Connected and sent the request, then the stream failed (closed, bad frame). For `quit`
+    /// this is expected: the hub exits before it can reply.
+    Io(String),
+}
+
+/// Quick verbs (liveness probes, `list`): a hard cap so a hung hub cannot hang the tool.
+const QUICK_TIMEOUT: Duration = Duration::from_secs(3);
+/// Everything that is answered directly by the hub without the UI (file writes, `paths`...).
+const DIRECT_TIMEOUT: Duration = Duration::from_secs(15);
+/// UI-owned actions can legitimately take as long as the hub's own `ACTION_TIMEOUT`.
+const UI_ACTION_TIMEOUT: Duration = Duration::from_secs(55);
+
+/// Cap on waiting for the hub to come up (cold boot: window + tray + first status tick).
+const START_TIMEOUT: Duration = Duration::from_secs(30);
+/// Cap on waiting for the hub to go away after `quit`.
+const STOP_TIMEOUT: Duration = Duration::from_secs(30);
+
+fn timeout_for(action: &str) -> Duration {
+    if crate::control::UI_OWNED_ACTIONS.contains(&action) {
+        UI_ACTION_TIMEOUT
+    } else if matches!(action, "ping" | "list" | "show" | "quit") {
+        QUICK_TIMEOUT
+    } else {
+        DIRECT_TIMEOUT
+    }
+}
+
+/// Sort a connect/IO error into a channel state. `NotFound` is the missing pipe
+/// (ERROR_FILE_NOT_FOUND = 2 on Windows) or absent socket file (ENOENT); `ConnectionRefused`
+/// is a stale socket file with no listener. Anything else (busy pipe, timeout, access denied)
+/// means something is there that we cannot talk to.
+fn classify_io(e: &std::io::Error) -> PipeState {
+    use std::io::ErrorKind;
+    if matches!(e.kind(), ErrorKind::NotFound | ErrorKind::ConnectionRefused)
+        || (cfg!(windows) && e.raw_os_error() == Some(2))
+    {
+        PipeState::Down
+    } else {
+        PipeState::Unreachable
+    }
+}
+
+/// The two ends we actually use of a connected stream, boxed so the Windows pipe `File` and a
+/// Unix socket share the request/reply code.
+trait Conn: std::io::Read + std::io::Write {}
+impl<T: std::io::Read + std::io::Write> Conn for T {}
+
+#[cfg(windows)]
+fn connect(endpoint: &std::path::Path, _timeout: Duration) -> Result<Box<dyn Conn>, CallError> {
+    const ERROR_PIPE_BUSY: i32 = 231;
+    let mut last = String::new();
+    for _ in 0..10 {
+        match std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(endpoint)
+        {
+            Ok(f) => return Ok(Box::new(f)),
+            Err(e) if e.raw_os_error() == Some(ERROR_PIPE_BUSY) => {
+                last = e.to_string();
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(e) => {
+                return Err(match classify_io(&e) {
+                    PipeState::Down => CallError::Down,
+                    _ => CallError::Unreachable(e.to_string()),
+                })
+            }
+        }
+    }
+    Err(CallError::Unreachable(format!(
+        "control pipe busy ({last})"
+    )))
+}
+
+#[cfg(unix)]
+fn connect(endpoint: &std::path::Path, timeout: Duration) -> Result<Box<dyn Conn>, CallError> {
+    match std::os::unix::net::UnixStream::connect(endpoint) {
+        Ok(s) => {
+            // Lets the worker thread give up on a hung hub instead of leaking forever.
+            let _ = s.set_read_timeout(Some(timeout));
+            let _ = s.set_write_timeout(Some(timeout));
+            Ok(Box::new(s))
+        }
+        Err(e) => Err(match classify_io(&e) {
+            PipeState::Down => CallError::Down,
+            _ => CallError::Unreachable(e.to_string()),
+        }),
+    }
+}
+
+/// Blocking request/reply on one connection. Runs on a worker thread (see `call_at`).
+fn exchange(
+    endpoint: &std::path::Path,
+    line: &[u8],
+    timeout: Duration,
+) -> Result<Value, CallError> {
+    let mut conn = connect(endpoint, timeout)?;
+    conn.write_all(line)
+        .and_then(|_| conn.flush())
+        .map_err(|e| CallError::Io(format!("write: {e}")))?;
+    let mut reader = std::io::BufReader::new(conn);
+    let mut buf = String::new();
+    reader
+        .read_line(&mut buf)
+        .map_err(|e| CallError::Io(format!("read: {e}")))?;
+    if buf.trim().is_empty() {
+        return Err(CallError::Io("connection closed before a reply".into()));
+    }
+    serde_json::from_str(buf.trim()).map_err(|e| CallError::Io(format!("bad reply: {e}")))
+}
+
+/// Send one request to `endpoint` and parse its single reply line, giving up after `timeout`.
+/// The call runs on a worker thread because a Windows named pipe opened as a `File` has no read
+/// timeout; a thread left blocked on a hung hub is abandoned (it holds nothing we need).
+fn call_at(
+    endpoint: &std::path::Path,
+    action: &str,
+    args: &[&str],
+    timeout: Duration,
+) -> Result<Value, CallError> {
+    let mut line = serde_json::to_vec(&json!({ "cmd": action, "args": args }))
+        .map_err(|e| CallError::Io(e.to_string()))?;
+    line.push(b'\n');
+    let (tx, rx) = std::sync::mpsc::channel();
+    let ep = endpoint.to_path_buf();
+    std::thread::spawn(move || {
+        let _ = tx.send(exchange(&ep, &line, timeout));
+    });
+    match rx.recv_timeout(timeout) {
+        Ok(r) => r,
+        Err(_) => Err(CallError::Unreachable(format!(
+            "no reply within {}s",
+            timeout.as_secs()
+        ))),
+    }
+}
+
+/// `call_at` against the real channel with an explicit time budget.
+fn control_call_timeout(
+    action: &str,
+    args: &[&str],
+    timeout: Duration,
+) -> Result<Value, CallError> {
+    call_at(&crate::control::default_endpoint(), action, args, timeout)
+}
+
+/// `call_at` against the real channel with the verb's usual budget.
+fn control_call(action: &str, args: &[&str]) -> Result<Value, CallError> {
+    control_call_timeout(action, args, timeout_for(action))
+}
+
+/// Probe the channel with `ping`. A connect that succeeds but gets no answer is `Unreachable`,
+/// not `Up`: a hub that cannot answer a ping is not usable.
+fn ping_at(endpoint: &std::path::Path) -> PipeState {
+    match call_at(endpoint, "ping", &[], QUICK_TIMEOUT) {
+        Ok(_) => PipeState::Up,
+        Err(CallError::Down) => PipeState::Down,
+        Err(CallError::Unreachable(_)) | Err(CallError::Io(_)) => PipeState::Unreachable,
+    }
+}
+
+fn ping_state() -> PipeState {
+    ping_at(&crate::control::default_endpoint())
+}
+
+/// Whether a hub is up and answering. The single source of truth for "is Moonpool running".
+fn hub_alive() -> bool {
+    ping_state() == PipeState::Up
+}
+
+/// The error for "no hub is listening". Names the sandbox when our file view is a packaged
+/// overlay, since a sandboxed process may be unable to reach the channel at all and "not
+/// running" would then be a misleading answer.
+fn not_running_error() -> String {
+    match sandbox_overlay_reason() {
+        Some(reason) => sandbox_error(&reason),
+        None => "Moonpool is not running - call moonpool_bootup_launcher first".into(),
+    }
+}
+
+/// The error for "the channel is owned but silent". `hub_running()` only sharpens the wording.
+fn unreachable_error(detail: &str) -> String {
+    format!(
+        "Moonpool's control channel did not answer ({detail}). A Moonpool process may be hung{} - \
+         close it from the tray or end the process, then call moonpool_bootup_launcher.",
+        if hub_running() {
+            " (one is in the process list)"
+        } else {
+            ""
+        }
+    )
+}
+
 /// A ticket key unique enough for concurrent agents: pid + a monotonic counter.
 fn new_ticket() -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -139,14 +362,14 @@ fn new_ticket() -> String {
 /// `Ok(detail)` on success (detail is whatever the handler reported - for `dump`, the file path
 /// it wrote) or `Err(message)`.
 ///
-/// Tries the named-pipe control surface (`control_pipe.rs`) first - one request, one reply, no
-/// spawn and no poll. Falls back to the old argv-spawn + `state.json`-poll path (below) if the
-/// pipe cannot be reached (e.g. an older resident hub build with no pipe listener yet), per the
-/// migration plan's "keep the argv path until the pipe path is proven" belt-and-suspenders rule.
+/// Goes over the control channel (`control.rs`: named pipe on Windows, Unix socket elsewhere) -
+/// one request, one reply, no spawn and no poll. When the channel reports `Down` nothing can
+/// answer, so the answer is "Moonpool is not running". The one exception is an OLDER hub build
+/// that predates the channel: it has no listener but is a live hub reachable through the argv +
+/// `state.json` path. We only take that path when the process scan also sees a hub, accepting
+/// that a stray moonpool-named process can occasionally make this try (and time out) rather
+/// than fail fast.
 fn control(action: &str, args: &[&str]) -> Result<String, String> {
-    if !hub_running() {
-        return Err("Moonpool is not running - call moonpool_bootup_launcher first".into());
-    }
     // Defense in depth: `action` is always a hard-coded literal and every `app_id`
     // reaching here has passed `is_valid_app_id`, so no forwarded token should ever
     // look like a flag. Refuse if that invariant is ever violated rather than spawn
@@ -154,72 +377,24 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     if action.starts_with('-') || args.iter().any(|a| a.starts_with('-')) {
         return Err("refusing to forward a flag-like control argument".into());
     }
-    // The named-pipe control surface is Windows-only (see `control_pipe.rs`). On other
-    // platforms there is no pipe to try, so fall straight through to the argv channel.
-    #[cfg(windows)]
-    match pipe_call(action, args) {
-        Ok(reply) => return pipe_reply_to_result(action, reply),
-        // A transport-level failure (pipe missing, busy past the retry budget, closed
-        // mid-read) falls back; an application-level `ok:false` frame does not reach here -
-        // `pipe_reply_to_result` already turned that into `Err` above.
-        Err(e) => {
-            let _ = e; // best-effort fallback; nothing to log a stdio-only process could see
-        }
-    }
-    control_via_argv(action, args)
-}
-
-/// Send one request over the control pipe and parse its single reply line. `Err` here means a
-/// transport failure (pipe not present/reachable), not an application-level error - those come
-/// back as `{"ok":false,"error":...}` and are handled by the caller.
-#[cfg(windows)]
-fn pipe_call(action: &str, args: &[&str]) -> Result<Value, String> {
-    const ERROR_PIPE_BUSY: i32 = 231;
-    let mut file = None;
-    let mut last_err = None;
-    for _ in 0..10 {
-        match std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(crate::control_pipe::PIPE_NAME)
-        {
-            Ok(f) => {
-                file = Some(f);
-                break;
+    match control_call(action, args) {
+        Ok(reply) => reply_to_result(action, reply),
+        Err(CallError::Down) => {
+            if hub_running() {
+                control_via_argv(action, args)
+            } else {
+                Err(not_running_error())
             }
-            Err(e) if e.raw_os_error() == Some(ERROR_PIPE_BUSY) => {
-                last_err = Some(e);
-                std::thread::sleep(Duration::from_millis(100));
-            }
-            Err(e) => return Err(e.to_string()),
         }
+        Err(CallError::Unreachable(m)) => Err(unreachable_error(&m)),
+        Err(CallError::Io(m)) => Err(format!("{action}: control channel failed mid-call: {m}")),
     }
-    let mut pipe = file.ok_or_else(|| {
-        last_err
-            .map(|e| e.to_string())
-            .unwrap_or_else(|| "pipe unavailable".into())
-    })?;
-
-    let mut line =
-        serde_json::to_vec(&json!({ "cmd": action, "args": args })).map_err(|e| e.to_string())?;
-    line.push(b'\n');
-    pipe.write_all(&line).map_err(|e| e.to_string())?;
-    pipe.flush().map_err(|e| e.to_string())?;
-
-    let mut reader = std::io::BufReader::new(pipe);
-    let mut buf = String::new();
-    reader.read_line(&mut buf).map_err(|e| e.to_string())?;
-    if buf.trim().is_empty() {
-        return Err("empty reply from control pipe".into());
-    }
-    serde_json::from_str(buf.trim()).map_err(|e| format!("bad reply: {e}"))
 }
 
 /// Turn a `control.rs`-shaped reply (`{"ok":true,"result":...}` / `{"ok":false,"error":...}`)
 /// into the same `Result<String, String>` shape `control_via_argv` returns, so callers cannot
 /// tell which transport served the request.
-#[cfg(windows)]
-fn pipe_reply_to_result(action: &str, reply: Value) -> Result<String, String> {
+fn reply_to_result(action: &str, reply: Value) -> Result<String, String> {
     if reply.get("ok").and_then(Value::as_bool) == Some(true) {
         Ok(reply
             .get("result")
@@ -236,8 +411,8 @@ fn pipe_reply_to_result(action: &str, reply: Value) -> Result<String, String> {
     }
 }
 
-/// The original argv-spawn + `state.json`-poll implementation of `control()`. Kept as the
-/// fallback transport until the pipe path above is proven live; see the migration plan.
+/// The original argv-spawn + `state.json`-poll implementation of `control()`. Kept for hubs
+/// that predate the control channel; see `control`.
 fn control_via_argv(action: &str, args: &[&str]) -> Result<String, String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let ticket = new_ticket();
@@ -296,74 +471,172 @@ fn control_via_argv(action: &str, args: &[&str]) -> Result<String, String> {
 
 /// Boot the resident tray hub, for the cold-start case where no hub is running and
 /// every other tool would (correctly) refuse. Spawns the installed exe with NO
-/// subcommand so it comes up as the normal tray window, then waits until it is
-/// actually resident so the caller can immediately follow with a launch/restart.
+/// subcommand so it comes up as the normal tray window, then waits until its control
+/// channel answers so the caller can immediately follow with a launch/restart.
 ///
 /// A no-arg spawn is the one invocation that boots the hub rather than the
 /// installer (the exe is installed under %USERPROFILE%\.moonpool, so `needs_setup()`
 /// is false) and rather than dropping a control action on the floor.
+///
+/// If the spawned process exits early it was forwarded to a hub that is itself exiting
+/// (single-instance), so it is respawned once.
 fn start_hub() -> Result<String, String> {
-    if hub_running() {
-        return Ok("Moonpool is already running".into());
+    match ping_state() {
+        PipeState::Up => return Ok("Moonpool is already running".into()),
+        PipeState::Unreachable => {
+            return Err(unreachable_error(
+                "a hub owns the channel but is not answering",
+            ))
+        }
+        PipeState::Down => {}
+    }
+    // Starting a copy from inside a packaged sandbox would not reach the real profile.
+    if let Some(reason) = sandbox_overlay_reason() {
+        return Err(sandbox_error(&reason));
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    std::process::Command::new(exe)
-        .spawn()
-        .map_err(|e| format!("cannot start Moonpool: {e}"))?;
+    let mut last_exit = None;
+    for attempt in 0..2 {
+        let mut child = std::process::Command::new(&exe)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .map_err(|e| format!("cannot start Moonpool: {e}"))?;
+        let deadline = Instant::now() + START_TIMEOUT;
+        loop {
+            if ping_state() == PipeState::Up {
+                return Ok("Moonpool started".into());
+            }
+            if let Ok(Some(status)) = child.try_wait() {
+                // Gone already: it handed off to a hub that was exiting. One last look in
+                // case a hub did come up meanwhile, else go round again.
+                if ping_state() == PipeState::Up {
+                    return Ok("Moonpool started".into());
+                }
+                last_exit = Some(status);
+                break;
+            }
+            if Instant::now() >= deadline {
+                return Err(format!(
+                    "started Moonpool but its control channel did not answer within {}s",
+                    START_TIMEOUT.as_secs()
+                ));
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        if attempt == 0 {
+            std::thread::sleep(Duration::from_secs(1));
+        }
+    }
+    Err(format!(
+        "Moonpool exited immediately after starting, twice ({}); the previous instance may \
+         still be shutting down - try again in a few seconds",
+        last_exit.map(|s| s.to_string()).unwrap_or_default()
+    ))
+}
 
-    // Cold boot (window + tray + first status tick) is slower than a control round
-    // trip; give it room before declaring failure.
-    let deadline = Instant::now() + Duration::from_secs(20);
+/// Shut the resident hub down (same as the tray Quit). Sends `quit` over the control channel,
+/// then waits until the channel goes away, so the caller gets a definite "stopped" rather than a
+/// fire-and-forget.
+fn stop_hub() -> Result<String, String> {
+    match ping_state() {
+        PipeState::Down => return Ok("Moonpool is not running".into()),
+        PipeState::Unreachable => {
+            return Err(unreachable_error(
+                "a hub owns the channel but is not answering",
+            ))
+        }
+        PipeState::Up => {}
+    }
+    match control_call("quit", &[]) {
+        // The hub usually exits before replying, so a stream error after the write is success.
+        Ok(_) | Err(CallError::Io(_)) | Err(CallError::Down) => {}
+        Err(CallError::Unreachable(m)) => return Err(unreachable_error(&m)),
+    }
+    let deadline = Instant::now() + STOP_TIMEOUT;
+    let mut last = PipeState::Up;
     while Instant::now() < deadline {
-        if hub_running() {
-            return Ok("Moonpool started".into());
+        last = ping_state();
+        if last == PipeState::Down {
+            return Ok("Moonpool shut down".into());
         }
         std::thread::sleep(Duration::from_millis(200));
     }
-    Err("started Moonpool but it did not become resident within 20s".into())
+    Err(match last {
+        PipeState::Unreachable => format!(
+            "sent quit but Moonpool's control channel was still held without answering after \
+             {}s; the process may be hung",
+            STOP_TIMEOUT.as_secs()
+        ),
+        _ => format!(
+            "sent quit but Moonpool was still answering after {}s",
+            STOP_TIMEOUT.as_secs()
+        ),
+    })
 }
 
-/// Shut the resident hub down (same as the tray Quit). Fires the `quit` control
-/// command at the hub and waits until the process is gone, so the caller gets a
-/// definite "stopped" rather than a fire-and-forget.
-fn stop_hub() -> Result<String, String> {
-    if !hub_running() {
-        return Ok("Moonpool is not running".into());
+/// Bring the window to the front. `show` is answered by the window itself and writes no
+/// ticket, so there is nothing to wait for. If no hub is running, starting one shows it.
+fn raise_launcher() -> Result<String, String> {
+    match control_call("show", &[]) {
+        Ok(reply) => reply_to_result("show", reply).map(|_| "window shown".into()),
+        Err(CallError::Down) => start_hub().map(|_| "Moonpool was not running; started it".into()),
+        Err(CallError::Unreachable(m)) => Err(unreachable_error(&m)),
+        Err(CallError::Io(m)) => Err(format!("show: control channel failed mid-call: {m}")),
     }
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    std::process::Command::new(exe)
-        .arg("quit")
-        .status()
-        .map_err(|e| format!("cannot signal Moonpool: {e}"))?;
-
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while Instant::now() < deadline {
-        if !hub_running() {
-            return Ok("Moonpool shut down".into());
-        }
-        std::thread::sleep(Duration::from_millis(150));
-    }
-    Err("sent quit but Moonpool was still running after 10s".into())
 }
 
-/// Registered apps and their live status, flattened into one line per app so an
-/// agent reads it without walking two parallel arrays.
+/// Registered apps and their live status, asked of the hub itself over the control channel (its
+/// in-memory state, never a leftover `state.json`). If the hub is not up there is no list.
 fn list_apps() -> Result<String, String> {
-    let state = read_state().ok_or_else(|| {
-        "no state.json - Moonpool has not run on this machine (or is too old)".to_string()
-    })?;
+    match control_call("list", &[]) {
+        Ok(reply) => match reply_to_result("list", reply) {
+            Ok(text) => {
+                let snap: Value =
+                    serde_json::from_str(&text).map_err(|e| format!("bad list reply: {e}"))?;
+                Ok(format_apps(&snap))
+            }
+            // A hub that predates the `list` verb is up (it answered) but cannot be asked;
+            // fall back to its state.json, flagged as possibly stale.
+            Err(e) if e.starts_with("unknown cmd") => {
+                let state = read_state().ok_or_else(|| {
+                    "this Moonpool build predates the `list` verb and state.json is unreadable"
+                        .to_string()
+                })?;
+                Ok(format!(
+                    "{}\n(from state.json: this Moonpool build predates the `list` verb, so the \
+                     data may be stale)",
+                    format_apps(&state)
+                ))
+            }
+            Err(e) => Err(e),
+        },
+        Err(CallError::Down) => Err(not_running_error()),
+        Err(CallError::Unreachable(m)) => Err(unreachable_error(&m)),
+        Err(CallError::Io(m)) => Err(format!("list: control channel failed mid-call: {m}")),
+    }
+}
+
+/// Flatten a `{apps, statuses, statusNotReady?}` snapshot (the `list` reply, or `state.json`)
+/// into one line per app so an agent reads it without walking two parallel arrays.
+fn format_apps(snapshot: &Value) -> String {
     let empty = vec![];
-    let apps = state
+    let apps = snapshot
         .get("apps")
         .and_then(Value::as_array)
         .unwrap_or(&empty);
-    let statuses = state
+    let statuses = snapshot
         .get("statuses")
         .and_then(Value::as_array)
         .unwrap_or(&empty);
     if apps.is_empty() {
-        return Ok("No apps registered in apps.json.".into());
+        return "No apps registered in apps.json.".into();
     }
+    let not_ready = snapshot
+        .get("statusNotReady")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     let mut out = String::new();
     for a in apps {
         let id = a.get("id").and_then(Value::as_str).unwrap_or("?");
@@ -371,25 +644,23 @@ fn list_apps() -> Result<String, String> {
         let st = statuses
             .iter()
             .find(|s| s.get("id").and_then(Value::as_str) == Some(id));
-        let running = st
-            .and_then(|s| s.get("running"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let managed = st
-            .and_then(|s| s.get("managed"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let mcp_running = st
-            .and_then(|s| s.get("mcpRunning"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let mcp_seen = st
-            .and_then(|s| s.get("mcpSeen"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
+        let flag = |key: &str| {
+            st.and_then(|s| s.get(key))
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        };
+        let managed = flag("managed");
+        let mcp_running = flag("mcpRunning");
+        let mcp_seen = flag("mcpSeen");
+        let run_state = if not_ready {
+            "status pending"
+        } else if flag("running") {
+            "running"
+        } else {
+            "stopped"
+        };
         out.push_str(&format!(
-            "{id}  [{}]{}  {name}{}\n",
-            if running { "running" } else { "stopped" },
+            "{id}  [{run_state}]{}  {name}{}\n",
             if managed {
                 " (managed by Moonpool)"
             } else {
@@ -404,15 +675,12 @@ fn list_apps() -> Result<String, String> {
             },
         ));
     }
-    out.push_str(&format!(
-        "\nHub: {}",
-        if hub_running() {
-            "running"
-        } else {
-            "NOT running - commands will fail until it is started"
-        }
-    ));
-    Ok(out)
+    if not_ready {
+        out.push_str("\n(Moonpool has only just started and has not reported app status yet; ask again in a couple of seconds.)");
+    } else {
+        out.pop(); // trailing newline
+    }
+    out
 }
 
 /// Run the `dump` command, then read back the file it wrote and return its tail.
@@ -529,18 +797,13 @@ fn is_container_overlay_path(canonical: &str) -> bool {
     low.contains("\\packages\\") && low.contains("\\localcache\\")
 }
 
-/// Detect whether THIS `moonpool.exe mcp` process is running inside a packaged
-/// (Store/MSIX) sandbox - notably the Claude desktop app's - where AppData is
-/// silently redirected to a per-package overlay. When it is, every file this process
-/// reads (state.json, apps.json) resolves to a private copy the real resident hub
-/// never writes, so the tools would otherwise return stale/empty data with no hint
-/// why (moonpool_list_apps = 0 while the hub is plainly running apps). Returns a
-/// human reason string when sandboxed, so the caller can name what tripped detection.
-fn sandbox_reason() -> Option<String> {
-    // Signal 1 (reliable): the canonicalized data dir or exe path sits in a
-    // Store-container overlay. canonicalize() is essential - the raw path looks
-    // normal (`%APPDATA%\Moonpool`); only the resolved form reveals the redirect
-    // into `...\Packages\<pkg>\LocalCache\...`.
+/// Signal 1 of sandbox detection (reliable): THIS `moonpool.exe mcp` process is running inside
+/// a packaged (Store/MSIX) sandbox - notably the Claude desktop app's - where AppData is
+/// silently redirected to a per-package overlay. The canonicalized data dir or exe path sits in
+/// a Store-container overlay. canonicalize() is essential - the raw path looks normal
+/// (`%APPDATA%\Moonpool`); only the resolved form reveals the redirect into
+/// `...\Packages\<pkg>\LocalCache\...`. Needs no hub and no channel.
+fn sandbox_overlay_reason() -> Option<String> {
     let overlay = |p: Option<PathBuf>| -> Option<String> {
         let canonical = std::fs::canonicalize(p?).ok()?;
         let s = canonical.to_string_lossy().to_string();
@@ -556,13 +819,24 @@ fn sandbox_reason() -> Option<String> {
             "exe canonicalizes into a Store-container overlay ({p})"
         ));
     }
+    None
+}
 
-    // Signal 2 (divergence fallback): a hub is resident yet this process cannot read
-    // state.json at all - a running hub always writes it to the real data dir, so an
-    // unreadable state.json from our view means our filesystem view diverges from the
-    // live hub. Narrowed to "unreadable" (not merely empty apps) to avoid a false
+/// Whether the files this process reads diverge from the live hub's (see
+/// `sandbox_overlay_reason`). When it is, every file this process reads (state.json,
+/// apps.json, dump output) resolves to a private copy the real resident hub never writes, so
+/// the file-reading tools would otherwise return stale/empty data with no hint why. Returns a
+/// human reason string when sandboxed, so the caller can name what tripped detection.
+fn sandbox_reason() -> Option<String> {
+    if let Some(reason) = sandbox_overlay_reason() {
+        return Some(reason);
+    }
+    // Signal 2 (divergence fallback): the control channel answers - a hub is up - yet this
+    // process cannot read state.json at all. A running hub always writes it to the real data
+    // dir, so an unreadable state.json from our view means our filesystem view diverges from
+    // the live hub. Narrowed to "unreadable" (not merely empty apps) to avoid a false
     // positive against a genuinely empty manifest with the hub running.
-    if hub_running() && read_state().is_none() {
+    if hub_alive() && read_state().is_none() {
         return Some(
             "a hub is running but this process cannot read state.json (its file view \
              diverges from the live hub)"
@@ -572,20 +846,37 @@ fn sandbox_reason() -> Option<String> {
     None
 }
 
-/// The loud, actionable error every tool returns when the sandbox is detected, so an
-/// agent is told exactly why the tools are blind and what to do instead, rather than
-/// acting on wrong/empty results. See [[claude-msix-appdata-virtualization]].
+/// The loud, actionable error the file-reading tools return when the sandbox is detected, so
+/// an agent is told exactly why they are blind and what to do instead, rather than acting on
+/// wrong/empty results. Tools that only talk over the control channel (list, start/stop,
+/// reload...) are not blocked: a pipe/socket is not redirected by the file overlay. See
+/// [[claude-msix-appdata-virtualization]].
 fn sandbox_error(reason: &str) -> String {
     format!(
         "MoonPool's MCP server is running inside a packaged (Store/MSIX) sandbox - \
          typically the Claude desktop app - so its view of MoonPool's files is a \
-         private, stale copy the real resident hub never reads or writes. These MCP \
-         tools therefore CANNOT see or change MoonPool's real state (this is why a \
-         list can come back empty while the hub is plainly running apps).\n\
+         private, stale copy the real resident hub never reads or writes. Tools that \
+         read or write files (app output, reading/writing apps.json) therefore CANNOT \
+         see or change MoonPool's real state, and if the sandbox also blocks the \
+         hub's control channel, no tool can reach the hub.\n\
          Detected via: {reason}.\n\
-         Drive MoonPool with `moonpool.exe <verb>` (list / launch <id> / stop <id> / \
-         restart <id> / reload / dump <id> / paths) from a shell OUTSIDE the sandbox \
-         instead - that process reaches the real hub and its real files."
+         Drive MoonPool with `moonpool.exe <verb>` (launch <id> / stop <id> / \
+         restart <id> / reload / dump <id> / paths / read-config / show / quit) from a \
+         shell OUTSIDE the sandbox instead - that process reaches the real hub and its \
+         real files. To see the app list from outside, read `state.json` in the config \
+         dir that `moonpool.exe paths` reports."
+    )
+}
+
+/// Tools that read or write files on this process's own filesystem view (a dump file, the
+/// manifest, a staged temp file). Only these are blocked by the sandbox gate.
+fn tool_uses_local_files(name: &str) -> bool {
+    matches!(
+        name,
+        "moonpool_app_output"
+            | "moonpool_read_config"
+            | "moonpool_write_config"
+            | "moonpool_restore_config"
     )
 }
 
@@ -766,10 +1057,14 @@ fn is_valid_app_id(id: &str) -> bool {
 
 /// Dispatch one tool call. Returns the text the agent sees.
 fn call_tool(name: &str, args: &Value) -> Result<String, String> {
-    // Fail loudly if we are sandboxed: every tool below reads or spawns against a
-    // private overlay of MoonPool's files, so returning their "results" would mislead.
-    if let Some(reason) = sandbox_reason() {
-        return Err(sandbox_error(&reason));
+    // Fail loudly if we are sandboxed, but only for the tools that read or write files: those
+    // would act on a private overlay of MoonPool's files and return misleading "results". The
+    // rest go over the control channel (a pipe/socket, not shadowed by the file overlay); if
+    // the sandbox does block it they report that via `not_running_error`.
+    if tool_uses_local_files(name) {
+        if let Some(reason) = sandbox_reason() {
+            return Err(sandbox_error(&reason));
+        }
     }
     let id = || -> Result<String, String> {
         let raw = args
@@ -857,19 +1152,7 @@ fn call_tool(name: &str, args: &Value) -> Result<String, String> {
         "moonpool_refresh_app_icons" => {
             control("refresh-icons", &[]).map(|_| "icons refreshed".into())
         }
-        // `show` is answered by the window itself and writes no ticket, so there is
-        // nothing to wait for.
-        "moonpool_raise_launcher" => {
-            if !hub_running() {
-                return Err("Moonpool is not running".into());
-            }
-            let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-            std::process::Command::new(exe)
-                .arg("show")
-                .status()
-                .map_err(|e| e.to_string())?;
-            Ok("window shown".into())
-        }
+        "moonpool_raise_launcher" => raise_launcher(),
         other => Err(format!("unknown tool '{other}'")),
     }
 }
@@ -1049,27 +1332,27 @@ mod app_id_tests {
     }
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
 mod pipe_reply_tests {
-    use super::pipe_reply_to_result;
+    use super::reply_to_result;
     use serde_json::json;
 
     #[test]
     fn ok_reply_with_string_result_passes_through() {
-        let r = pipe_reply_to_result("dump", json!({ "ok": true, "result": "wrote file.log" }));
+        let r = reply_to_result("dump", json!({ "ok": true, "result": "wrote file.log" }));
         assert_eq!(r, Ok("wrote file.log".to_string()));
     }
 
     #[test]
     fn ok_reply_with_null_result_becomes_empty_string() {
         // launch/stop/restart/reload/refresh-icons report no detail on success.
-        let r = pipe_reply_to_result("reload", json!({ "ok": true, "result": null }));
+        let r = reply_to_result("reload", json!({ "ok": true, "result": null }));
         assert_eq!(r, Ok(String::new()));
     }
 
     #[test]
     fn error_reply_surfaces_the_message() {
-        let r = pipe_reply_to_result(
+        let r = reply_to_result(
             "restart",
             json!({ "ok": false, "error": "app not found: bogus" }),
         );
@@ -1078,15 +1361,257 @@ mod pipe_reply_tests {
 
     #[test]
     fn error_reply_with_no_message_falls_back_to_a_generic_one() {
-        let r = pipe_reply_to_result("restart", json!({ "ok": false }));
+        let r = reply_to_result("restart", json!({ "ok": false }));
         assert_eq!(r, Err("restart failed".to_string()));
     }
 
     #[test]
     fn malformed_reply_missing_ok_field_is_treated_as_failure() {
-        // Guards against a future control_pipe.rs change that forgets `ok` - silently
+        // Guards against a future control.rs change that forgets `ok` - silently
         // treating it as success would surface a wrong result to an MCP caller.
-        let r = pipe_reply_to_result("ping", json!({ "result": "pong" }));
+        let r = reply_to_result("ping", json!({ "result": "pong" }));
         assert_eq!(r, Err("ping failed".to_string()));
+    }
+}
+
+#[cfg(test)]
+mod channel_tests {
+    use super::{
+        call_at, classify_io, format_apps, ping_at, tool_uses_local_files, CallError, PipeState,
+        NON_HUB_TOKENS,
+    };
+    use crate::control::{serve_at, Handler, LogFn, CONTROL_VERBS};
+    use serde_json::{json, Value};
+    use std::io::{Error, ErrorKind};
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    #[test]
+    fn classifies_missing_and_refused_as_down() {
+        assert_eq!(
+            classify_io(&Error::from(ErrorKind::NotFound)),
+            PipeState::Down
+        );
+        assert_eq!(
+            classify_io(&Error::from(ErrorKind::ConnectionRefused)),
+            PipeState::Down
+        );
+        // ERROR_FILE_NOT_FOUND (Windows) / ENOENT (unix): both are raw OS error 2.
+        assert_eq!(classify_io(&Error::from_raw_os_error(2)), PipeState::Down);
+    }
+
+    #[test]
+    fn classifies_busy_timeout_and_denied_as_unreachable() {
+        // ERROR_PIPE_BUSY (231) must never read as "no hub": something owns the pipe.
+        #[cfg(windows)]
+        assert_eq!(
+            classify_io(&Error::from_raw_os_error(231)),
+            PipeState::Unreachable
+        );
+        assert_eq!(
+            classify_io(&Error::from(ErrorKind::TimedOut)),
+            PipeState::Unreachable
+        );
+        assert_eq!(
+            classify_io(&Error::from(ErrorKind::PermissionDenied)),
+            PipeState::Unreachable
+        );
+    }
+
+    #[test]
+    fn every_verb_of_both_dispatchers_is_a_non_hub_token() {
+        for v in CONTROL_VERBS.iter().chain(crate::ARGV_VERBS) {
+            assert!(
+                NON_HUB_TOKENS.contains(v),
+                "{v} must be in NON_HUB_TOKENS or a helper running it reads as a hub"
+            );
+        }
+        for startup in [
+            "mcp",
+            "--uninstall",
+            "--wait-pid",
+            "--ticket",
+            "open-window",
+        ] {
+            assert!(NON_HUB_TOKENS.contains(&startup), "{startup} missing");
+        }
+    }
+
+    #[test]
+    fn only_file_reading_tools_are_sandbox_gated() {
+        for t in [
+            "moonpool_app_output",
+            "moonpool_read_config",
+            "moonpool_write_config",
+            "moonpool_restore_config",
+        ] {
+            assert!(tool_uses_local_files(t), "{t}");
+        }
+        for t in [
+            "moonpool_list_apps",
+            "moonpool_start_app",
+            "moonpool_raise_launcher",
+            "moonpool_screenshot",
+            "moonpool_launcher_paths",
+        ] {
+            assert!(!tool_uses_local_files(t), "{t}");
+        }
+    }
+
+    fn fixture() -> Value {
+        json!({
+            "apps": [
+                { "id": "web", "name": "Web UI" },
+                { "id": "api" },
+                { "id": "cold" }
+            ],
+            "statuses": [
+                { "id": "web", "running": true, "managed": true, "mcpRunning": true },
+                { "id": "api", "running": false, "mcpSeen": true }
+            ]
+        })
+    }
+
+    #[test]
+    fn formats_one_line_per_app_without_a_hub_footer() {
+        let out = format_apps(&fixture());
+        assert_eq!(
+            out,
+            "web  [running] (managed by Moonpool)  Web UI  [mcp: running]\n\
+             api  [stopped]  api  [mcp: stopped]\n\
+             cold  [stopped]  cold"
+        );
+        assert!(!out.contains("Hub:"));
+    }
+
+    #[test]
+    fn formats_empty_manifest() {
+        assert_eq!(
+            format_apps(&json!({ "apps": [], "statuses": [] })),
+            "No apps registered in apps.json."
+        );
+    }
+
+    #[test]
+    fn formats_status_not_ready_as_pending_not_stopped() {
+        let snap = json!({
+            "apps": [{ "id": "web", "name": "Web" }],
+            "statuses": [],
+            "statusNotReady": true
+        });
+        let out = format_apps(&snap);
+        assert!(out.starts_with("web  [status pending]  Web"), "{out}");
+        assert!(!out.contains("[stopped]"));
+        assert!(out.contains("not reported app status yet"));
+    }
+
+    /// A unique, test-only endpoint: never the real `\\.\pipe\moonpool` / hub socket.
+    fn test_endpoint(tag: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let name = format!("moonpool-test-{tag}-{}-{nanos}", std::process::id());
+        #[cfg(windows)]
+        {
+            PathBuf::from(format!(r"\\.\pipe\{name}"))
+        }
+        #[cfg(not(windows))]
+        {
+            std::env::temp_dir().join(format!("{name}.sock"))
+        }
+    }
+
+    #[test]
+    fn missing_endpoint_is_down() {
+        assert_eq!(ping_at(&test_endpoint("absent")), PipeState::Down);
+        assert_eq!(
+            call_at(
+                &test_endpoint("absent2"),
+                "list",
+                &[],
+                Duration::from_secs(2)
+            ),
+            Err(CallError::Down)
+        );
+    }
+
+    /// Ping / list / quit through the real transport (named pipe on Windows, Unix socket
+    /// elsewhere) and the shared connection loop, with a fake handler standing in for the hub.
+    #[test]
+    fn transport_round_trips_ping_list_and_quit() {
+        let endpoint = test_endpoint("rt");
+        let quit_seen = Arc::new(AtomicBool::new(false));
+        let handler: Handler = {
+            let quit_seen = quit_seen.clone();
+            Arc::new(move |req| {
+                let quit_seen = quit_seen.clone();
+                Box::pin(async move {
+                    match req.cmd.as_str() {
+                        "ping" => json!({ "ok": true, "result": "pong" }),
+                        "list" => {
+                            let snap = json!({ "apps": [], "statuses": [] });
+                            json!({ "ok": true, "result": snap.to_string() })
+                        }
+                        "echo" => json!({ "ok": true, "result": req.args.join(",") }),
+                        "quit" => {
+                            quit_seen.store(true, Ordering::SeqCst);
+                            json!({ "ok": true, "result": Value::Null })
+                        }
+                        other => json!({ "ok": false, "error": format!("unknown cmd: {other}") }),
+                    }
+                })
+            })
+        };
+        let log: LogFn = Arc::new(|_| {});
+
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            .build()
+            .unwrap();
+        {
+            let endpoint = endpoint.clone();
+            rt.spawn(async move {
+                let _ = serve_at(&endpoint, handler, log).await;
+            });
+        }
+
+        // Wait for the server to come up (the pipe/socket appears once it binds).
+        let mut up = false;
+        for _ in 0..40 {
+            if ping_at(&endpoint) == PipeState::Up {
+                up = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        assert!(up, "test server never answered ping");
+
+        let t = Duration::from_secs(3);
+        let reply = call_at(&endpoint, "list", &[], t).unwrap();
+        assert_eq!(reply["ok"], json!(true));
+        let snap: Value = serde_json::from_str(reply["result"].as_str().unwrap()).unwrap();
+        assert_eq!(snap["apps"], json!([]));
+
+        let reply = call_at(&endpoint, "echo", &["a", "b"], t).unwrap();
+        assert_eq!(reply["result"], json!("a,b"));
+
+        let reply = call_at(&endpoint, "nope", &[], t).unwrap();
+        assert_eq!(reply["ok"], json!(false));
+
+        let reply = call_at(&endpoint, "quit", &[], t).unwrap();
+        assert_eq!(reply["ok"], json!(true));
+        assert!(quit_seen.load(Ordering::SeqCst));
+
+        // Dropping the runtime tears the server down; the endpoint then reads as Down (unix
+        // leaves a stale socket file, which refuses the connection).
+        drop(rt);
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(ping_at(&endpoint), PipeState::Down);
+        #[cfg(unix)]
+        let _ = std::fs::remove_file(&endpoint);
     }
 }

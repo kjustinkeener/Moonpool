@@ -2286,6 +2286,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "include_dir",
+ "libc",
  "minisign-verify",
  "png 0.17.16",
  "portable-pty",

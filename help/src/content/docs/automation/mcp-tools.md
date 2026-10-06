@@ -26,16 +26,14 @@ Example `moonpool_list_apps` result:
 ```text
 site  [running] (managed by Moonpool)  Site
 notes-app  [stopped]  [mcp: stopped]  Notes App
-
-Hub: running
 ```
 
 | Tool | Parameters | Behavior |
 | --- | --- | --- |
-| `moonpool_list_apps` | none | One line per app: `id  [running]` or `[stopped]`, `(managed by Moonpool)` when applicable, `[mcp: running]` or `[mcp: stopped]` when an MCP helper has been seen, then the name. Ends with a `Hub:` line saying whether Moonpool is running. Read from `state.json`. |
-| `moonpool_bootup_launcher` | none | Starts Moonpool itself and waits up to 20 s for it to be resident. Returns "Moonpool started", or "Moonpool is already running". |
-| `moonpool_shutdown_launcher` | none | Same as Quit in the tray menu. Waits up to 10 s for the process to exit. Returns "Moonpool shut down", or "Moonpool is not running". |
-| `moonpool_raise_launcher` | none | Brings the Moonpool window to the front. Returns "window shown". |
+| `moonpool_list_apps` | none | One line per app: `id  [running]` or `[stopped]`, `(managed by Moonpool)` when applicable, `[mcp: running]` or `[mcp: stopped]` when an MCP helper has been seen, then the name. Asked of the running hub over the control channel (`list` verb), so it is live. If Moonpool is not running it fails with "Moonpool is not running" rather than showing a stale list. Just after Moonpool starts, before its first status check, apps show `[status pending]`. |
+| `moonpool_bootup_launcher` | none | Starts Moonpool itself and waits up to 30 s for its control channel to answer. Returns "Moonpool started", or "Moonpool is already running". If the new process exits straight away (it handed off to a Moonpool that was still shutting down), it starts one more. If something holds the channel without answering, it reports that a Moonpool process may be hung. |
+| `moonpool_shutdown_launcher` | none | Same as Quit in the tray menu. Waits up to 30 s for the control channel to go away. Returns "Moonpool shut down", or "Moonpool is not running". |
+| `moonpool_raise_launcher` | none | Brings the Moonpool window to the front. Returns "window shown". If Moonpool is not running, it starts it. |
 | `moonpool_start_app` | `app_id` (required) | Starts the app and opens its terminal tab. Returns "launched" once it is running, or the reason it was not (`unknown app id: <id>`, `did not reach running in time` after 25 s). |
 | `moonpool_stop_app` | `app_id` (required) | Stops the app. Returns "stopped", or an error such as `still running after stop` (after 15 s). |
 | `moonpool_restart_app` | `app_id` (required) | Stop, wait for the port and process to free, start. Returns "restarted". |
@@ -56,7 +54,11 @@ described in [Configuration](/configuration/overview/#agents).
 | `moonpool_reload_config` | none | Re-reads `apps.json`. Returns "apps.json reloaded". |
 | `moonpool_launcher_paths` | none | Lists the hub's config folder, `apps.json`, `state.json`, log, dumps folder, icons folder, portable flag and exe path, then the same for the MCP process. Use it when an edit does not take effect. |
 
-## Windows and testing (Windows only)
+## Windows and testing
+
+`moonpool_screenshot` is Windows only; on Linux and macOS it fails with "screenshot is not
+supported on this platform". `moonpool_window_state` and `moonpool_reset_mcp_seen` work on
+every platform.
 
 `window` is one of `main`, `settings`, `about`, `installer`, `editor` or `help`, and defaults
 to `main`. An unknown name fails with `unknown window '<name>'`.

@@ -27,11 +27,9 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
-// Windows-only: the control surface is a Win32 named-pipe server (tokio named_pipe,
-// hwnd/screenshot via the `windows` crate). The argv + state.json channel remains the
-// cross-platform path; on non-Windows the pipe surface is simply absent.
-#[cfg(windows)]
-mod control_pipe;
+// Agent control surface: a named pipe on Windows, a Unix socket on Linux/macOS. Only the
+// `screenshot` verb (hwnd capture via the `windows` crate) is Windows-only.
+mod control;
 mod dashboards;
 mod help;
 mod i18n;
@@ -348,7 +346,7 @@ struct HubState {
     /// ~215x26 minimized-placeholder sliver.
     last_good_size: Mutex<Option<(u32, u32)>>,
     /// Wakers for pipe-originated UI-owned actions (`launch`/`stop`/`restart`/`reload`/
-    /// `refresh-icons`), keyed by ticket. `control_pipe::run_ui_action` registers one before
+    /// `refresh-icons`), keyed by ticket. `control::run_ui_action` registers one before
     /// emitting `control://command`; `record_ticket` fires it the moment that ticket's status
     /// leaves "pending" (i.e. when the frontend calls `report_outcome`), so the pipe reply
     /// returns immediately instead of polling state.json.
@@ -1201,13 +1199,12 @@ fn stop_mcp_shim(id: String, state: State<HubState>) -> Result<(), String> {
 }
 
 /// Shared body of `stop_mcp_shim`, taking a plain `&HubState` rather than Tauri's
-/// injected `State` wrapper so `control_pipe.rs`'s pipe verb can call it too
+/// injected `State` wrapper so `control.rs`'s pipe verb can call it too
 /// without going through a `#[tauri::command]`.
 /// Clear the sticky "ever seen" record for one app's MCP shim (or, with `id` omitted, every
 /// app's) and persist the change. Exists for test repeatability: `mcp_seen` is deliberately
 /// never cleared by normal operation (see `AppStatus.mcp_seen`), so a test run that wants to
 /// re-observe the sidebar's "not yet seen" state needs an explicit way back to it.
-#[cfg(windows)]
 pub(crate) fn reset_mcp_seen(app: &AppHandle, state: &HubState, id: Option<&str>) -> String {
     let mut seen = lock(&state.mcp_seen);
     let msg = match id {
@@ -2077,6 +2074,26 @@ fn wait_for_pid_exit(pid: u32) {
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
 }
+
+/// Every action word `dispatch_control` understands on the argv path. `mcp.rs` checks each of
+/// these (and every control-channel verb) against its hub-process scan's `NON_HUB_TOKENS` in a
+/// test, so a new verb added here must be listed too.
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) const ARGV_VERBS: &[&str] = &[
+    "launch",
+    "stop",
+    "restart",
+    "reload",
+    "refresh-icons",
+    "help",
+    "show",
+    "quit",
+    "dump",
+    "paths",
+    "read-config",
+    "write-config",
+    "restore-config",
+];
 
 fn dispatch_control(app: &AppHandle, argv: &[String]) {
     // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
@@ -3107,8 +3124,7 @@ pub fn run() {
                     }
                 }
             }
-            #[cfg(windows)]
-            control_pipe::spawn(handle.clone());
+            control::spawn(handle.clone());
             spawn_status_poller(handle);
             Ok(())
         })
@@ -3286,8 +3302,16 @@ pub fn run() {
             update::update_check,
             update::update_apply
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Moonpool");
+        .build(tauri::generate_context!())
+        .expect("error while building Moonpool")
+        .run(|_app, event| {
+            // Drop the Unix control socket file on a clean exit (no-op on Windows, where the
+            // pipe vanishes with the process). A crash leaves it behind; the next hub's bind
+            // detects and removes a dead one.
+            if let tauri::RunEvent::Exit = event {
+                control::cleanup();
+            }
+        });
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
-//! Self-only window capture for the pipe `screenshot` verb (`control_pipe.rs`).
+//! Self-only window capture for the pipe `screenshot` verb (`control.rs`).
 //!
 //! Deliberately takes an `HWND`, never a raw pointer/PID string from the wire: callers must go
-//! through `control_pipe.rs`'s label lookup (`app.get_webview_window(label)`, restricted to
+//! through `control.rs`'s label lookup (`app.get_webview_window(label)`, restricted to
 //! `crate::ALL_WINDOWS`), so this module can only ever be pointed at a window Moonpool itself
 //! owns. There is no "capture any window" path here on purpose - see the safety discussion this
 //! feature grew out of: `PrintWindow` renders a window's own content into an off-screen bitmap

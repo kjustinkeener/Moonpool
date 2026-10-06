@@ -58,7 +58,11 @@ any position) and read the result from `state.json` in the config folder.
 ```
 
 `state.json` has `apps`, `statuses` (`id`, `running`, `managed`, `mcpRunning`, `mcpSeen` per
-app) and `tickets`. Poll your ticket until `status` is not `pending`:
+app) and `tickets`. The running Moonpool rewrites it every couple of seconds and after each
+command, and does not delete it when it quits, so a leftover file does not mean Moonpool is
+running. To ask whether it is, or to get the live app list, use the control channel's `ping`
+and `list` verbs ([Control verbs](/automation/control-verbs/)) or the MCP tools. Poll your
+ticket until `status` is not `pending`:
 
 | `status` | Meaning |
 | --- | --- |
