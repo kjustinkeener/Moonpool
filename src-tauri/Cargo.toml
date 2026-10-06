@@ -42,9 +42,14 @@ semver = "1"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 # Extract the downloaded help-docs bundle (a ZIP) in update::help_apply.
 zip = "2"
-# Agent control surface (control_pipe.rs): tokio is otherwise only transitive through Tauri;
+# Agent control surface (control.rs): tokio is otherwise only transitive through Tauri;
 # the Windows named-pipe async API needs it named explicitly. Mirrors FasterDB's control.rs.
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros", "time"] }
+
+[target.'cfg(unix)'.dependencies]
+# geteuid/umask for the control Unix socket (control.rs): per-user fallback dir and a 0600
+# socket file from the moment it exists. Already in the tree via Tauri.
+libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 # Job Objects for reliable whole-tree process ownership: a launched app's deep
@@ -52,7 +57,7 @@ tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macro
 # to a job at spawn, so Stop kills every descendant by membership - immune to the
 # PID recycling and re-parenting that make a snapshot `taskkill /T` miss grandchildren.
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
-# Window-content capture for the pipe `screenshot` verb (control_pipe.rs / screenshot.rs).
+# Window-content capture for the pipe `screenshot` verb (control.rs / screenshot.rs).
 # Matches the `windows` crate version Tauri itself resolves to (see Cargo.lock) so we reuse
 # its HWND type (WebviewWindow::hwnd()) instead of pulling in a second, incompatible one.
 windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging"] }
