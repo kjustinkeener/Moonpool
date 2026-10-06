@@ -139,8 +139,15 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           filename=$(basename "$image")
           url="https://github.com/kjustinkeener/Moonpool/releases/download/${GITHUB_REF_NAME}/${filename}"
-          node -e 'const fs=require("fs"); fs.writeFileSync("linux-update.json", JSON.stringify({version:process.argv[1],notes:"",url:process.argv[2],signature:process.argv[3]}))' "$version" "$url" "$signature"
-          gh release upload "$GITHUB_REF_NAME" "$image" linux-update.json --clobber
+          # Help component, same as Windows but built here with its own file name so the
+          # two jobs never race over one asset (the zip bytes, hence the signature, differ).
+          help_version=$(tr -d '[:space:]' < help/version.txt)
+          (cd help/dist && zip -qr ../../help-linux.zip .)
+          npx tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" help-linux.zip
+          help_signature=$(base64 --decode help-linux.zip.sig)
+          help_url="https://github.com/kjustinkeener/Moonpool/releases/download/${GITHUB_REF_NAME}/help-linux.zip"
+          node -e 'const fs=require("fs"); const a=process.argv; fs.writeFileSync("linux-update.json", JSON.stringify({version:a[1],notes:"",url:a[2],signature:a[3],help:{version:a[4],url:a[5],signature:a[6]}}))' "$version" "$url" "$signature" "$help_version" "$help_url" "$help_signature"
+          gh release upload "$GITHUB_REF_NAME" "$image" help-linux.zip linux-update.json --clobber
 
       # Publish the custom self-updater artifacts (Windows only): the raw exe plus a
       # minisign-signed update.json that the in-app updater reads from Releases/latest.
