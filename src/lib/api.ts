@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppEntry, AppStatus, SysStats } from "./types";
+import { activeLocale } from "./i18n.svelte";
 
 export const getApps = () => invoke<AppEntry[]>("get_apps");
 
@@ -322,6 +323,18 @@ export interface CheckResult {
 export const updateCheck = () => invoke<CheckResult>("update_check");
 export const updateApply = (info: UpdateInfo) =>
   invoke<void>("update_apply", { info });
+/**
+ * URL of the bundled help site for the app's current language. English is the site root; every
+ * other locale lives in the directory named by its lowercased id ("pt-BR" -> "pt-br"), the same
+ * rule as help/locales.mjs. Pages missing from a translation fall back to English inside the
+ * site, so any locale is safe to open. Use this for every help:// deep link.
+ */
+export function helpUrl(path = ""): string {
+  const loc = activeLocale();
+  const dir = loc === "en" ? "" : loc.toLowerCase() + "/";
+  return "help://localhost/" + dir + path.replace(/^\/+/, "");
+}
+
 /** Open (or focus) the offline help window. */
 // Open (or focus) the offline help window. It loads the embedded docs directly
 // (not wrapped in our own index.html shell - an iframe/custom-chrome wrapper
@@ -347,7 +360,7 @@ export async function openHelpWindow(): Promise<void> {
     return;
   }
   const w = new WebviewWindow("help", {
-    url: "help://localhost/",
+    url: helpUrl(),
     title: "Moonpool Help",
     width: 1000,
     height: 720,
