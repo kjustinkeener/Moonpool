@@ -31,6 +31,7 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && npm run check:locales",
     "check:locales": "node scripts/check-locales.mjs",
+    "e2e": "node tools/e2e/e2e.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
