@@ -44,6 +44,22 @@ The **...** button left of the filter box opens the menu.
 | About | Opens the About window, with the version and update check. |
 | Install Moonpool... | Opens the installer window, to install the app or make a portable copy. See [Installing](/getting-started/installing/) and [Portable mode](/guides/portable-mode/). |
 
+### When apps.json has an error
+
+If Reload (or F5) finds that `apps.json` no longer parses or validates, Moonpool keeps the
+list it already had. A banner at the top of the sidebar says "apps.json has an error,
+showing the last list that loaded", followed by the error (hover it for the full text). The
+list below is dimmed but still works, so you can start and stop apps as usual. **Edit
+apps.json** in the banner opens the file; fix it and choose **Reload**, and the banner goes
+away.
+
+Until the file loads again, Moonpool will not save changes from the app editor, rename,
+delete or set icon, so a bad file is never overwritten.
+
+If the file is already broken when Moonpool starts, there is no earlier list to keep: the
+banner says no apps are loaded and the sidebar is empty. Fix the file and reload, or roll
+back to a recent good copy (see [If the file is bad](/configuration/overview/#if-the-file-is-bad)).
+
 ### Port conflict warning
 
 If two apps in `apps.json` use the same `port`, a warning row appears at the bottom of the menu, for example:

@@ -111,9 +111,16 @@ habit-tracker
 
 ## If the file is bad
 
-- **At startup or on Reload**, a file that fails validation is left untouched. Moonpool shows
-  the error, lists no apps, and refuses saves from the dialog until the file loads again.
-  Fix the file and choose **Reload**.
+- **On Reload**, a file that fails validation is left untouched and Moonpool keeps the last
+  list that loaded. A banner over the sidebar shows the error, with a button to open the
+  file; the list stays usable but dimmed. See
+  [When apps.json has an error](/using/hub-window/#when-appsjson-has-an-error).
+- **At startup**, a broken file means there is no list to keep, so Moonpool starts with no
+  apps and the banner says so. Fix the file and choose **Reload**, or restore a snapshot
+  (below, or the `moonpool_restore_config` tool).
+- Either way, saves from the dialog (and rename, delete, set icon) are refused until the
+  file loads again, so the broken file is never overwritten. Fix the file and choose
+  **Reload**.
 - **From the dialog, an agent, or a restore**, an invalid change is rejected and the file
   on disk stays as it was.
 

@@ -89,7 +89,7 @@ $r.ReadLine()
 | Verb | Args | Result |
 | --- | --- | --- |
 | `ping` | none | `pong`. Channel only. |
-| `list` | none | JSON string `{"apps": [...], "statuses": [...]}` read from the running hub's memory, the same `apps` and `statuses` shape as `state.json`. Adds `"statusNotReady": true` when apps are registered but the first status check has not run yet. Channel only. |
+| `list` | none | JSON string `{"apps": [...], "statuses": [...]}` read from the running hub's memory, the same `apps` and `statuses` shape as `state.json`. Adds `"statusNotReady": true` when apps are registered but the first status check has not run yet. While `apps.json` fails to load, adds `"manifestError": "<message>"` (the apps are then the last list that loaded) and, when no list has loaded since startup, `"manifestLoaded": false`. Channel only. |
 | `show` | none | null. Brings the window to the front. |
 | `quit` | none | null. Exits Moonpool. |
 | `launch` | `<id>` | null on success. Errors: `unknown app id: <id>`, `did not reach running in time`. |
