@@ -35,16 +35,18 @@ This file switches MoonPool into PORTABLE mode.
 
 While it sits next to Moonpool.exe, MoonPool keeps all of its data
 (apps.json, state.json, AI-README.md, logs) in the \"moonpool-config\"
-folder beside the exe instead of in your Windows AppData. Everything
-lives inside this \".moonpool\" folder, so you can move or copy the
-whole \".moonpool\" folder to another PC or a USB stick and run it there.
+folder beside the exe instead of in the installed Moonpool's folder
+(%USERPROFILE%\\.moonpool). Everything lives inside this \".moonpool\"
+folder, so you can move or copy the whole \".moonpool\" folder to
+another PC or a USB stick and run it there.
 
 Paths in apps.json can use {MP_HOME} (this folder) so your apps and
 dashboards travel with it. Absolute paths still work but won't move
 with the folder.
 
-Delete this file to return to normal installed mode (data goes back
-to AppData).
+Delete this file to stop this copy being portable. It then uses the
+installed Moonpool's data in %USERPROFILE%\\.moonpool\\moonpool-config
+instead of this folder's.
 ";
 
 /// The folder holding the running exe (the bundle root in portable mode).

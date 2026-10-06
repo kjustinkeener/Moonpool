@@ -5,7 +5,7 @@ Moonpool runs on Linux via WebKitGTK. You can install a prebuilt package or buil
 
 ## Install a prebuilt package
 
-Grab the `.AppImage` or `.deb` from the project's Releases page.
+Grab the `.AppImage`, `.deb` or `.rpm` from the project's Releases page.
 
 **AppImage** (portable, no install):
 
@@ -76,7 +76,7 @@ git clone https://github.com/kjustinkeener/Moonpool.git moonpool
 cd moonpool
 npm install
 npm run tauri dev      # run in dev
-npm run tauri build    # produce .deb / .AppImage under src-tauri/target/release/bundle/
+npm run tauri build    # produce .deb / .rpm / .AppImage under src-tauri/target/release/bundle/
 ```
 
 ## Configuring your apps
@@ -87,13 +87,15 @@ Moonpool reads a user-editable manifest at:
 ~/.config/Moonpool/apps.json
 ```
 
-Seeded from an example on first run. Edit it via the sidebar **⋯ menu** (Add app / Edit
+(`$XDG_CONFIG_HOME/Moonpool/apps.json` when `XDG_CONFIG_HOME` is set.)
+
+Seeded from an example on first run. Edit it via the sidebar **... menu** (Add app / Edit
 apps.json / Reload), or by hand, then Reload. See the app schema in `AI-README.md`.
 
 ## Platform notes
 
-- Launch commands run through `sh -c <command>` (vs `cmd /c` on Windows), so use shell syntax
-  your `$SHELL` understands.
+- Launch commands run through `$SHELL -c <command>` (`/bin/sh` if `SHELL` is unset; vs
+  `cmd /c` on Windows), so use syntax your shell understands.
 - Stop kills the process group, then does the extra cleanup chosen by `killMode` (see AI-README.md); port-freeing under `killMode: "port"` uses `lsof` (falls back to `fuser`) - install
   `lsof` if your distro doesn't ship it.
 - **A `desktop` app's `processName` must be 15 characters or fewer on Linux.** Running-status
@@ -103,3 +105,8 @@ apps.json / Reload), or by hand, then Reload. See the app schema in `AI-README.m
 - **Icon discovery works cross-platform** (an app's `src-tauri/icons/`, `public/favicon.*`,
   `icon.png`, or its live favicon), but extracting an icon from a binary is Windows-only, so
   Linux relies on those sources plus favicons.
+- Reveal buttons open the containing folder rather than selecting the file.
+- Config files open in your default text editor (resolved from the `text/plain` association).
+- The Windows installer, shortcuts, Add/Remove entry and the **Install Moonpool...** menu item
+  do not apply.
+- The in-app help (Platforms > Linux) has the same notes.

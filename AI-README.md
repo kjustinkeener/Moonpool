@@ -11,10 +11,10 @@ Moonpool reads a single JSON file (an array of app objects):
 ```
 %USERPROFILE%\.moonpool\moonpool-config\apps.json      (Windows: C:\Users\<user>\.moonpool\moonpool-config\apps.json)
 <exe folder>\moonpool-config\apps.json                (portable mode)
-~/.config/Moonpool/apps.json                           (Linux)
+~/.config/Moonpool/apps.json                           (Linux; $XDG_CONFIG_HOME/Moonpool/apps.json if set)
 ```
 
-Edit this file directly, then tell the user to click **Reload** in Moonpool's top bar (or they
+Edit this file directly, then tell the user to click **Reload** in the **...** menu at the top of Moonpool's sidebar (or they
 restart it). Changes are picked up from disk - no rebuild.
 
 **Always address `apps.json` (and `state.json` below) by its full literal absolute path** -
@@ -32,12 +32,13 @@ variable form, and then edit a file the real Moonpool never sees.
                                  //   Conventional groups: "Desktop apps", "Web apps", "Docs", "CLI tools"
   "type": "web",                 // required: desktop | web | static | cli
   "cwd": "C:\\path\\to\\app",    // working directory the command runs in
-  "command": "npm run dev",      // launch command (run via `cmd /c`)
+  "command": "npm run dev",      // launch command (run via `cmd /c`; `$SHELL -c` on Linux/macOS)
   "port": 5173,                  // web: used for status + browser-open
   "url": "http://localhost:5173",// web: opened when the port goes live; static: opened directly
   "openBrowser": true,           // web/static: open the browser
   "env": { "PORT": "5173" },     // optional env vars injected into the command
-  "processName": "app",          // desktop: status by process name (its .exe, without extension)
+  "processName": "app",          // desktop: status by process name (its .exe, without extension;
+                                 //   on Linux 15 characters or fewer, longer names are truncated)
   "killMode": "port",            // how stop/restart finds & kills what this app left running,
                                   //   beyond the PTY tree Moonpool already tree-kills unconditionally.
                                   //   One of: "processName" | "port" | "command" | "none".
@@ -51,13 +52,14 @@ variable form, and then edit a file the real Moonpool never sees.
 
 ## type semantics
 
-- **desktop** - a native app. Status is detected by `processName`. No browser.
+- **desktop** - a native app. Status is detected by `processName`. No browser. On Linux the
+  kernel truncates process names to 15 characters, so a longer `processName` never matches.
 - **web** - a local server. Status is a TCP health-check on `port`; the browser opens (to `url`)
   when it first answers. Set `openBrowser:false` if the command opens a browser itself.
 - **static** - a static page/dashboard. With only a `url` it just opens in the browser (no
   terminal). With a `command` it runs that in a terminal (e.g. a local server).
-- **cli** - a tool. Opens an interactive shell in `cwd`. To run something first and keep the
-  shell open, use `pwsh -NoLogo -NoProfile -NoExit -Command <tokens...>`.
+- **cli** - a tool. Runs `command` in a terminal in `cwd`; it shows as running until the
+  command exits. To run something first and keep a shell open, use `pwsh -NoLogo -NoProfile -NoExit -Command <tokens...>`.
 
 ## killMode (stop/restart cleanup, beyond the PTY tree)
 
@@ -96,7 +98,9 @@ you set it explicitly. If the field the mode reads is missing (no `port`, no `pr
 
 ## Command rules (important)
 
-- Every `command` runs through `cmd /c` in `cwd`, inheriting the environment plus `env`.
+- Every `command` runs through `cmd /c` in `cwd` on Windows (`$SHELL -c`, else `/bin/sh -c`,
+  on Linux and macOS), inheriting the environment plus `env`. The quoting rules below are
+  for `cmd /c`.
 - **Prefer a FOREGROUND command that streams logs** (`python app.py`, `node server.js`, an app's
   `dev-run.ps1`) over a detached/windowless launcher (`pythonw`, `.vbs`, `start ...`), so output
   shows in the terminal.
@@ -140,6 +144,9 @@ running don't just take the first `moonpool` process:
 $mp = "$env:USERPROFILE\.moonpool\moonpool.exe"   # installed; a portable copy: <folder>\.moonpool\moonpool.exe
 ```
 
+On Linux use the AppImage file the user runs, or for a `.deb`/`.rpm` install the binary the
+package put on the PATH (`ls /usr/bin | grep -i moonpool`). The command words are the same.
+
 Then run it with a command word:
 
 ```powershell
@@ -160,9 +167,11 @@ just opens it).
 Each app writes ONE persistent, append-only log per hub session (never truncated) to
 `<config folder>\cli-output\<app-id>\<hub-start-ms>.log` - stopping and relaunching
 the app keeps appending to the same file; only restarting Moonpool itself starts a new
-one. `Settings > Log retention per app` (default 10 MB) prunes each app's OLDER
-sessions' log files once their combined size passes the cap; the current file is
-exempt and always survives. `dump` hands you that file's path directly (no `out-path`),
+one. Older sessions' files are kept only while `Settings > Keep app output logs between
+sessions` (`cliLogging`) is on; then `Log retention per app` (default 10 MB) prunes the
+oldest once the app's combined size passes the cap. With it off (the default), older
+sessions' files are deleted the next time that app launches. The current file is exempt
+and always survives. `dump` hands you that file's path directly (no `out-path`),
 or copies it out as ANSI-stripped plain text to a path you pass as a third argument:
 `& $mp dump my-app C:\tmp\out.log`. Tag it with `--ticket` and the ticket's `detail` is
 the path (or why it couldn't - e.g. the app hasn't produced output this session).
@@ -212,6 +221,7 @@ Moonpool continuously writes a status snapshot to:
 
 ```
 <config folder>\state.json   (installed: C:\Users\<user>\.moonpool\moonpool-config\state.json)
+~/.config/Moonpool/state.json (Linux; $XDG_CONFIG_HOME/Moonpool/state.json if set)
 ```
 
 It contains `apps` (the registered app list), `statuses` (one entry per app with

@@ -41,7 +41,7 @@ turn the other back on.
 
 | Control | Default | What it does |
 | --- | --- | --- |
-| Keep app output logs between sessions | off | The running session's terminal output is always kept for its own tabs. On: logs from older sessions stay on disk under `cli-output\`, capped by the retention setting. Off: they are discarded when a session ends. |
+| Keep app output logs between sessions | off | The running session's terminal output is always kept for its own tabs. On: logs from older sessions stay on disk under `cli-output\`, capped by the retention setting. Off: they are deleted the next time that app launches. |
 | Log retention per app | 10 MB | Cap on each app's combined older-session logs. Minimum 1. Disabled while the toggle above is off. The current session's log is never truncated by it. |
 | Log debug info to a file | off | Records manifest loads, launches and errors to `moonpool.log`. |
 
