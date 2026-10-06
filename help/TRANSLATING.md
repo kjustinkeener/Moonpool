@@ -94,6 +94,22 @@ the reader as 你. Put a space between CJK and Latin letters or digits. The "Rev
 buttons in Settings have no catalog key and stay English in the text. Windows SmartScreen: "Windows
 已保护你的电脑", "更多信息", "仍要运行", "未知发布者".
 
+## Terms (Traditional Chinese, zh-Hant)
+
+Taiwan usage, translated from English on its own, never converted from zh-Hans. Use the app's
+catalog first (`src/lib/locales/zh-Hant.ts`). Words the catalog does not settle: app = 應用程式,
+dev server = 開發伺服器, tray = 系統匣, hub window = 主視窗, port = 連接埠, process = 處理程序, kill a
+process = 結束處理程序, terminal = 終端機, tab = 分頁, log = 記錄 (log file: 記錄檔), backup = 備份,
+portable mode = 可攜模式, launch = 啟動, folder = 資料夾, working directory = 工作目錄, command line =
+命令列, environment variable = 環境變數, session = 工作階段, sidebar = 側邊欄, group = 群組, URL =
+網址, file = 檔案, server = 伺服器, window = 視窗, program = 程式, script = 指令碼, theme = 佈景主題
+(the catalog's word), token = 權杖, manifest = 資訊清單, JSON key = 索引鍵, named pipe = 具名管道,
+socket = 通訊端, argument = 引數, parse = 剖析, sandbox = 沙箱, runtime = 執行階段, restore a
+snapshot = 還原, roll back = 回復. Address the reader as 你 (the catalog does). Put a space between CJK
+and Latin letters or digits. The "Reveal" and "Copy" log buttons in Settings have no catalog key and
+stay English in the text. Windows SmartScreen: "Windows 已保護您的電腦", "其他資訊", "仍要執行",
+"不明的發行者" (Microsoft's own wording uses 您).
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
