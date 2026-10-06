@@ -59,4 +59,6 @@ pick a folder. See [Portable mode](/data/portable-mode/).
 
 ## Next
 
+- [Windows protected your PC](/support/windows-protected-your-pc/): if SmartScreen blocks the installer.
+- [WebView2 runtime missing](/support/webview2-runtime-missing/): if the window stays blank.
 - [Your first app](/getting-started/first-app/)

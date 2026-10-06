@@ -60,5 +60,6 @@ format, validation rules and recovery options are in the
 - [Stop and restart](/apps/stop-and-restart/): what to set when Stop leaves something running, and why Docker apps need care.
 - [Paths and environment](/apps/paths-and-environment/): `{MP_HOME}`, `./` paths and `env`.
 - [Examples](/apps/examples/): complete entries to copy.
+- [How-to guides](/guides/run-npm-dev-server-in-background-windows/): dev servers in the background, Python scripts, ports.
 - [Portable mode](/data/portable-mode/)
 - [Updating](/data/updating/)

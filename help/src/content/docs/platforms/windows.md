@@ -17,6 +17,10 @@ Windows is Moonpool's main platform. Install it as described in
   and current Windows 10. If the window stays blank or never opens, install the Evergreen
   WebView2 Runtime from Microsoft.
 
+More: [Windows protected your PC](/support/windows-protected-your-pc/),
+[WebView2 runtime missing](/support/webview2-runtime-missing/) and
+[Start a script or dev server automatically at Windows login](/guides/start-app-at-windows-login/).
+
 ## Tray
 
 On Windows 11 a new tray icon often goes into the hidden-icons area. Click the **^** arrow at

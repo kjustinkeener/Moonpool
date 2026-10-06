@@ -53,4 +53,7 @@ answer directly.
 - Several Moonpool copies: register each under its own name. See
   [More than one Moonpool](/automation/mcp-setup/#more-than-one-moonpool).
 
+A worked example for Claude Code, Codex and Cursor is in
+[Give an AI agent an MCP server to start and stop local apps](/guides/mcp-server-for-ai-agent-to-start-stop-local-apps/).
+
 More symptoms in [Troubleshooting](/support/troubleshooting/#mcp-and-script-errors).

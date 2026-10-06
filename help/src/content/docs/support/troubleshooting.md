@@ -3,7 +3,8 @@ title: "Troubleshoot Moonpool: tray, apps that will not start, updates"
 description: "Fix common Moonpool problems by what you see: missing tray icon, apps that will not start or stop, wrong status dots, failed updates and MCP errors."
 ---
 
-Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
+Find the symptom, then follow the fix. Quoted text is what Moonpool shows. To look up an
+exact message, see [Error messages explained](/support/error-messages/).
 
 ## I cannot see the tray icon
 
@@ -21,6 +22,16 @@ Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
 | `Install failed: <error>` | The text after the colon names the step that failed, for example `copy exe: ...`. If a file is in use, quit any Moonpool running from `%USERPROFILE%\.moonpool` and try again. |
 | `target folder does not exist` | The folder you picked for a portable copy is gone. Pick an existing folder. |
 | `that folder already has a .moonpool with an exe of this name that isn't a portable Moonpool - pick an empty folder` | Pick an empty folder, or remove that `.moonpool` folder first. |
+
+## Windows protected your PC appears when I run the installer
+
+That is Windows SmartScreen, because `moonpool.exe` is not code-signed. Click **More info**,
+then **Run anyway**. See [Windows protected your PC](/support/windows-protected-your-pc/).
+
+## The Moonpool window is blank or never opens on Windows
+
+The Microsoft Edge WebView2 Runtime may be missing. See
+[WebView2 runtime missing](/support/webview2-runtime-missing/).
 
 ## An app will not start
 
@@ -51,6 +62,13 @@ still alive. See [How Running is decided](/apps/types/#how-running-is-decided).
 - **A `static` app never shows Running.** That is expected for an entry with only a `url`.
 - **Shows Running although you did not start it.** Something else is using that port or
   process name. Moonpool shows it as running but not "managed by Moonpool".
+
+## Error: listen EADDRINUSE or "Port 5173 is in use"
+
+Something else is already listening on the port your server wants. Find and end it, or set
+`port` on the app so Stop frees it. See
+[Fix EADDRINUSE and "Port 5173 is in use"](/support/port-already-in-use/) and
+[Find and kill the process using a port](/guides/find-and-kill-process-using-port-windows/).
 
 ## Two apps use the same port
 

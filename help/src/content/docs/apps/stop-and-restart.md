@@ -76,6 +76,9 @@ system processes such as `svchost`. That is not a substitute for choosing the ri
 If your `command` already recreates the container (`docker compose up -d --build`), `none`
 is correct: Restart just runs it again.
 
+See also [Find and kill the process using a port](/guides/find-and-kill-process-using-port-windows/)
+and [Fix EADDRINUSE and "Port 5173 is in use"](/support/port-already-in-use/).
+
 ## Examples
 
 A dev server that sometimes leaves a node process holding its port (this is the default for

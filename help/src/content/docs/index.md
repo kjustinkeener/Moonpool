@@ -27,6 +27,12 @@ in its own terminal so you never hunt for a window or retype a command.
 | Get one app running, start to finish | [Your first app](/getting-started/first-app/) |
 | Add or change an app | [Adding apps](/apps/add-an-app/) |
 | Fix a problem | [Troubleshooting and FAQ](/support/troubleshooting/) |
+| Look up an error message | [Error messages explained](/support/error-messages/) |
+| Run a dev server in the background on Windows | [Run an npm dev server in the background](/guides/run-npm-dev-server-in-background-windows/) |
+| Start a script or dev server at Windows login | [Start an app at Windows login](/guides/start-app-at-windows-login/) |
+| Find and kill the process using a port | [Find and kill the process using a port](/guides/find-and-kill-process-using-port-windows/) |
+| Keep a Python script running in the background | [Keep a Python script running](/guides/keep-python-script-running-background-windows/) |
+| Give an AI agent an MCP server for my apps | [MCP server for Claude Code, Codex and Cursor](/guides/mcp-server-for-ai-agent-to-start-stop-local-apps/) |
 | Let an AI agent set up or drive my apps | [AI agents: quick start](/automation/quick-start/) |
 | Run Moonpool from a USB stick or folder | [Portable mode](/data/portable-mode/) |
 | Back up or move my setup | [Backup and recovery](/data/backup-and-recovery/) |
