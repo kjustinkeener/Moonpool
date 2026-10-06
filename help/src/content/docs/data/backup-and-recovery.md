@@ -1,10 +1,10 @@
 ---
-title: Backup and recovery
-description: What to back up, how to roll back apps.json, reset to the examples, move to a portable copy, and what uninstalling deletes.
+title: "Back up Moonpool, roll back apps.json and recover a setup"
+description: "Know what to back up, roll back a bad apps.json, reset to the example apps, move an installed setup to a portable copy, and see what uninstall removes."
 ---
 
 Everything Moonpool keeps is in two places: the config folder and the dashboards folder.
-Paths for each mode are in [Where the config lives](/configuration/overview/#where-the-config-lives).
+Paths for each mode are in [Where the config lives](/apps/apps-json/#where-the-config-lives).
 
 ## The config folder
 
@@ -70,9 +70,9 @@ Nothing is restored automatically.
 ## A broken file
 
 - **apps.json.** Moonpool never overwrites a broken file. See
-  [If the file is bad](/configuration/overview/#if-the-file-is-bad).
+  [If the file is bad](/apps/apps-json/#if-the-file-is-bad).
 - **settings.json.** Fix it, or delete it to reset every setting, then restart Moonpool. See
-  [settings.json](/configuration/settings-and-logs/#reading-and-repair).
+  [settings.json](/data/settings-json/#reading-and-repair).
 
 ## Reset to the examples
 
@@ -83,12 +83,12 @@ Moonpool (or keep it running), rename or delete `apps.json`, then start Moonpool
 ## Installed to portable
 
 A new portable copy starts with the example apps. To bring your own across, see
-[Portable mode](/guides/portable-mode/#choosing-portable-from-the-installer). Copy `icons\` and
+[Portable mode](/data/portable-mode/#choosing-portable-from-the-installer). Copy `icons\` and
 `settings.json` the same way if you want them.
 
 ## Uninstalling
 
 Uninstalling the installed Moonpool deletes the whole `%USERPROFILE%\.moonpool` folder,
 including the config folder and dashboards. Back up first. See
-[Uninstalling](/getting-started/installing/#uninstalling). A portable copy is removed by
+[Uninstalling](/getting-started/install/#uninstalling). A portable copy is removed by
 deleting its `.moonpool\` folder.

@@ -1,6 +1,6 @@
 ---
-title: Tray, close and minimize
-description: The tray icon and its menu, what closing, minimizing and Quit do, always on top, and why one of tray or taskbar must stay on.
+title: "Keep Moonpool in the tray: close, minimize and quit behavior"
+description: "Control what the tray icon, the close button, minimize and Quit do, keep the window always on top, and avoid hiding both the tray and taskbar."
 ---
 
 ## Tray icon
@@ -11,7 +11,7 @@ description: The tray icon and its menu, what closing, minimizing and Quit do, a
 | Right-click | Menu with **Show Moonpool** and **Quit** only (in your language). |
 
 With several Moonpool copies running, each has its own tray icon. The tooltip says which copy
-it is. See [Portable mode](/guides/portable-mode/#several-copies-at-once).
+it is. See [Portable mode](/data/portable-mode/#several-copies-at-once).
 
 ## Quit
 
@@ -32,7 +32,7 @@ minimized, and it leaves the taskbar. Turn it off to minimize to the taskbar as 
 ![Settings: Close to tray and Minimize to tray (1), and the Background transparency slider (2)](../../../assets/screenshots/settings-tray-and-transparency.png)
 
 1. **Close to tray** and **Minimize to tray**.
-2. **Background transparency**. See [Themes, language and transparency](/using/appearance/#transparency).
+2. **Background transparency**. See [Themes, language and transparency](/using/themes-and-language/#transparency).
 
 ## Tray and taskbar lockout
 
@@ -48,5 +48,5 @@ default.
 
 ## See also
 
-- [Settings window](/using/settings-window/)
+- [Settings window](/using/settings/)
 - [The hub window](/using/hub-window/)

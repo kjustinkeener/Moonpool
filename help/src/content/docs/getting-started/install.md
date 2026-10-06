@@ -1,6 +1,6 @@
 ---
-title: Installing
-description: How to install Moonpool, and how portable mode differs.
+title: "Install Moonpool on Windows or Linux"
+description: "Install Moonpool in a few clicks, choose installed or portable mode, use the Install Moonpool menu item later, and uninstall cleanly when you are done."
 ---
 
 This page is for Windows. On Windows, Moonpool is its own installer: the download is a
@@ -55,8 +55,8 @@ Any running Moonpool is stopped as part of uninstalling.
 ## Portable mode
 
 Prefer a USB stick or a movable folder? Click **Install portable** on the install card and
-pick a folder. See [Portable mode](/guides/portable-mode/).
+pick a folder. See [Portable mode](/data/portable-mode/).
 
 ## Next
 
-- [Your first app](/getting-started/first-launch/)
+- [Your first app](/getting-started/first-app/)

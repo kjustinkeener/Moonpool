@@ -1,6 +1,6 @@
 ---
-title: App types
-description: How web, desktop, static and cli apps launch, how Running is detected, and what Stop does by default.
+title: "Choose an app type: web, desktop, static or cli"
+description: "Learn how web, desktop, static and cli apps launch in Moonpool, how Running is detected for each, and what the Stop button does by default."
 ---
 
 `type` decides which fields matter and what Stop does by default.
@@ -54,7 +54,7 @@ A page. With only a `url`, Launch and Restart open it in your browser and Stop d
 
 Pages that need a server (PHP, or anything
 fetching local files) need a `command` that starts one and a `port` to track it. See the
-[examples](/configuration/examples/).
+[examples](/apps/examples/).
 
 ## cli
 
@@ -73,4 +73,4 @@ Avoid nested double quotes in `command`: they are mangled by the `cmd /c` wrappe
 ## What clicking does
 
 Clicking an app's name only opens its terminal tab. Use the Launch, Stop and Restart
-controls to run it. See [App states](/reference/glossary/#app-states).
+controls to run it. See [App states](/support/glossary/#app-states).

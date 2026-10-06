@@ -1,9 +1,9 @@
 ---
-title: Themes, language and transparency
-description: Themes, languages, background transparency and UI scale.
+title: "Change the Moonpool theme, language and transparency"
+description: "Pick a color theme and interface language, set background transparency and UI scale, and see them apply instantly to every open Moonpool window."
 ---
 
-Theme, language and transparency are set in the [Settings window](/using/settings-window/).
+Theme, language and transparency are set in the [Settings window](/using/settings/).
 All three apply instantly to every open Moonpool window.
 
 ![Language (1) and Theme (2) pickers at the top of Settings](../../../assets/screenshots/settings-language-theme.png)
@@ -63,9 +63,9 @@ The picker applies instantly to the hub and the other windows. The choice is sav
 ## UI scale
 
 Zoom the whole interface with Ctrl + mouse wheel. There is no keyboard zoom. See
-[Shortcuts and zoom](/using/shortcuts-and-zoom/).
+[Shortcuts and zoom](/using/keyboard-shortcuts/).
 
 ## See also
 
-- [Settings window](/using/settings-window/)
-- [Shortcuts and zoom](/using/shortcuts-and-zoom/)
+- [Settings window](/using/settings/)
+- [Shortcuts and zoom](/using/keyboard-shortcuts/)

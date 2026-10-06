@@ -1,12 +1,12 @@
 ---
-title: Your first app
-description: From first launch to one running app of your own in a few minutes, and how to find the hub and this help later.
+title: "Add and run your first app in Moonpool"
+description: "Go from first launch to one running app of your own in a few minutes: add it, start it, stop it, and find the hub and this help again later."
 ---
 
 ## 1. Start Moonpool
 
 On Windows, run `moonpool.exe` and click **Install Moonpool** (see
-[Installing](/getting-started/installing/)). On Linux, start the AppImage or the installed
+[Installing](/getting-started/install/)). On Linux, start the AppImage or the installed
 package.
 
 The first time Moonpool runs it fills the sidebar with example apps (Notepad on Windows, a
@@ -24,7 +24,7 @@ you do not see the icon, click the **^** arrow at the right of the taskbar.
 5. Set **port** to the port it listens on, and **url** to the page to open.
 6. Save.
 
-The details of every field are in [Adding apps](/guides/adding-apps/).
+The details of every field are in [Adding apps](/apps/add-an-app/).
 
 ## 3. Start it
 
@@ -38,7 +38,7 @@ Clicking the app's name only opens its terminal tab. It never starts the app.
 
 Click the **Stop** button (the square) on the row. The dot turns grey.
 
-If something stays running after Stop, see [Stop and restart](/configuration/stop-and-restart/).
+If something stays running after Stop, see [Stop and restart](/apps/stop-and-restart/).
 
 ## Let an agent do it
 
@@ -63,5 +63,5 @@ It works offline and always matches the version you run.
 
 ## Next
 
-- [Adding apps](/guides/adding-apps/)
-- [Troubleshooting](/reference/troubleshooting/)
+- [Adding apps](/apps/add-an-app/)
+- [Troubleshooting](/support/troubleshooting/)

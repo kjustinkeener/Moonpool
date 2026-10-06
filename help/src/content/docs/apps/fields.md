@@ -1,6 +1,6 @@
 ---
-title: App fields
-description: Every key of an apps.json entry with its type, default, and which app types use it.
+title: "Every apps.json field: type, default and what it does"
+description: "Look up every key of an apps.json entry with its type, default value and which app types use it, matching the names in the Edit app dialog."
 ---
 
 The Edit app dialog shows the same fields under the same names. Fields that do not apply to
@@ -13,18 +13,18 @@ the selected type are dimmed in the dialog but still saved, with one exception:
 
 | Field | Type | Required | Used by | What it does |
 | --- | --- | --- | --- | --- |
-| `id` | string | yes | all | Unique key. Letters, digits, `.`, `_`, `-`, not starting with `-`. See [Overview](/configuration/overview/#the-id). |
+| `id` | string | yes | all | Unique key. Letters, digits, `.`, `_`, `-`, not starting with `-`. See [Overview](/apps/apps-json/#the-id). |
 | `name` | string | yes | all | Label in the sidebar. Not blank. |
 | `group` | string | yes | all | Sidebar heading the app is listed under. Not blank in a hand edit; the dialog saves a blank group as `Apps`. Any text; a new name creates a new group. |
-| `type` | string | yes | all | `web`, `desktop`, `static` or `cli`. See [App types](/configuration/app-types/). |
+| `type` | string | yes | all | `web`, `desktop`, `static` or `cli`. See [App types](/apps/types/). |
 | `command` | string | all but `static` | all | Run in a terminal to start the app, through `cmd /c` on Windows and `$SHELL -c` elsewhere (`/bin/sh` if `SHELL` is unset). Optional for `static`. |
-| `cwd` | string | no | all with a `command` | Folder the command runs in. Defaults to Moonpool's own working folder. Supports tokens and `./`. See [Paths and environment](/configuration/paths-and-environment/). |
+| `cwd` | string | no | all with a `command` | Folder the command runs in. Defaults to Moonpool's own working folder. Supports tokens and `./`. See [Paths and environment](/apps/paths-and-environment/). |
 | `port` | integer, 1 to 65535 | no | any | Running while something answers on this port on localhost (IPv4 or IPv6). Read by `killMode` `port`. |
 | `processName` | string | no | any, mainly `desktop` | Running while a process with this name exists. Case-insensitive, with or without `.exe`, so `my-app` matches `my-app.exe`. On Linux, 15 characters or fewer. Read by `killMode` `processName`. |
 | `mcpProcessName` | string | no | any with a `processName` | Wildcard pattern for the process name of this app's MCP server. `*` matches any run of characters, `?` one character. Case-insensitive, matched against the whole name, and `.exe` is optional. A matching process counts as the app's MCP server (the sidebar MCP sub-row) and does not need `mcp` as its first argument. See [mcpProcessName](#mcpprocessname). |
 | `url` | string | `static` only | `web`, `static` | Page to open. Only `http://`, `https://`, `mailto:` and `file://` URLs are opened. |
 | `openBrowser` | boolean, default `false` | no | any type with a `url` (the dialog dims it for `desktop` and `cli`) | Open `url` automatically once Moonpool detects the app is up (see below). |
-| `killMode` | string | no | all | Extra cleanup on Stop and Restart: `processName`, `port`, `command` or `none`. See [Stop and restart](/configuration/stop-and-restart/). |
+| `killMode` | string | no | all | Extra cleanup on Stop and Restart: `processName`, `port`, `command` or `none`. See [Stop and restart](/apps/stop-and-restart/). |
 | `stopCommand` | string | no | `killMode` `command` | Command run on Stop. Ignored in every other mode. |
 | `env` | object of strings | no | all | Extra environment variables. The dialog edits it as one `KEY=VALUE` per line. |
 | `icon` | string | no | all | Sidebar image: a file path, an `http(s)` URL, or a `data:` URI. Set it from **Set icon...** in the app's context menu or by hand. |
