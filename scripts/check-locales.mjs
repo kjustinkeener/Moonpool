@@ -90,8 +90,7 @@ for (const file of files) {
   }
   if (missing.length) {
     failed = true;
-    console.error(`
-${file}: ${missing.length} key(s) missing (would fall back to English):`);
+    console.error(`\n${file}: ${missing.length} key(s) missing (would fall back to English):`);
     for (const k of missing) console.error(`  - ${k}`);
   }
 }
