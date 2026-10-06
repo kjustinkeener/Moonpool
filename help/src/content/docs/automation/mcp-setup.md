@@ -41,12 +41,44 @@ The server announces itself as
 resources or prompts). Tools appear to the agent as `moonpool_*`; see
 [MCP tools](/automation/mcp-tools/).
 
+## More than one Moonpool
+
+The installed Moonpool and each portable copy are separate launchers, each with its own apps,
+and they can all run at once. A copy's `moonpool.exe mcp` always drives that copy. To let an
+agent use several, register each one under a distinct name, pointing at that copy's exe:
+
+```json title=".mcp.json"
+{
+  "mcpServers": {
+    "moonpool": {
+      "type": "stdio",
+      "command": "C:\\Users\\you\\.moonpool\\moonpool.exe",
+      "args": ["mcp"]
+    },
+    "moonpool-work": {
+      "type": "stdio",
+      "command": "D:\\Work\\.moonpool\\moonpool.exe",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+```powershell frame="terminal"
+claude mcp add moonpool-work -- "D:\Work\.moonpool\moonpool.exe" mcp
+```
+
+Registering two copies under the same name makes one replace the other in most hosts. The
+tool names are the same for every copy, so the host tells them apart by the name you
+register. A portable copy also announces itself as `moonpool (<folder>)` and its server
+instructions name the folder, so the agent can see which copy it is talking to.
+
 ## Notes
 
 - `moonpool.exe mcp` never opens a window and never starts the installer. It exits when the
   host closes its input.
-- It uses the config folder of the exe it was started from, so a portable exe reads the
-  portable folder's data.
+- It uses the config folder and control channel of the exe it was started from, so a
+  portable exe reads the portable folder's data and drives that portable copy.
 - Most tools need a running Moonpool. If it is not running, the agent can call
   `moonpool_bootup_launcher` first.
 - `moonpool_launcher_paths` shows the folders the hub uses next to the ones the MCP process

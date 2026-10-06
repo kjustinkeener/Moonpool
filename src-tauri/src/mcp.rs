@@ -17,8 +17,12 @@
 //! serde_json is already a dependency, and a full async SDK (plus tokio) would
 //! outweigh the small tools below.
 //!
-//! Note the entry point must run BEFORE `tauri::Builder`: the single-instance
-//! plugin would otherwise forward our argv to the resident window and exit.
+//! Note the entry point must run BEFORE the per-copy lock in `run()` (`instance`), which
+//! would otherwise treat us as a second launch, forward our argv to the hub and exit.
+//!
+//! Each Moonpool copy (installed, or a portable folder) has its own channel, and this server
+//! always talks to the copy whose exe it is: `control::default_endpoint` derives the name from
+//! the same folder the hub does.
 
 use serde_json::{json, Value};
 use std::io::{BufRead, Write};
@@ -28,10 +32,6 @@ use std::time::{Duration, Instant};
 /// MCP revision we implement. Clients send their own in `initialize`; we answer
 /// with ours and they downgrade if needed.
 const PROTOCOL_VERSION: &str = "2025-06-18";
-
-/// How long to wait for a ticket to leave `pending`. Launch/restart are the slow
-/// ones (a managed restart waits for the port to free), hence the generous cap.
-const TICKET_TIMEOUT: Duration = Duration::from_secs(45);
 
 /// Default number of trailing lines returned by the dump tool. A full 512 KB log
 /// would swamp an agent's context; the caller can ask for more.
@@ -99,27 +99,38 @@ const NON_HUB_TOKENS: &[&str] = &[
     "window-state",
     "stop-mcp",
     "reset-mcp-seen",
+    "argv",
     "--ticket",
     "--uninstall",
     "--wait-pid",
 ];
 
-/// Whether something that LOOKS like a Moonpool tray hub is in the process table. Unreliable by
-/// nature (a hub started by the argv fallback carries a helper token in its own cmdline and is
-/// invisible; a second moonpool-named exe counts), so it never decides liveness - `hub_alive` /
-/// `ping_state` do. It is used only to improve an error message when the channel is unreachable,
-/// and to gate the old-hub argv fallback in `control`.
+/// Whether something that LOOKS like THIS copy's tray hub is in the process table. Unreliable by
+/// nature (a hub relaunched with `--wait-pid` carries a helper token in its own cmdline and is
+/// invisible), so it never decides liveness - `hub_alive` / `ping_state` do. It is used only to
+/// improve an error message when the channel is unreachable.
 ///
-/// It must EXCLUDE the other short-lived moonpool processes: the idle `moonpool.exe mcp` stdio
-/// servers (one per agent session) and transient control-action spawns. We identify the hub as
-/// the one moonpool process whose argv carries no subcommand token.
+/// Only processes running this same exe count: another Moonpool copy (installed vs portable, or
+/// another portable folder) is a different hub with its own channel and says nothing about ours.
+/// It must also EXCLUDE the other short-lived moonpool processes: the idle `moonpool.exe mcp`
+/// stdio servers (one per agent session) and transient control-action spawns. We identify the hub
+/// as the one process of this exe whose argv carries no subcommand token.
 fn hub_running() -> bool {
-    use sysinfo::{ProcessRefreshKind, RefreshKind, System};
+    use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
     let me = std::process::id();
-    let sys =
-        System::new_with_specifics(RefreshKind::new().with_processes(ProcessRefreshKind::new()));
+    let my_exe = std::env::current_exe().ok().map(|p| same_path_key(&p));
+    let sys = System::new_with_specifics(
+        RefreshKind::new().with_processes(
+            ProcessRefreshKind::new()
+                .with_cmd(UpdateKind::Always)
+                .with_exe(UpdateKind::Always),
+        ),
+    );
     sys.processes().iter().any(|(pid, p)| {
         if pid.as_u32() == me || !p.name().to_ascii_lowercase().starts_with("moonpool") {
+            return false;
+        }
+        if my_exe.is_some() && p.exe().map(same_path_key) != my_exe {
             return false;
         }
         // args[0] is the exe path; a subcommand token in args[1..] means this is
@@ -129,6 +140,17 @@ fn hub_running() -> bool {
             .skip(1)
             .any(|a| NON_HUB_TOKENS.contains(&a.as_str()))
     })
+}
+
+/// Comparable form of an exe path: canonical when possible, case-folded on Windows.
+fn same_path_key(p: &std::path::Path) -> String {
+    let c = p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+    let s = c.to_string_lossy().to_string();
+    if cfg!(windows) {
+        s.to_lowercase()
+    } else {
+        s
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +170,7 @@ enum PipeState {
 
 /// Why a channel call failed.
 #[derive(Debug, PartialEq, Eq)]
-enum CallError {
+pub(crate) enum CallError {
     /// Could not connect because nothing is listening.
     Down,
     /// Connected or tried to, but no usable answer within the budget.
@@ -268,7 +290,7 @@ fn exchange(
 /// Send one request to `endpoint` and parse its single reply line, giving up after `timeout`.
 /// The call runs on a worker thread because a Windows named pipe opened as a `File` has no read
 /// timeout; a thread left blocked on a hung hub is abandoned (it holds nothing we need).
-fn call_at(
+pub(crate) fn call_at(
     endpoint: &std::path::Path,
     action: &str,
     args: &[&str],
@@ -330,7 +352,10 @@ fn hub_alive() -> bool {
 fn not_running_error() -> String {
     match sandbox_overlay_reason() {
         Some(reason) => sandbox_error(&reason),
-        None => "Moonpool is not running - call moonpool_bootup_launcher first".into(),
+        None => format!(
+            "{} is not running - call moonpool_bootup_launcher first",
+            crate::instance::label()
+        ),
     }
 }
 
@@ -347,28 +372,15 @@ fn unreachable_error(detail: &str) -> String {
     )
 }
 
-/// A ticket key unique enough for concurrent agents: pid + a monotonic counter.
-fn new_ticket() -> String {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static N: AtomicU64 = AtomicU64::new(0);
-    format!(
-        "mcp-{}-{}",
-        std::process::id(),
-        N.fetch_add(1, Ordering::Relaxed)
-    )
-}
-
 /// Fire one control command at the resident instance and block until it resolves. Returns
 /// `Ok(detail)` on success (detail is whatever the handler reported - for `dump`, the file path
 /// it wrote) or `Err(message)`.
 ///
 /// Goes over the control channel (`control.rs`: named pipe on Windows, Unix socket elsewhere) -
 /// one request, one reply, no spawn and no poll. When the channel reports `Down` nothing can
-/// answer, so the answer is "Moonpool is not running". The one exception is an OLDER hub build
-/// that predates the channel: it has no listener but is a live hub reachable through the argv +
-/// `state.json` path. We only take that path when the process scan also sees a hub, accepting
-/// that a stray moonpool-named process can occasionally make this try (and time out) rather
-/// than fail fast.
+/// answer, so the answer is "Moonpool is not running". (There used to be an argv-spawn fallback
+/// for hubs that predate the channel. It went away with the single-instance plugin: a spawned
+/// `moonpool.exe <action>` now reaches the hub only through this same channel.)
 fn control(action: &str, args: &[&str]) -> Result<String, String> {
     // Defense in depth: `action` is always a hard-coded literal and every `app_id`
     // reaching here has passed `is_valid_app_id`, so no forwarded token should ever
@@ -379,21 +391,14 @@ fn control(action: &str, args: &[&str]) -> Result<String, String> {
     }
     match control_call(action, args) {
         Ok(reply) => reply_to_result(action, reply),
-        Err(CallError::Down) => {
-            if hub_running() {
-                control_via_argv(action, args)
-            } else {
-                Err(not_running_error())
-            }
-        }
+        Err(CallError::Down) => Err(not_running_error()),
         Err(CallError::Unreachable(m)) => Err(unreachable_error(&m)),
         Err(CallError::Io(m)) => Err(format!("{action}: control channel failed mid-call: {m}")),
     }
 }
 
 /// Turn a `control.rs`-shaped reply (`{"ok":true,"result":...}` / `{"ok":false,"error":...}`)
-/// into the same `Result<String, String>` shape `control_via_argv` returns, so callers cannot
-/// tell which transport served the request.
+/// into the `Result<String, String>` shape the tools return.
 fn reply_to_result(action: &str, reply: Value) -> Result<String, String> {
     if reply.get("ok").and_then(Value::as_bool) == Some(true) {
         Ok(reply
@@ -411,66 +416,8 @@ fn reply_to_result(action: &str, reply: Value) -> Result<String, String> {
     }
 }
 
-/// The original argv-spawn + `state.json`-poll implementation of `control()`. Kept for hubs
-/// that predate the control channel; see `control`.
-fn control_via_argv(action: &str, args: &[&str]) -> Result<String, String> {
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let ticket = new_ticket();
-
-    let mut cmd = std::process::Command::new(exe);
-    cmd.arg(action);
-    for a in args {
-        cmd.arg(a);
-    }
-    cmd.arg("--ticket").arg(&ticket);
-    // The forwarding process exits immediately; wait for it so a spawn failure
-    // surfaces here rather than as a mysterious timeout.
-    let status = cmd
-        .status()
-        .map_err(|e| format!("cannot run Moonpool: {e}"))?;
-    if !status.success() {
-        return Err(format!("Moonpool exited with {status}"));
-    }
-
-    let deadline = Instant::now() + TICKET_TIMEOUT;
-    loop {
-        if let Some(rec) = read_state()
-            .and_then(|s| s.get("tickets").and_then(|t| t.as_array().cloned()))
-            .and_then(|ts| {
-                ts.into_iter()
-                    .find(|t| t.get("ticket").and_then(Value::as_str) == Some(ticket.as_str()))
-            })
-        {
-            let status = rec.get("status").and_then(Value::as_str).unwrap_or("");
-            let detail = rec
-                .get("detail")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_string();
-            match status {
-                "ok" => return Ok(detail),
-                "error" => {
-                    return Err(if detail.is_empty() {
-                        format!("{action} failed")
-                    } else {
-                        detail
-                    })
-                }
-                _ => {} // still pending
-            }
-        }
-        if Instant::now() >= deadline {
-            return Err(format!(
-                "timed out after {}s waiting for '{action}' to report back",
-                TICKET_TIMEOUT.as_secs()
-            ));
-        }
-        std::thread::sleep(Duration::from_millis(150));
-    }
-}
-
 /// Boot the resident tray hub, for the cold-start case where no hub is running and
-/// every other tool would (correctly) refuse. Spawns the installed exe with NO
+/// every other tool would (correctly) refuse. Spawns this copy's exe with NO
 /// subcommand so it comes up as the normal tray window, then waits until its control
 /// channel answers so the caller can immediately follow with a launch/restart.
 ///
@@ -478,8 +425,8 @@ fn control_via_argv(action: &str, args: &[&str]) -> Result<String, String> {
 /// installer (the exe is installed under %USERPROFILE%\.moonpool, so `needs_setup()`
 /// is false) and rather than dropping a control action on the floor.
 ///
-/// If the spawned process exits early it was forwarded to a hub that is itself exiting
-/// (single-instance), so it is respawned once.
+/// If the spawned process exits early it found this copy's lock held and forwarded to a hub
+/// that is itself exiting (see `instance`), so it is respawned once.
 fn start_hub() -> Result<String, String> {
     match ping_state() {
         PipeState::Up => return Ok("Moonpool is already running".into()),
@@ -1040,6 +987,46 @@ Moonpool already knows how to run it, and running it any other way risks a secon
 same port. The usual loop: moonpool_list_apps to find the id, moonpool_restart_app after a \
 code change, then moonpool_app_output to read what it printed.";
 
+/// The MCP `serverInfo`. The installed copy keeps the plain `moonpool` name; a portable copy
+/// names its folder, so an AI host with two Moonpools registered can tell them apart. Tool names
+/// stay the same for every copy.
+fn server_info() -> Value {
+    server_info_for(
+        crate::instance::copy_folder_name(),
+        crate::instance::label(),
+    )
+}
+
+fn server_info_for(folder: Option<&str>, label: &str) -> Value {
+    let name = match folder {
+        Some(f) => format!("moonpool ({f})"),
+        None => "moonpool".to_string(),
+    };
+    json!({ "name": name, "title": label, "version": env!("CARGO_PKG_VERSION") })
+}
+
+/// `INSTRUCTIONS`, prefixed for a portable copy with which copy this server drives.
+fn instructions() -> String {
+    instructions_for(
+        crate::instance::copy_folder_name(),
+        crate::portable::exe_dir().as_deref(),
+    )
+}
+
+fn instructions_for(folder: Option<&str>, exe_dir: Option<&std::path::Path>) -> String {
+    match folder {
+        None => INSTRUCTIONS.to_string(),
+        Some(f) => format!(
+            "This server drives the portable Moonpool copy \"{f}\"{}. Other Moonpool copies (the \
+             installed one, other portable folders) are separate launchers with their own apps \
+             and their own server entry; use the one whose apps the task is about.\n\n{INSTRUCTIONS}",
+            exe_dir
+                .map(|d| format!(" (in {})", d.display()))
+                .unwrap_or_default()
+        ),
+    }
+}
+
 /// An `app_id` supplied by an MCP client is forwarded to a fresh `moonpool.exe`
 /// process as a positional command-line token. Restrict it to the character set
 /// real manifest ids use so it can never be read as a launcher flag (an id of
@@ -1208,8 +1195,8 @@ fn handle(req: &Value) -> Option<Value> {
             json!({
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": { "tools": {} },
-                "serverInfo": { "name": "moonpool", "version": env!("CARGO_PKG_VERSION") },
-                "instructions": INSTRUCTIONS
+                "serverInfo": server_info(),
+                "instructions": instructions()
             }),
         )),
         "ping" => Some(result(id, json!({}))),
@@ -1329,6 +1316,29 @@ mod app_id_tests {
 
         assert_eq!(reads, 3);
         assert_eq!(value["tickets"].as_array().unwrap().len(), 0);
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::{instructions_for, server_info_for, INSTRUCTIONS};
+    use std::path::Path;
+
+    #[test]
+    fn installed_copy_keeps_the_plain_identity() {
+        let info = server_info_for(None, "Moonpool");
+        assert_eq!(info["name"], "moonpool");
+        assert_eq!(instructions_for(None, None), INSTRUCTIONS);
+    }
+
+    #[test]
+    fn portable_copy_names_its_folder() {
+        let info = server_info_for(Some("Work"), "Moonpool (Work)");
+        assert_eq!(info["name"], "moonpool (Work)");
+        assert_eq!(info["title"], "Moonpool (Work)");
+        let text = instructions_for(Some("Work"), Some(Path::new("/x/Work/.moonpool")));
+        assert!(text.starts_with("This server drives the portable Moonpool copy \"Work\""));
+        assert!(text.ends_with(INSTRUCTIONS));
     }
 }
 

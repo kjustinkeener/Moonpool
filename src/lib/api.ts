@@ -357,8 +357,8 @@ export const onTermOutput = (
 export const onTermExit = (cb: (id: string) => void): Promise<UnlistenFn> =>
   listen<string>("term://exit", (e) => cb(e.payload));
 
-// External control channel: commands forwarded from a second `moonpool.exe` run
-// (single-instance) that the UI executes as if the user had clicked.
+// External control channel: commands forwarded from a second `moonpool.exe` run of this copy,
+// or sent over the control pipe/socket, that the UI executes as if the user had clicked.
 export interface ControlCommand {
   action: "launch" | "stop" | "restart" | "reload" | "refresh-icons" | "help";
   arg: string | null;

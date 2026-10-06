@@ -34,6 +34,7 @@ mod dashboards;
 mod help;
 mod i18n;
 mod install;
+mod instance;
 mod mcp;
 mod persistence;
 mod platform;
@@ -1449,7 +1450,9 @@ fn resolve_icon(mut entry: AppEntry, id: String, app: AppHandle, refresh: bool) 
         let exe = located_exe(&entry)
             .or_else(|| entry.process_name.as_deref().and_then(running_exe_path));
         if let (true, Some(exe)) = (id_is_safe_filename, exe) {
-            let out = std::env::temp_dir().join(format!("moonpool-icon-{id}.png"));
+            // Per copy: two Moonpools can register the same app id for different exes.
+            let out =
+                std::env::temp_dir().join(format!("moonpool-icon{}-{id}.png", instance::suffix()));
             let cached_fresh = !refresh
                 && file_mtime(&out)
                     .zip(file_mtime(&exe))
@@ -2044,7 +2047,7 @@ fn spawn_status_poller(app: AppHandle) {
 }
 
 // ---------------------------------------------------------------------------
-// External control channel (single-instance argv forwarding)
+// External control channel (argv forwarded from a second launch of this copy)
 // ---------------------------------------------------------------------------
 
 /// A command forwarded to the UI, mirroring a user action so the terminal tab,
@@ -2058,11 +2061,9 @@ struct ControlCommand {
     ticket: Option<String>,
 }
 
-/// Handle a second-instance invocation. `argv[0]` is the exe path; the rest is
-/// the command, e.g. `moonpool.exe launch my-app`.
 /// Block until the process `pid` has exited (or a ~10s safety timeout). Used by the
 /// `--wait-pid` relaunch handshake so a freshly-spawned copy doesn't collide with the
-/// single-instance lock still held by the process that spawned it.
+/// per-copy lock (see `instance`) still held by the process that spawned it.
 fn wait_for_pid_exit(pid: u32) {
     use sysinfo::{Pid, System};
     let target = Pid::from_u32(pid);
@@ -2095,7 +2096,10 @@ pub(crate) const ARGV_VERBS: &[&str] = &[
     "restore-config",
 ];
 
-fn dispatch_control(app: &AppHandle, argv: &[String]) {
+/// Handle a second launch of this copy, forwarded over the control channel's `argv` verb
+/// (see `instance::forward`). `argv[0]` is the exe path (a placeholder when forwarded); the
+/// rest is the command, e.g. `moonpool.exe launch my-app`.
+pub(crate) fn dispatch_control(app: &AppHandle, argv: &[String]) {
     // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
     // are positional (action + app id) exactly as before.
     let raw: Vec<&str> = argv.iter().skip(1).map(String::as_str).collect();
@@ -2774,7 +2778,9 @@ fn hub_paths_report(app: &AppHandle) -> String {
          hub dumps dir:  {}\n\
          hub icons dir:  {}\n\
          hub portable:   {}\n\
-         hub exe:        {}",
+         hub exe:        {}\n\
+         hub copy:       {}\n\
+         hub channel:    {}",
         show(dir.clone()),
         sub("apps.json"),
         sub("state.json"),
@@ -2785,6 +2791,8 @@ fn hub_paths_report(app: &AppHandle) -> String {
         std::env::current_exe()
             .map(|p| p.display().to_string())
             .unwrap_or_else(|_| "<unknown>".into()),
+        instance::label(),
+        control::default_endpoint().display(),
     )
 }
 
@@ -2901,7 +2909,8 @@ fn build_tray(app: &AppHandle, locale: &str) -> tauri::Result<()> {
     let menu = tray_menu(app, locale)?;
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
-        .tooltip("Moonpool")
+        // Names the copy, so an installed Moonpool and portable ones are told apart in the tray.
+        .tooltip(instance::label())
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -2959,7 +2968,7 @@ fn startup_mode(args: &[String]) -> StartupMode {
         Some("mcp") => StartupMode::Mcp,
         Some("--uninstall") => StartupMode::Uninstall,
         // A malformed/missing pid is treated as a normal boot rather than a panic
-        // or a silent skip that would leave the relaunch racing the single-instance
+        // or a silent skip that would leave the relaunch racing the per-copy
         // lock; the caller controls this argument, so this is only defensive.
         Some("--wait-pid") => args
             .get(2)
@@ -2974,9 +2983,9 @@ pub fn run() {
     let args: Vec<String> = std::env::args().collect();
     match startup_mode(&args) {
         // MCP server entry point (`moonpool.exe mcp`, run by an agent client over
-        // stdio). Must come before the Tauri builder: the single-instance plugin
-        // would otherwise forward this argv to the resident window and exit, leaving
-        // the client talking to a process that is gone.
+        // stdio). Must come before the per-copy lock below, which would otherwise
+        // forward this argv to the resident hub and exit, leaving the client talking
+        // to a process that is gone.
         StartupMode::Mcp => {
             mcp::serve();
             return;
@@ -2987,15 +2996,45 @@ pub fn run() {
             install::run_uninstall();
             return;
         }
-        // A relaunch we spawned (install / portable) passes `--wait-pid <pid>`: wait
-        // for that parent (the installer or previous instance) to fully exit BEFORE
-        // we build anything. Otherwise the single-instance plugin below routes us
-        // straight back into the still-alive parent - which, for a bare relaunch,
-        // just re-surfaces the parent's window (the installer) instead of letting
-        // this fresh copy boot the hub.
+        // A relaunch we spawned (install / portable / update) passes `--wait-pid <pid>`:
+        // wait for that parent (the installer or previous instance) to fully exit BEFORE
+        // we take the per-copy lock below. Otherwise we would find the lock still held
+        // and forward straight back into the still-alive parent - which, for a bare
+        // relaunch, just re-surfaces the parent's window (the installer) instead of
+        // letting this fresh copy boot the hub.
         StartupMode::WaitForPid(pid) => wait_for_pid_exit(pid),
         StartupMode::Normal => {}
     }
+
+    // One Moonpool per folder (see `instance`): take this copy's lock, or hand our argv to
+    // the copy's running hub over its control channel and exit. Other copies (the installed
+    // one, other portable folders) have their own lock and channel and are not affected.
+    let relaunch = matches!(startup_mode(&args), StartupMode::WaitForPid(_));
+    let patience = if relaunch {
+        Duration::from_secs(5)
+    } else {
+        Duration::ZERO
+    };
+    let _instance_lock = match instance::acquire(patience) {
+        Ok(instance::Acquire::Owned(lock)) => Some(lock),
+        Ok(instance::Acquire::HeldElsewhere) => {
+            // A `--wait-pid` relaunch that still finds a hub only wants it surfaced.
+            let forwarded: &[String] = if relaunch {
+                &[]
+            } else {
+                args.get(1..).unwrap_or(&[])
+            };
+            let ok = instance::forward(forwarded);
+            std::process::exit(if ok { 0 } else { 1 });
+        }
+        // Could not create the lock at all (no data dir, odd filesystem): boot anyway rather
+        // than refuse to start. The control channel's exclusive bind still keeps a second hub
+        // of this copy from taking over the channel.
+        Err(e) => {
+            eprintln!("moonpool: per-copy lock unavailable ({e}); starting without it");
+            None
+        }
+    };
 
     // Remove a leftover `moonpool.old` from a prior self-update.
     update::cleanup_old();
@@ -3012,12 +3051,6 @@ pub fn run() {
     }
 
     tauri::Builder::default()
-        // Must be the FIRST plugin. A second run of the exe (Moonpool is already
-        // resident in the tray) forwards its args here instead of starting anew;
-        // this is the external control channel used by scripts/agents.
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            dispatch_control(app, &argv);
-        }))
         // Window size/position persistence is hand-rolled (see `winstate`): restored
         // in setup, saved eagerly on Resized/Moved below. We roll our own instead of
         // tauri-plugin-window-state so the state file lives in `moonpool_dir` (next to
@@ -3108,6 +3141,8 @@ pub fn run() {
             // the config value didn't take (the frontend draws its own title bar).
             if let Some(win) = handle.get_webview_window("main") {
                 let _ = win.set_decorations(false);
+                // Taskbar / Alt+Tab name: says which copy this is when it is a portable one.
+                let _ = win.set_title(instance::label());
                 let _ = win.set_always_on_top(always_on_top);
                 let _ = win.set_skip_taskbar(!show_in_taskbar);
                 // Restore the saved geometry (no-op -> config default on a missing or

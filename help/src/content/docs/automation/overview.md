@@ -6,11 +6,15 @@ description: The three ways to drive a running Moonpool from scripts and AI agen
 Moonpool can be driven without touching its window. There are three surfaces, all served by
 the same resident Moonpool (the tray instance, called the hub here).
 
+Each Moonpool copy is its own hub: the installed one and every portable copy run
+independently, each with its own control channel. A surface always reaches the copy whose
+`moonpool.exe` it uses. See [Portable mode](/guides/portable-mode/#several-copies-at-once).
+
 | Surface | What it is | Reference |
 | --- | --- | --- |
 | MCP server | `moonpool.exe mcp`, a stdio [MCP](https://modelcontextprotocol.io) server that an AI host starts. | [MCP setup](/automation/mcp-setup/), [MCP tools](/automation/mcp-tools/) |
-| Command line | `moonpool.exe <verb> [args]`. A second run hands the verb to the hub and exits. | [Command line](/automation/command-line/) |
-| Control channel | A named pipe, `\\.\pipe\moonpool`, on Windows and a Unix socket on Linux and macOS, speaking one JSON request per line. | [Control verbs](/automation/control-verbs/) |
+| Command line | `moonpool.exe <verb> [args]`. A second run of the same copy hands the verb to its hub over the control channel and exits. | [Command line](/automation/command-line/) |
+| Control channel | A named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` for a portable copy), on Windows and a Unix socket on Linux and macOS, speaking one JSON request per line. | [Control verbs](/automation/control-verbs/) |
 
 ## How they relate
 
@@ -25,8 +29,8 @@ the same resident Moonpool (the tray instance, called the hub here).
   "Moonpool is not running". There is no stale list. `moonpool_bootup_launcher` starts it.
   If something holds the channel but does not answer within a few seconds, the error says a
   Moonpool process may be hung.
-- A hub build that predates the control channel is still driven through
-  `moonpool.exe <verb>` and `state.json`, as a fallback.
+- The MCP server no longer falls back to driving a hub build that predates the control
+  channel. Update that copy, or quit it and start it again.
 
 ## What can change things
 
