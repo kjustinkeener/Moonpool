@@ -16,8 +16,8 @@ import starlight from '@astrojs/starlight';
 // Sidebar convention (shared across all apps): each top-level entry is a category
 // GROUP whose `label` is a non-navigable heading; only the `items` (pages) are links.
 export default defineConfig({
-	// `site` is used for canonical URLs / sitemap on the web build; harmless in-app.
-	site: 'https://moonpool.app',
+	// No `site` until the help has a real public address: it would only feed canonical
+	// URLs and the sitemap with a domain we do not own. Add it when the web help ships.
 	// Keep the help root useful without exposing a separate Home page.
 	redirects: {
 		'/': '/getting-started/overview/',
