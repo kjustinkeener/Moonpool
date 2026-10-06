@@ -5,11 +5,23 @@ description: The control channel (named pipe or Unix socket), its protocol, and 
 
 ## Where it listens
 
-On Windows, Moonpool listens on this named pipe:
+Every Moonpool copy has its own channel, so the installed Moonpool and any portable copies
+can run side by side without answering for each other. On Windows the installed Moonpool
+listens on this named pipe:
 
 ```text
 \\.\pipe\moonpool
 ```
+
+A portable copy adds an id made from its folder:
+
+```text
+\\.\pipe\moonpool-<id>
+```
+
+`<id>` is 8 hex digits derived from the copy's `moonpool-config` folder path, so it stays the
+same for that folder across restarts and updates, and changes if you move the folder. The
+`moonpool.exe` of a copy, including `moonpool.exe mcp`, always finds its own copy's channel.
 
 On Linux and macOS it listens on a Unix domain socket instead, with mode `0600`:
 
@@ -17,7 +29,7 @@ On Linux and macOS it listens on a Unix domain socket instead, with mode `0600`:
 | --- | --- |
 | Normal | `$XDG_RUNTIME_DIR/moonpool.sock` when that variable is set, else `moonpool.sock` in Moonpool's config folder |
 | Portable mode | `moonpool.sock` in the portable data folder, so a portable copy never collides with an installed one |
-| Path too long for a socket (about 100 characters) | `/tmp/moonpool-<uid>/moonpool.sock`, in a directory only you can open |
+| Path too long for a socket (about 100 characters) | `/tmp/moonpool-<uid>/moonpool.sock`, in a directory only you can open (`moonpool-<id>.sock` for a portable copy) |
 
 A socket file left behind by a crash is detected and replaced on the next start. A socket that
 something still answers on is never taken over. The file is removed when Moonpool quits
@@ -44,6 +56,9 @@ requests.
 
 A request and its reply from PowerShell:
 
+For a portable copy, use its pipe name (`moonpool-<id>`, shown by the `paths` verb) in
+place of `moonpool`.
+
 ```powershell frame="terminal"
 $p = New-Object System.IO.Pipes.NamedPipeClientStream('.', 'moonpool', 'InOut')
 $p.Connect(2000)
@@ -67,8 +82,7 @@ $r.ReadLine()
   after 45 s. If the hub window's UI has not loaded, it fails at once with `frontend not
   loaded`.
 - A Moonpool that starts while a previous one is still exiting retries binding the channel
-  for about 8 seconds. If it still cannot, it logs that and keeps running without it. The
-  command line still works.
+  for about 8 seconds. If it still cannot, it logs that and keeps running without it.
 
 ## Verbs
 
@@ -89,6 +103,7 @@ $r.ReadLine()
 | `read-config` | none | Path of `dumps\read-config.json`, which holds `token`, `valid`, `error`, `path`, `manifest_text`. |
 | `write-config` | `<source-file>` [`token`] | The new version token. Errors: `stale token: ...`, `rejected invalid manifest: ...`, `cannot read source ...`. |
 | `restore-config` | [`index` or `filename`] | No argument: path of `dumps\restore-config.json` (`count`, `snapshots`). With one: `restored <file> (<n> apps); new version token <token>`. |
+| `argv` | the command-line arguments | null, at once. Runs them exactly as a second `moonpool.exe <args>` of this copy would, including `--ticket`. This is how that second launch hands its arguments over before it exits. |
 
 Example exchanges:
 
