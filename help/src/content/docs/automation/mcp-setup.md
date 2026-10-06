@@ -99,7 +99,7 @@ Use the [command line](/automation/command-line/) from a shell outside the sandb
 
 Many apps in Moonpool are themselves reached by an MCP host through an `<exe> mcp` helper
 process. Moonpool looks for a process whose name matches the app's `processName` and whose
-first argument is `mcp`, such as `notes-app.exe mcp`.
+first argument is `mcp`, such as `notes-app.exe mcp`. If the server runs under another name, such as a renamed copy, set the app's `mcpProcessName` wildcard (see [Fields](/configuration/fields/#mcpprocessname)); a process matching it counts without the `mcp` argument.
 
 - While one is attached, the app's sidebar shows an MCP sub-row as running, and
   `moonpool_list_apps` appends `[mcp: running]` to the app's line. The helper does not count

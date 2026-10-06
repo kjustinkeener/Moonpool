@@ -155,6 +155,8 @@ export const zhHant: PartialDict = {
     "應用程式監聽的本機 TCP 連接埠。這個連接埠有回應時 Moonpool 會標示為「執行中」，停止時則會釋放它。web 類型的應用程式會用到。",
   "editor.processNameHint":
     "供 desktop 類型使用：判斷是否執行中、以及停止它所用的處理程序或執行檔名稱（不含 .exe）。在 Linux 上不能超過 15 個字元。",
+  "editor.mcpProcessNameHint":
+    "選填。此應用程式的 MCP 伺服器處理序名稱不是 processName 時使用的萬用字元模式（* 代表任意字串，? 代表單一字元），例如 mog 或 destiny-mcp-*。不分大小寫，比對完整名稱；.exe 可省略。相符的處理序會顯示為該應用程式的 MCP 伺服器列，且不需要 mcp 引數。",
   "editor.urlHint":
     "要開啟的網址：web 應用程式用 http://localhost:<port>，靜態頁面用 file:///path/to/index.html。使用 file:///{MP_HOME}/... 可保持可攜。",
   "editor.openBrowser": "開啟瀏覽器",

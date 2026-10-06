@@ -7,7 +7,7 @@
 // silently breaks something. The judgement calls, all of them made once here:
 //
 //  - **apps.json field labels** ("name", "group", "cwd", "command", "port",
-//    "processName", "killMode", "stopCommand", "url", "env", "note"). They are the literal JSON keys the
+//    "processName", "mcpProcessName", "killMode", "stopCommand", "url", "env", "note"). They are the literal JSON keys the
 //    user types into the file the editor is a front end for. A translated label
 //    beside an untranslatable key is a worse experience, not a better one. The
 //    *hints* next to them are translated; the identifiers are not.
@@ -245,6 +245,8 @@ export const en = {
   "editor.stopCommandHint": "Run in cwd when killMode is command, e.g. docker compose stop app. Finishes before a restart relaunches.",
   "editor.processNameHint":
     "For desktop apps: the process/executable name (without .exe) used to detect Running. It also kills every process with this name on Stop when killMode is processName (the default for desktop apps). On Linux it must be 15 characters or fewer.",
+  "editor.mcpProcessNameHint":
+    "Optional. A wildcard pattern (* for any run of characters, ? for one) for the process name of this app's MCP server, when it is not processName, e.g. mog or destiny-mcp-*. Case-insensitive, matches the whole name; .exe is optional. A matching process shows as the app's MCP server row and does not need the mcp argument.",
   "editor.urlHint":
     "The URL to open: http://localhost:<port> for a web app, or file:///path/to/index.html for a static page. Use file:///{MP_HOME}/... to stay portable.",
   "editor.openBrowser": "open browser",

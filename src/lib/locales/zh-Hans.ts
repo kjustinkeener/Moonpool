@@ -155,6 +155,8 @@ export const zhHans: PartialDict = {
     "应用监听的本地 TCP 端口。该端口有响应时 Moonpool 会标记为“运行中”，停止时会释放它。web 类型的应用会用到。",
   "editor.processNameHint":
     "用于 desktop 类型：判断是否在运行、以及停止它所用的进程名或可执行文件名（不含 .exe）。在 Linux 上不能超过 15 个字符。",
+  "editor.mcpProcessNameHint":
+    "可选。此应用的 MCP 服务器进程名不是 processName 时使用的通配符模式（* 匹配任意字符串，? 匹配单个字符），例如 mog 或 destiny-mcp-*。不区分大小写，匹配完整名称；.exe 可省略。匹配的进程会显示为该应用的 MCP 服务器行，且不需要 mcp 参数。",
   "editor.urlHint":
     "要打开的网址：web 应用用 http://localhost:<port>，静态页面用 file:///path/to/index.html。用 file:///{MP_HOME}/... 可保持便携。",
   "editor.openBrowser": "打开浏览器",

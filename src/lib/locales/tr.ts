@@ -162,6 +162,8 @@ export const tr: PartialDict = {
     "Uygulamanın dinlediği yerel TCP bağlantı noktası. Bu bağlantı noktası yanıt verdiğinde Moonpool uygulamayı Çalışıyor olarak gösterir, Durdur ile de bu noktayı serbest bırakır. Web uygulamalarında kullanılır.",
   "editor.processNameHint":
     "Masaüstü uygulamaları için: Çalışıyor durumunu algılamak ve uygulamayı durdurmak için kullanılan süreç/çalıştırılabilir dosya adı (.exe olmadan). Linux'ta en fazla 15 karakter olabilir.",
+  "editor.mcpProcessNameHint":
+    "İsteğe bağlı. Bu uygulamanın MCP sunucusunun süreç adı processName değilse kullanılan joker karakterli desen (* herhangi bir karakter dizisi, ? tek karakter), örn. mog veya destiny-mcp-*. Büyük/küçük harf duyarsızdır ve adın tamamıyla eşleşir; .exe isteğe bağlıdır. Eşleşen süreç uygulamanın MCP sunucusu satırı olarak görünür ve mcp bağımsız değişkenine gerek duymaz.",
   "editor.urlHint":
     "Açılacak URL: bir web uygulaması için http://localhost:<port>, statik bir sayfa için file:///path/to/index.html. Taşınabilir kalması için file:///{MP_HOME}/... kullanın.",
   "editor.openBrowser": "tarayıcıyı aç",

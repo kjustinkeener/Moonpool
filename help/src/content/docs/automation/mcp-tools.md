@@ -41,7 +41,7 @@ notes-app  [stopped]  [mcp: stopped]  Notes App
 | `moonpool_stop_app` | `app_id` (required) | Stops the app. Returns "stopped", or an error such as `still running after stop` (after 15 s). |
 | `moonpool_restart_app` | `app_id` (required) | Stop, wait for the port and process to free, start. Returns "restarted". |
 | `moonpool_app_output` | `app_id` (required), `tail_lines` (integer, default 200, minimum 1) | The app's terminal output for the current Moonpool session, ANSI codes removed. When the log is longer than `tail_lines`, the text starts with a line giving the full log's path. Fails with `no console output recorded for '<id>' (not launched this session)` if the app has not run. If the log exists but is empty, returns `(no output recorded for '<id>')`. |
-| `moonpool_stop_mcp_server` | `app_id` (required) | Kills the app's attached MCP helper process and leaves the app running. Returns "stopped". Does nothing if the app has no `processName`. |
+| `moonpool_stop_mcp_server` | `app_id` (required) | Kills the app's attached MCP helper process and leaves the app running. Returns "stopped". Does nothing if the app has neither `processName` nor `mcpProcessName`. |
 | `moonpool_refresh_app_icons` | none | Re-fetches every app icon. Returns "icons refreshed". |
 
 ## Configuration

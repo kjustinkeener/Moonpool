@@ -39,6 +39,10 @@ variable form, and then edit a file the real Moonpool never sees.
   "env": { "PORT": "5173" },     // optional env vars injected into the command
   "processName": "app",          // desktop: status by process name (its .exe, without extension;
                                  //   on Linux 15 characters or fewer, longer names are truncated)
+  "mcpProcessName": "app-mcp-*",   // optional wildcard (* any run, ? one char; case-insensitive, whole name,
+                                 //   .exe optional) for this app's MCP server process, when it is not
+                                 //   `processName` or is a renamed copy. A match needs no `mcp` argument
+                                 //   (unless the pattern also matches `processName`). Shown as the MCP sub-row.
   "killMode": "port",            // how stop/restart finds & kills what this app left running,
                                   //   beyond the PTY tree Moonpool already tree-kills unconditionally.
                                   //   One of: "processName" | "port" | "command" | "none".

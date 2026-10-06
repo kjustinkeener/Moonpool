@@ -157,6 +157,8 @@ export const ko: PartialDict = {
     "앱이 대기하는 로컬 TCP 포트입니다. 이 포트가 응답하면 Moonpool이 실행 중으로 표시하고, 중지할 때 포트를 해제합니다. web 앱에서 사용합니다.",
   "editor.processNameHint":
     "desktop 앱용: 실행 여부를 감지하고 중지할 때 사용하는 프로세스/실행 파일 이름입니다 (.exe 제외). Linux에서는 15자 이하여야 합니다.",
+  "editor.mcpProcessNameHint":
+    "선택 사항. 이 앱의 MCP 서버 프로세스 이름이 processName이 아닐 때 쓰는 와일드카드 패턴입니다(* 는 임의의 문자열, ? 는 한 글자). 예: mog 또는 destiny-mcp-*. 대소문자를 구분하지 않고 이름 전체에 일치하며 .exe는 생략할 수 있습니다. 일치하는 프로세스는 앱의 MCP 서버 행으로 표시되며 mcp 인수가 필요하지 않습니다.",
   "editor.urlHint":
     "열려는 URL입니다. web 앱은 http://localhost:<port>, 정적 페이지는 file:///path/to/index.html 을 사용합니다. 이동이 가능하도록 file:///{MP_HOME}/... 를 사용하세요.",
   "editor.openBrowser": "브라우저 열기",

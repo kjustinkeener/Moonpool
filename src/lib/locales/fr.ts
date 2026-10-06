@@ -161,6 +161,8 @@ export const fr: PartialDict = {
     "Le port TCP local sur lequel l'app écoute. Moonpool l'indique « en cours » quand ce port répond, et le libère à l'arrêt. Utilisé par les apps web.",
   "editor.processNameHint":
     "Pour les apps de bureau : le nom du processus ou de l'exécutable (sans .exe) utilisé pour détecter son exécution et l'arrêter. Sous Linux il ne doit pas dépasser 15 caractères.",
+  "editor.mcpProcessNameHint":
+    "Facultatif. Un motif à caractères génériques (* pour toute suite de caractères, ? pour un seul) pour le nom de processus du serveur MCP de cette app, quand ce n'est pas processName, p. ex. mog ou destiny-mcp-*. Insensible à la casse, appliqué au nom entier ; .exe est facultatif. Un processus correspondant s'affiche comme la ligne du serveur MCP de l'app et n'a pas besoin de l'argument mcp.",
   "editor.urlHint":
     "L'URL à ouvrir : http://localhost:<port> pour une app web, ou file:///path/to/index.html pour une page statique. Utilisez file:///{MP_HOME}/... pour rester portable.",
   "editor.openBrowser": "ouvrir le navigateur",

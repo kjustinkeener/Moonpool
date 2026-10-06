@@ -9,6 +9,7 @@ export interface AppEntry {
   command?: string;
   port?: number;
   processName?: string;
+  mcpProcessName?: string;
   killMode?: "processName" | "port" | "command" | "none";
   stopCommand?: string;
   url?: string;
