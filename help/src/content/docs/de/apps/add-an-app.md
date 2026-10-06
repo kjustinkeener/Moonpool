@@ -30,7 +30,7 @@ Das Ergebnis ist ein Eintrag in `apps.json`, zum Beispiel:
   "group": "Dev",
   "type": "web",
   "command": "npm run dev",
-  "cwd": "C:\code\my-api",
+  "cwd": "C:\\code\\my-api",
   "port": 3000,
   "url": "http://localhost:3000"
 }

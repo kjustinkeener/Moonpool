@@ -16,7 +16,7 @@ Installiert ist das Programm `%USERPROFILE%\.moonpool\moonpool.exe`. Portabel is
   "mcpServers": {
     "moonpool": {
       "type": "stdio",
-      "command": "C:\Users\you\.moonpool\moonpool.exe",
+      "command": "C:\\Users\\you\\.moonpool\\moonpool.exe",
       "args": ["mcp"]
     }
   }
@@ -47,12 +47,12 @@ ein Agent mehrere nutzen kann, registrieren Sie jede unter einem eigenen Namen u
   "mcpServers": {
     "moonpool": {
       "type": "stdio",
-      "command": "C:\Users\you\.moonpool\moonpool.exe",
+      "command": "C:\\Users\\you\\.moonpool\\moonpool.exe",
       "args": ["mcp"]
     },
     "moonpool-work": {
       "type": "stdio",
-      "command": "D:\Work\.moonpool\moonpool.exe",
+      "command": "D:\\Work\\.moonpool\\moonpool.exe",
       "args": ["mcp"]
     }
   }
