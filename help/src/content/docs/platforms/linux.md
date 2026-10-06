@@ -65,7 +65,7 @@ use your package manager. See [Updating](/guides/updating/).
 ```text
 ~/.config/Moonpool/              (or $XDG_CONFIG_HOME/Moonpool/)
 ~/.config/Moonpool/apps.json
-~/.config/Moonpool/dashboards/   (example dashboards)
+~/.config/Moonpool/dashboards/examples/   (example dashboards)
 ```
 
 `apps.json` is seeded from the example on first run. See
