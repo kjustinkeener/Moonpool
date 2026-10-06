@@ -326,16 +326,16 @@
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.02em;
-    color: #d99a26;
-    background: color-mix(in srgb, #d99a26 16%, transparent);
-    border: 1px solid color-mix(in srgb, #d99a26 45%, transparent);
+    color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent);
     border-radius: 4px;
     padding: 0 5px;
     line-height: 15px;
     cursor: help;
   }
   input.warned {
-    border-color: color-mix(in srgb, #d99a26 55%, var(--border));
+    border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
   }
   input,
   select,

@@ -18,11 +18,13 @@
     manifestDir,
     cliOutputDir,
     revealCliOutputDir,
+    openThemesWindow,
   } from "./api";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-  import { getTheme, setTheme, THEMES, type Theme } from "./theme";
+  import { getTheme, setTheme, THEMES, themeLabel, type Theme } from "./theme";
   import { t, localeChoice, LOCALES, setLocale } from "./i18n.svelte";
-  import { emit } from "@tauri-apps/api/event";
+  import { emit, listen } from "@tauri-apps/api/event";
+  import type { UnlistenFn } from "@tauri-apps/api/event";
   import brandIcon from "../assets/app-icon.png";
   import wordmark from "../assets/moonpool-wordmark-text.png";
   import Icon from "./Icon.svelte";
@@ -77,17 +79,6 @@
   let cliDir = $state("");
   const logPathText = $derived(dir ? `${dir}${dir.includes("\\") ? "\\" : "/"}moonpool.log` : "");
 
-  // Named palettes (Nord, Gruvbox, ...) are proper nouns and stay as written in
-  // theme.ts; only the three generic ids have a translatable name.
-  const themeLabel = (id: string, label: string) =>
-    id === "auto"
-      ? t("common.autoSystem")
-      : id === "dark"
-        ? t("theme.dark")
-        : id === "light"
-          ? t("theme.light")
-          : label;
-
   let locale = $state(localeChoice());
   async function pickLocale(id: string) {
     locale = id;
@@ -96,13 +87,15 @@
     emit("settings:locale", id).catch(() => {});
   }
 
+  // The theme itself is picked in the theme browser window (a button here opens
+  // it). That window persists + broadcasts "settings:theme"; follow it so the
+  // button label tracks the choice and this window retints too.
   let theme = $state<Theme>(getTheme());
-  function pickTheme(t: Theme) {
-    theme = t;
-    setTheme(t);
-    // Sync other windows (e.g. the main hub) live.
-    emit("settings:theme", t).catch(() => {});
-  }
+  const themeName = $derived.by(() => {
+    const th = THEMES.find((x) => x.id === theme);
+    return th ? themeLabel(th.id, th.label) : themeLabel("auto", "");
+  });
+  let unlistenTheme: UnlistenFn | null = null;
 
   // Live-apply the app-wide background opacity in this window, and broadcast so
   // the main window updates without waiting for a reload.
@@ -174,6 +167,10 @@
   }
 
   onMount(async () => {
+    unlistenTheme = await listen<Theme>("settings:theme", (e) => {
+      theme = e.payload;
+      setTheme(e.payload);
+    });
     try {
       const s = await getSettings();
       debugLogging = s.debugLogging;
@@ -201,7 +198,10 @@
   });
 
   // Cancel a pending debounced transparency save if the window closes first.
-  onDestroy(() => clearTimeout(saveTimer));
+  onDestroy(() => {
+    clearTimeout(saveTimer);
+    unlistenTheme?.();
+  });
 
   // Every boolean setting follows the same save/rollback/reset shape; this one
   // helper drives all of them instead of a hand-rolled toggle+reset pair per row.
@@ -349,16 +349,15 @@
 
   <div class="setting">
     <div class="title">{t("settings.theme")}</div>
-    <select
-      class="theme-select"
-      aria-label={t("settings.theme")}
-      value={theme}
-      onchange={(e) => pickTheme((e.target as HTMLSelectElement).value)}
+    <button
+      class="theme-select theme-btn"
+      title={t("settings.themeBrowse")}
+      aria-label={t("settings.theme") + ": " + themeName}
+      onclick={() => openThemesWindow().catch(() => {})}
     >
-      {#each THEMES as th (th.id)}
-        <option value={th.id}>{themeLabel(th.id, th.label)}</option>
-      {/each}
-    </select>
+      <span class="theme-name">{themeName}</span>
+      <Icon name="chevron-right" size={12} width={2.2} />
+    </button>
   </div>
 
   <label class="row" title={t("settings.closeToTrayHint") + " " + t("settings.resetTip")}>
@@ -746,6 +745,22 @@
   .theme-select:focus {
     outline: none;
     border-color: var(--focus);
+  }
+  .theme-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+    font-family: inherit;
+  }
+  .theme-btn:hover {
+    border-color: var(--border-strong);
+  }
+  .theme-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .log-card {
     border: 1px solid var(--border);

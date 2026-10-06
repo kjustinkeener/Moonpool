@@ -100,6 +100,20 @@ export const fr: PartialDict = {
 
   "theme.dark": "Sombre",
   "theme.light": "Clair",
+  "theme.group.core": "Essentiels",
+  "theme.group.neon": "Néon",
+  "theme.group.warm": "Chauds",
+  "theme.group.cool": "Froids",
+  "theme.group.greens": "Verts",
+  "theme.group.neutral": "Neutres",
+  "theme.group.light": "Clairs",
+  "theme.group.blush": "Rosés",
+  "theme.group.bright": "Vifs",
+  "theme.group.lightPastel": "Pastel clair",
+  "theme.group.pastel": "Pastel",
+  "themes.title": "Thèmes",
+  "themes.hint": "Cliquez sur un thème pour l'appliquer à toutes les fenêtres. Échap ferme.",
+  "settings.themeBrowse": "Parcourir les thèmes",
 
   "installer.tagline":
     "Un lanceur dans la zone de notification pour vos apps locales et serveurs de développement.",

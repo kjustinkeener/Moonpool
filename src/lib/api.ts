@@ -151,6 +151,33 @@ export async function openAboutWindow(): Promise<void> {
   w.once("tauri://error", (e) => console.error("about window", e));
 }
 
+// Open (or focus) the detached theme browser (loads the app at #themes). Opened
+// from the Settings theme button; frameless like Settings, resizable because
+// the number of cards per row follows the width.
+export async function openThemesWindow(): Promise<void> {
+  const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+  const existing = await WebviewWindow.getByLabel("themes");
+  if (existing) {
+    await existing.show().catch(() => {});
+    await existing.setFocus().catch(() => {});
+    return;
+  }
+  const w = new WebviewWindow("themes", {
+    url: "index.html#themes",
+    title: "Moonpool Themes",
+    width: 760,
+    height: 640,
+    minWidth: 420,
+    minHeight: 360,
+    resizable: true,
+    center: true,
+    decorations: false,
+    transparent: true,
+    alwaysOnTop: await alwaysOnTopNow(),
+  });
+  w.once("tauri://error", (e) => console.error("themes window", e));
+}
+
 // Open the detached app-editor window (loads the app at #editor, or
 // #editor:<id> to edit an existing app). A real OS window so the form has room
 // regardless of how narrow the hub is. Any open editor is replaced, so the
@@ -365,7 +392,7 @@ export const onTermExit = (cb: (id: string) => void): Promise<UnlistenFn> =>
 // External control channel: commands forwarded from a second `moonpool.exe` run of this copy,
 // or sent over the control pipe/socket, that the UI executes as if the user had clicked.
 export interface ControlCommand {
-  action: "launch" | "stop" | "restart" | "reload" | "refresh-icons" | "help";
+  action: "launch" | "stop" | "restart" | "reload" | "refresh-icons" | "help" | "open-window";
   arg: string | null;
   /** Caller-supplied correlation key; when set, the outcome is reported back. */
   ticket: string | null;
