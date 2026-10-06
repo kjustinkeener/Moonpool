@@ -169,6 +169,20 @@ export const en = {
   // -- theme picker (only the generic three; named palettes are proper nouns) -
   "theme.dark": "Dark",
   "theme.light": "Light",
+  "theme.group.core": "Core",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Warm",
+  "theme.group.cool": "Cool",
+  "theme.group.greens": "Greens",
+  "theme.group.neutral": "Neutral",
+  "theme.group.light": "Light",
+  "theme.group.blush": "Blush",
+  "theme.group.bright": "Bright",
+  "theme.group.lightPastel": "Light pastel",
+  "theme.group.pastel": "Pastel",
+  "themes.title": "Themes",
+  "themes.hint": "Click a theme to apply it in every window. Esc closes.",
+  "settings.themeBrowse": "Browse themes",
 
   // -- installer ------------------------------------------------------------
   "installer.tagline": "A tray launcher for your local apps & dev servers.",

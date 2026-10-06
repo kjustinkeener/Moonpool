@@ -6,7 +6,7 @@
   import { launchApp, termInput, termResize, onTermOutput, onTermExit, runLogBytes } from "./api";
   import { onThemeChange } from "./theme";
   import { scrollFade } from "./scrollfade";
-  import { ansiFor } from "./ansi";
+  import { xtermColors } from "./ansi";
   import { t } from "./i18n.svelte";
   import Icon from "./Icon.svelte";
   import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
@@ -99,7 +99,10 @@
       background: "rgba(0,0,0,0)",
       foreground: fg,
       cursor: fg,
-      ...ansiFor(id),
+      // xterm's default selection is translucent white, which vanishes on a
+      // light palette; tint it with the theme's own text color instead.
+      selectionBackground: /^#[0-9a-f]{6}$/i.test(fg) ? `${fg}40` : "rgba(128,128,128,0.35)",
+      ...xtermColors(id),
     };
   }
   function onSchemeChange() {
