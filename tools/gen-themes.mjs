@@ -49,7 +49,7 @@ const TOKEN_MAP = [
   ["--edge", "edge"], ["--edge-soft", "edgeSoft"], ["--hover", "hover"], ["--panel", "panel"],
 ];
 
-// --- color helpers (audit only; the CSS itself uses color-mix) -----------------
+// --- color helpers (audit + the contrast floors; the CSS itself uses color-mix) --
 
 function hexToRgb(h) {
   const m = h.replace("#", "");
@@ -79,6 +79,30 @@ function onRun(fillHex) {
   return contrast([255, 255, 255], a) > contrast([5, 42, 48], a) ? "#ffffff" : "#052a30";
 }
 
+// Contrast floors for the derived text ramp. Several pattern palettes put --muted
+// (hints, the apps.json banner hint, editor help text) near 2.3:1 and the 58% dim
+// mix (group labels, counts) below 3:1, so both are pulled toward --fg until they
+// clear the floor. Palettes that already clear it are emitted unchanged.
+const MUTED_MIN = 4;
+const DIM_MIN = 3;
+
+// Percent of --fg (rest --bg) for --text-dim: 58 unless that falls under DIM_MIN.
+function dimPct(t) {
+  const fg = hexToRgb(t.colors.fg);
+  let p = 58;
+  while (p < 80 && contrast(mix(fg, t.colors.bg, p / 100), t.colors.bg) < DIM_MIN) p += 2;
+  return p;
+}
+
+// --text-muted: --muted as is, or mixed toward --fg just enough to reach MUTED_MIN.
+function mutedExpr(t) {
+  const muted = hexToRgb(t.colors.muted);
+  const fg = hexToRgb(t.colors.fg);
+  let p = 100;
+  while (p > 40 && contrast(mix(muted, fg, p / 100), t.colors.bg) < MUTED_MIN) p -= 5;
+  return p === 100 ? "var(--muted)" : `color-mix(in srgb, var(--muted) ${p}%, var(--fg))`;
+}
+
 // --- the bridge -------------------------------------------------------------
 
 // Ratios live here so a tweak is one edit. "light" = a light-ground palette.
@@ -106,8 +130,8 @@ function bridge(t) {
     "--text": "var(--fg)",
     "--text-strong": m("var(--fg)", r.strong, strongEnd),
     "--text-secondary": m("var(--fg)", 80),
-    "--text-muted": "var(--muted)",
-    "--text-dim": m("var(--fg)", 58),
+    "--text-muted": mutedExpr(t),
+    "--text-dim": m("var(--fg)", dimPct(t)),
     "--text-faint": m("var(--fg)", 34),
     "--on-accent": onAccent(blue),
     "--accent": blue,
@@ -188,7 +212,7 @@ function audit() {
     const worst = [
       ["text", contrast(fg, bg)],
       ["secondary", contrast(at(80), bg)],
-      ["dim", contrast(at(58), bg)],
+      ["dim", contrast(at(dimPct(t)), bg)],
       ["accent", contrast(hexToRgb(set[4]), bg)],
       ["link", contrast(hexToRgb(set[12]), bg)],
       ["danger", contrast(hexToRgb(set[1]), bg)],
