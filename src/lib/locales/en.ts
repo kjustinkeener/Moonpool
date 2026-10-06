@@ -78,6 +78,10 @@ export const en = {
   "sidebar.portConflict": "{names} are both on port {port}",
   "sidebar.portConflictBadge": "port {port}: {names}",
   "sidebar.noMatch": "No apps match “{filter}”.",
+  // Banner over the app list while apps.json fails to load (see Sidebar.svelte).
+  "sidebar.manifestErrorStale": "apps.json has an error, showing the last list that loaded.",
+  "sidebar.manifestErrorEmpty": "apps.json has an error, so no apps are loaded.",
+  "sidebar.manifestErrorHint": "Fix the file, then reload (F5). Saving from Moonpool is paused until then.",
 
   // -- hub ------------------------------------------------------------------
   "app.dragToResize": "Drag to resize",

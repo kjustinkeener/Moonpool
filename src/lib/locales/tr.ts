@@ -40,6 +40,9 @@ export const tr: PartialDict = {
   "sidebar.portConflict": "{names} aynı {port} bağlantı noktasını kullanıyor",
   "sidebar.portConflictBadge": "bağlantı noktası {port}: {names}",
   "sidebar.noMatch": "“{filter}” ile eşleşen uygulama yok.",
+  "sidebar.manifestErrorStale": "apps.json dosyasında hata var; en son yüklenen liste gösteriliyor.",
+  "sidebar.manifestErrorEmpty": "apps.json dosyasında hata var, bu yüzden hiçbir uygulama yüklenmedi.",
+  "sidebar.manifestErrorHint": "Dosyayı düzeltip yeniden yükleyin (F5). O zamana kadar Moonpool kaydetmez.",
 
   "app.dragToResize": "Yeniden boyutlandırmak için sürükleyin",
   "app.closeTab": "Sekmeyi kapat",

@@ -565,9 +565,49 @@ fn list_apps() -> Result<String, String> {
     }
 }
 
-/// Flatten a `{apps, statuses, statusNotReady?}` snapshot (the `list` reply, or `state.json`)
-/// into one line per app so an agent reads it without walking two parallel arrays.
+/// The line `moonpool_list_apps` leads with while apps.json is broken (`manifestError` on the
+/// `list` reply), so an agent cannot mistake the kept list for the file's current contents.
+fn manifest_error_line(snapshot: &Value) -> Option<String> {
+    let error = snapshot.get("manifestError").and_then(Value::as_str)?;
+    let loaded = snapshot
+        .get("manifestLoaded")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    Some(if loaded {
+        format!(
+            "apps.json has an error: {error}. This list is the last one that loaded; fix the \
+             file and call moonpool_reload_config."
+        )
+    } else {
+        format!(
+            "apps.json has an error: {error}. It was already broken when Moonpool started, so \
+             no apps are loaded; fix the file and call moonpool_reload_config, or roll back to a \
+             known-good copy with moonpool_restore_config."
+        )
+    })
+}
+
+/// Flatten a `{apps, statuses, statusNotReady?, manifestError?}` snapshot (the `list` reply,
+/// or `state.json`) into one line per app so an agent reads it without walking two parallel
+/// arrays. A broken apps.json leads the output (see `manifest_error_line`).
 fn format_apps(snapshot: &Value) -> String {
+    let list = format_app_lines(snapshot);
+    match manifest_error_line(snapshot) {
+        // Never loaded: the empty list is because of the error, not "nothing registered".
+        Some(line)
+            if snapshot.get("manifestLoaded").and_then(Value::as_bool) == Some(false)
+                && list == NO_APPS =>
+        {
+            line
+        }
+        Some(line) => format!("{line}\n\n{list}"),
+        None => list,
+    }
+}
+
+const NO_APPS: &str = "No apps registered in apps.json.";
+
+fn format_app_lines(snapshot: &Value) -> String {
     let empty = vec![];
     let apps = snapshot
         .get("apps")
@@ -578,7 +618,7 @@ fn format_apps(snapshot: &Value) -> String {
         .and_then(Value::as_array)
         .unwrap_or(&empty);
     if apps.is_empty() {
-        return "No apps registered in apps.json.".into();
+        return NO_APPS.into();
     }
     let not_ready = snapshot
         .get("statusNotReady")
@@ -850,7 +890,7 @@ fn tool_list() -> Value {
     json!([
         {
             "name": "moonpool_list_apps",
-            "description": "List every app registered with Moonpool and whether it is currently running. Start here: the other tools need an app id from this list.",
+            "description": "List every app registered with Moonpool and whether it is currently running. Start here: the other tools need an app id from this list. If apps.json currently has an error, the output leads with it and the list is the last one that loaded.",
             "inputSchema": no_args_schema()
         },
         {
@@ -897,7 +937,7 @@ fn tool_list() -> Value {
         },
         {
             "name": "moonpool_reload_config",
-            "description": "Re-read apps.json. Call this after editing the manifest so Moonpool picks up added or changed apps.",
+            "description": "Re-read apps.json. Call this after editing the manifest so Moonpool picks up added or changed apps. If the file does not parse or validate, this fails with the error and Moonpool keeps the last list that loaded (moonpool_list_apps flags it) until a reload succeeds.",
             "inputSchema": no_args_schema()
         },
         {
@@ -1612,6 +1652,38 @@ mod channel_tests {
             format_apps(&json!({ "apps": [], "statuses": [] })),
             "No apps registered in apps.json."
         );
+    }
+
+    #[test]
+    fn leads_with_the_manifest_error_when_the_list_is_the_last_good_one() {
+        let mut snap = fixture();
+        snap["manifestError"] = json!("invalid apps.json: expected `,`; file preserved");
+        let out = format_apps(&snap);
+        assert!(
+            out.starts_with(
+                "apps.json has an error: invalid apps.json: expected `,`; file preserved. \
+                 This list is the last one that loaded; fix the file and call \
+                 moonpool_reload_config.\n\n"
+            ),
+            "{out}"
+        );
+        // The kept list still follows, unchanged.
+        assert!(out.ends_with(&format_apps(&fixture())), "{out}");
+    }
+
+    #[test]
+    fn says_no_list_loaded_when_broken_at_launch() {
+        let snap = json!({
+            "apps": [],
+            "statuses": [],
+            "manifestError": "bad",
+            "manifestLoaded": false
+        });
+        let out = format_apps(&snap);
+        assert!(out.starts_with("apps.json has an error: bad."), "{out}");
+        assert!(out.contains("no apps are loaded"), "{out}");
+        assert!(out.contains("moonpool_restore_config"), "{out}");
+        assert!(!out.contains("No apps registered"), "{out}");
     }
 
     #[test]

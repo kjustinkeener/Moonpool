@@ -40,6 +40,9 @@ export const zhHans: PartialDict = {
   "sidebar.portConflict": "{names} 都占用端口 {port}",
   "sidebar.portConflictBadge": "端口 {port}：{names}",
   "sidebar.noMatch": "没有与“{filter}”匹配的应用。",
+  "sidebar.manifestErrorStale": "apps.json 有错误，当前显示的是上次成功加载的列表。",
+  "sidebar.manifestErrorEmpty": "apps.json 有错误，因此没有加载任何应用。",
+  "sidebar.manifestErrorHint": "请修正该文件，然后重新加载 (F5)。在此之前，Moonpool 暂停保存。",
 
   "app.dragToResize": "拖动以调整大小",
   "app.closeTab": "关闭标签页",

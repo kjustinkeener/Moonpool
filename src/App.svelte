@@ -6,6 +6,7 @@
     stopApp,
     openUrl,
     reloadManifest,
+    manifestStatus,
     openManifest,
     manifestDir,
     saveManifest,
@@ -24,6 +25,7 @@
     updateApply,
     openHelpWindow,
     type UpdateInfo,
+    type ManifestStatus,
   } from "./lib/api";
   import { listen } from "@tauri-apps/api/event";
   import { setTheme, type Theme } from "./lib/theme";
@@ -42,6 +44,12 @@
 
   let apps = $state<AppEntry[]>([]);
   let persistenceError = $state("");
+  // apps.json load state from the hub. While `error` is set the sidebar shows a banner
+  // over the (dimmed) last good list; it clears once a reload succeeds.
+  let manifest = $state<ManifestStatus>({ error: null, loaded: true });
+  async function refreshManifestStatus() {
+    manifest = await manifestStatus().catch(() => manifest);
+  }
   let statuses = $state<Record<string, AppStatus>>({});
   let openTabs = $state<string[]>([]);
   let activeTab = $state<string | null>(null);
@@ -470,6 +478,7 @@
     } catch (e) {
       persistenceError = `Could not load apps.json: ${String(e)}`;
     }
+    await refreshManifestStatus();
     manifestDir()
       .then((d) => (cfgDir = d))
       .catch(() => {});
@@ -563,9 +572,10 @@
             }
             return done(true, null);
           }
-          case "reload":
-            await handleReload();
-            return done(true, null);
+          case "reload": {
+            const error = await handleReload();
+            return error ? done(false, error) : done(true, null);
+          }
           case "refresh-icons":
             await loadAllIcons(true);
             return done(true, null);
@@ -687,15 +697,29 @@
     activeTab = app.id;
   }
 
-  async function handleReload() {
+  // Returns null on success, else the reason (reported back to a control-channel caller).
+  // A failed reload keeps the current list; the sidebar banner says so, so it is not
+  // repeated in the dismissible error strip.
+  async function handleReload(): Promise<string | null> {
+    let error: string | null = null;
     try {
       apps = await reloadManifest();
       persistenceError = "";
       iconSrc = {};
       loadAllIcons(true);
     } catch (e) {
-      persistenceError = `Could not reload apps.json: ${String(e)}`;
+      error = String(e);
     }
+    await refreshManifestStatus();
+    if (!error) return null;
+    if (!manifest.error) {
+      // Not a manifest problem (the hub would have recorded it); show it the old way.
+      persistenceError = `Could not reload apps.json: ${error}`;
+      return error;
+    }
+    return manifest.loaded
+      ? `apps.json has an error: ${error}. Moonpool kept the last list that loaded; fix the file and reload again.`
+      : `apps.json has an error: ${error}. No list has loaded since Moonpool started; fix the file (or restore a known-good copy) and reload again.`;
   }
   // F5 or Ctrl/Cmd+R reloads the manifest from disk (same as the menu Reload),
   // instead of the webview's default page refresh.
@@ -805,6 +829,8 @@
       updateWaiting={!!update && !updateDone}
       {showMcpProcesses}
       {clashes}
+      manifestError={manifest.error}
+      manifestLoaded={manifest.loaded}
     />
   </div>
   <div
