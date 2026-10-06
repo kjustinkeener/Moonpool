@@ -48,5 +48,7 @@ default.
 
 ## See also
 
+- [Run an npm dev server in the background on Windows](/guides/run-npm-dev-server-in-background-windows/)
+- [Start a script or dev server automatically at Windows login](/guides/start-app-at-windows-login/)
 - [Settings window](/using/settings/)
 - [The hub window](/using/hub-window/)

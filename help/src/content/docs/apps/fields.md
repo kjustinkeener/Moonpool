@@ -45,6 +45,9 @@ An entry using `env` and `killMode`:
 }
 ```
 
+See [Find and kill the process using a port](/guides/find-and-kill-process-using-port-windows/)
+for how `port` and `killMode` work together.
+
 ## mcpProcessName
 
 By default Moonpool treats a process as the app's MCP server when its name matches

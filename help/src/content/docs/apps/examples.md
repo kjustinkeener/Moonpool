@@ -153,3 +153,5 @@ Paths anchor to the portable folder, so the entry still works after the folder m
 
 - [Example dashboards](/getting-started/example-dashboards/): the dashboards that ship with Moonpool.
 - [App fields](/apps/fields/)
+- [Run an npm dev server in the background on Windows](/guides/run-npm-dev-server-in-background-windows/)
+- [Keep a Python script running in the background on Windows](/guides/keep-python-script-running-background-windows/)

@@ -125,5 +125,6 @@ More in [Troubleshooting](/support/troubleshooting/#mcp-and-script-errors).
 
 ## See also
 
+- [Give an AI agent (Claude Code, Codex, Cursor) an MCP server to start and stop local apps](/guides/mcp-server-for-ai-agent-to-start-stop-local-apps/)
 - [MCP tools](/automation/mcp-tools/)
 - [AI agents: quick start](/automation/quick-start/)
