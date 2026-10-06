@@ -85,9 +85,11 @@ beenden, launch = starten. Windows SmartScreen: "Der Computer wurde durch Window
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
-- Sidebar page labels: the third argument of `page(...)` in `help/astro.config.mjs` is the German
-  label; add another language with the `extra` argument (`page(slug, en, de, { fr: '...' })`),
-  using the tag from the table above (`pt-BR`, `zh-Hans`).
+- Sidebar page labels: German is the third argument of `page(...)` in `help/astro.config.mjs`.
+  Every other language goes in its own file, `help/sidebar-labels/<tag>.json`, using the tag from
+  the table above (`fr.json`, `pt-BR.json`, `zh-Hans.json`). It maps each page slug from
+  `astro.config.mjs` to its label: `{ "index": "...", "apps/fields": "..." }`. Do not edit
+  `astro.config.mjs` or `locales.mjs` for a new language's labels.
 - Web-only Download link and footer line: `WEB_STRINGS` in `help/locales.mjs`.
 - Starlight's own UI text (search, "On this page", ...) comes from Starlight's built-in
   translations. `zh-Hant` has no built-in entry under that tag, so `src/content/i18n/zh-hant.json`
