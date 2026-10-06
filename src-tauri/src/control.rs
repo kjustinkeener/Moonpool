@@ -498,6 +498,19 @@ pub(crate) fn list_snapshot(apps: Value, statuses: Value) -> Value {
     snap
 }
 
+/// Flag a broken apps.json on a `list` snapshot. `manifestError` carries the load error while
+/// it is set (the apps are then the last list that loaded); `manifestLoaded: false` adds that
+/// no list has loaded this run at all (broken at launch), so `apps` is empty for that reason
+/// and not because nothing is registered. Neither key appears while apps.json is fine.
+pub(crate) fn flag_manifest_error(snap: &mut Value, error: Option<&str>, loaded: bool) {
+    if let Some(error) = error {
+        snap["manifestError"] = Value::String(error.to_string());
+        if !loaded {
+            snap["manifestLoaded"] = Value::Bool(false);
+        }
+    }
+}
+
 /// `list`: the live registered apps and their statuses straight from memory, so the answer is
 /// never a stale `state.json` left behind by a hub that has since exited. `result` is the
 /// snapshot serialized as a string (every verb's `result` is a plain string).
@@ -507,7 +520,10 @@ fn list_verb(app: &AppHandle) -> Value {
     };
     let apps = serde_json::to_value(&*lock(&state.manifest)).unwrap_or(Value::Null);
     let statuses = serde_json::to_value(&*lock(&state.last_statuses)).unwrap_or(Value::Null);
-    json!({ "ok": true, "result": list_snapshot(apps, statuses).to_string() })
+    let mut snap = list_snapshot(apps, statuses);
+    let status = crate::manifest_status_of(&state);
+    flag_manifest_error(&mut snap, status.error.as_deref(), status.loaded);
+    json!({ "ok": true, "result": snap.to_string() })
 }
 
 /// Capture one of Moonpool's OWN windows (never an arbitrary HWND/PID from the wire) and return
@@ -770,7 +786,7 @@ async fn write_frame<W: AsyncWrite + Unpin>(w: &mut W, v: &Value) -> std::io::Re
 #[cfg(test)]
 mod tests {
     use super::{
-        list_snapshot, open_window_arg, reply, socket_path_for, with_bind_retry, LogFn, Request,
+        flag_manifest_error, list_snapshot, open_window_arg, reply, socket_path_for, with_bind_retry, LogFn, Request,
         CONTROL_VERBS, UI_OWNED_ACTIONS,
     };
     use serde_json::json;
@@ -869,6 +885,32 @@ mod tests {
         assert!(list_snapshot(json!([]), json!([]))
             .get("statusNotReady")
             .is_none());
+    }
+
+    #[test]
+    fn list_snapshot_reports_a_broken_manifest() {
+        let apps = json!([{ "id": "web" }]);
+        let statuses = json!([{ "id": "web" }]);
+
+        // Healthy file: no manifest keys at all.
+        let mut ok = list_snapshot(apps.clone(), statuses.clone());
+        flag_manifest_error(&mut ok, None, true);
+        assert!(ok.get("manifestError").is_none());
+        assert!(ok.get("manifestLoaded").is_none());
+
+        // Broken after a good load: the error, the last list kept, no manifestLoaded flag.
+        let mut stale = list_snapshot(apps.clone(), statuses);
+        flag_manifest_error(&mut stale, Some("invalid apps.json: oops"), true);
+        assert_eq!(stale["manifestError"], json!("invalid apps.json: oops"));
+        assert!(stale.get("manifestLoaded").is_none());
+        assert_eq!(stale["apps"], apps);
+
+        // Broken at launch: empty list, flagged as never loaded.
+        let mut never = list_snapshot(json!([]), json!([]));
+        flag_manifest_error(&mut never, Some("bad"), false);
+        assert_eq!(never["manifestError"], json!("bad"));
+        assert_eq!(never["manifestLoaded"], json!(false));
+        assert_eq!(never["apps"], json!([]));
     }
 
     #[test]

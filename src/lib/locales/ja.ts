@@ -40,6 +40,9 @@ export const ja: PartialDict = {
   "sidebar.portConflict": "{names} がどちらもポート {port} を使っています",
   "sidebar.portConflictBadge": "ポート {port}: {names}",
   "sidebar.noMatch": "「{filter}」に一致するアプリはありません。",
+  "sidebar.manifestErrorStale": "apps.json にエラーがあります。最後に読み込めた一覧を表示しています。",
+  "sidebar.manifestErrorEmpty": "apps.json にエラーがあるため、アプリは読み込まれていません。",
+  "sidebar.manifestErrorHint": "ファイルを修正してから再読み込み (F5) してください。それまで Moonpool からの保存は停止します。",
 
   "app.dragToResize": "ドラッグしてサイズを変更",
   "app.closeTab": "タブを閉じる",

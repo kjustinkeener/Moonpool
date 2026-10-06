@@ -40,6 +40,9 @@ export const ptBR: PartialDict = {
   "sidebar.portConflict": "{names} usam a mesma porta {port}",
   "sidebar.portConflictBadge": "porta {port}: {names}",
   "sidebar.noMatch": "Nenhum app corresponde a “{filter}”.",
+  "sidebar.manifestErrorStale": "apps.json tem um erro; mostrando a última lista que carregou.",
+  "sidebar.manifestErrorEmpty": "apps.json tem um erro, então nenhum app foi carregado.",
+  "sidebar.manifestErrorHint": "Corrija o arquivo e recarregue (F5). Até lá, o Moonpool não salva alterações.",
 
   "app.dragToResize": "Arraste para redimensionar",
   "app.closeTab": "Fechar aba",

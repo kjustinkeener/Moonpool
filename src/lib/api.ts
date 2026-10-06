@@ -6,6 +6,11 @@ export const getApps = () => invoke<AppEntry[]>("get_apps");
 
 export const reloadManifest = () => invoke<AppEntry[]>("reload_manifest");
 
+/** apps.json load state: `error` is set while the file fails to parse/validate (the list
+ *  shown is then the last good one, or empty when `loaded` is false: broken at launch). */
+export type ManifestStatus = { error: string | null; loaded: boolean };
+export const manifestStatus = () => invoke<ManifestStatus>("manifest_status");
+
 export const openManifest = () => invoke<void>("open_manifest");
 
 export const manifestDir = () => invoke<string>("manifest_dir");

@@ -325,6 +325,10 @@ struct HubState {
     /// Set when an existing apps.json cannot be loaded. The file is preserved
     /// and the frontend receives this recovery error instead of example data.
     manifest_error: Mutex<Option<String>>,
+    /// Whether any list has loaded this run (startup, reload, or a save). False only when
+    /// apps.json was already broken at launch, so the in-memory list is empty rather than
+    /// "the last good one"; the sidebar banner and the `list` verb word it differently.
+    manifest_loaded: AtomicBool,
     settings: Mutex<Settings>,
     /// Set when settings.json is malformed. Mutations are refused so the user's
     /// file remains available for repair.
@@ -1006,12 +1010,39 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
     Ok(entries)
 }
 
+/// The in-memory list. While `manifest_error` is set this is the last list that loaded (or
+/// empty if the file was broken at launch); `manifest_status` says which.
 #[tauri::command]
-fn get_apps(state: State<HubState>) -> Result<Vec<AppEntry>, String> {
-    if let Some(error) = lock(&state.manifest_error).clone() {
-        return Err(error);
+fn get_apps(state: State<HubState>) -> Vec<AppEntry> {
+    lock(&state.manifest).clone()
+}
+
+/// Whether apps.json currently fails to load, for the sidebar banner.
+#[derive(Clone, Serialize)]
+struct ManifestStatus {
+    /// The load error while apps.json is broken; `None` once a reload succeeds.
+    error: Option<String>,
+    /// False when no list has loaded this run (broken at launch), so the list is empty.
+    loaded: bool,
+}
+
+fn manifest_status_of(state: &HubState) -> ManifestStatus {
+    ManifestStatus {
+        error: lock(&state.manifest_error).clone(),
+        loaded: state.manifest_loaded.load(Ordering::Relaxed),
     }
-    Ok(lock(&state.manifest).clone())
+}
+
+#[tauri::command]
+fn manifest_status(state: State<HubState>) -> ManifestStatus {
+    manifest_status_of(&state)
+}
+
+/// Record a successfully loaded or saved list: clears the error, marks a list as loaded.
+fn set_manifest_good(state: &HubState, entries: Vec<AppEntry>) {
+    *lock(&state.manifest) = entries;
+    *lock(&state.manifest_error) = None;
+    state.manifest_loaded.store(true, Ordering::Relaxed);
 }
 
 /// Re-read the manifest from disk into state and return it.
@@ -1024,8 +1055,7 @@ fn reload_manifest(app: AppHandle, state: State<HubState>) -> Result<Vec<AppEntr
             return Err(error);
         }
     };
-    *lock(&state.manifest) = m.clone();
-    *lock(&state.manifest_error) = None;
+    set_manifest_good(&state, m.clone());
     // Capture a known-good snapshot of what we just loaded, so a hand-edit made
     // outside the app (then reloaded) enters the rollback ring too. Dedup in
     // snapshot_known_good keeps an unchanged reload from churning it.
@@ -1503,8 +1533,7 @@ fn save_manifest(
     validate_manifest(&entries)?;
     let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
     persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
-    *lock(&state.manifest) = entries;
-    *lock(&state.manifest_error) = None;
+    set_manifest_good(&state, entries);
     snapshot_known_good(&app, &json);
     Ok(())
 }
@@ -2519,8 +2548,7 @@ fn commit_manifest_json(app: &AppHandle, path: &Path, json: &str) -> Result<(), 
         app.try_state::<HubState>(),
         serde_json::from_str::<Vec<AppEntry>>(json),
     ) {
-        *lock(&state.manifest) = entries;
-        *lock(&state.manifest_error) = None;
+        set_manifest_good(&state, entries);
     }
     snapshot_known_good(app, json);
     // Nudge the UI to re-pull so the grid reflects the change (mirrors a `reload`).
@@ -3079,6 +3107,7 @@ pub fn run() {
             stop_seq: AtomicU64::new(1),
             manifest: Mutex::new(Vec::new()),
             manifest_error: Mutex::new(None),
+            manifest_loaded: AtomicBool::new(false),
             settings: Mutex::new(Settings::default()),
             settings_error: Mutex::new(None),
             tickets: Mutex::new(Vec::new()),
@@ -3125,15 +3154,14 @@ pub fn run() {
             *lock(&handle.state::<HubState>().mcp_seen) = load_mcp_seen(&handle);
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
-            let (manifest, manifest_error) = match load_manifest(&handle) {
-                Ok(manifest) => (manifest, None),
+            match load_manifest(&handle) {
+                Ok(manifest) => set_manifest_good(&handle.state::<HubState>(), manifest),
                 Err(error) => {
                     log_line(&handle, &error);
-                    (Vec::new(), Some(error))
+                    *lock(&handle.state::<HubState>().manifest) = Vec::new();
+                    *lock(&handle.state::<HubState>().manifest_error) = Some(error);
                 }
-            };
-            *lock(&handle.state::<HubState>().manifest) = manifest;
-            *lock(&handle.state::<HubState>().manifest_error) = manifest_error;
+            }
             seed_ai_readme(&handle);
             // Write the embedded example dashboards to {MP_HOME}/dashboards/examples
             // (app-owned: replaced when this build differs from the stamped one).
@@ -3298,6 +3326,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_apps,
+            manifest_status,
             reload_manifest,
             open_manifest,
             manifest_dir,

@@ -35,6 +35,8 @@
     updateWaiting = false,
     showMcpProcesses = true,
     clashes,
+    manifestError = null,
+    manifestLoaded = true,
   }: {
     apps: AppEntry[];
     statuses: Record<string, AppStatus>;
@@ -64,6 +66,10 @@
     updateWaiting?: boolean;
     showMcpProcesses?: boolean;
     clashes: { port: number; names: string[] }[];
+    /** Set while apps.json fails to load: the list below is then the last good one. */
+    manifestError?: string | null;
+    /** False when no list has loaded since launch (so the list is empty, not stale). */
+    manifestLoaded?: boolean;
   } = $props();
 
   let menuOpen = $state(false);
@@ -241,7 +247,25 @@
       </button>
     {/if}
   </div>
-  <div class="scroll" use:scrollFade>
+  {#if manifestError}
+    <div class="manifest-error" role="alert">
+      <div class="me-head">
+        <span class="me-icon"><Icon name="warning" size={14} /></span>
+        <span class="me-title"
+          >{manifestLoaded ? t("sidebar.manifestErrorStale") : t("sidebar.manifestErrorEmpty")}</span
+        >
+      </div>
+      <!-- Clamped to a few lines (the path alone can be long); the full text is the tooltip. -->
+      <p class="me-detail" title={manifestError}>{manifestError}</p>
+      <p class="me-hint">{t("sidebar.manifestErrorHint")}</p>
+      <div class="me-actions">
+        <button onclick={onEditFile}><Icon name="pencil" size={13} />{t("sidebar.editJson")}</button>
+        <button onclick={onReload}><Icon name="refresh" size={13} />{t("common.reload")}</button>
+      </div>
+    </div>
+  {/if}
+  <!-- Dimmed while the list may be stale, but still fully usable (start/stop work). -->
+  <div class="scroll" class:stale={!!manifestError} use:scrollFade>
     {#each groups as g (g.group)}
       <button class="group-label" onclick={() => toggleGroup(g.group)}>
         <span class="glabel">{g.group}</span>
@@ -328,7 +352,7 @@
         {/each}
       {/if}
     {/each}
-    {#if groups.length === 0}
+    {#if groups.length === 0 && !(manifestError && apps.length === 0)}
       <div class="empty">{t("sidebar.noMatch", { filter })}</div>
     {/if}
   </div>
@@ -512,6 +536,81 @@
     flex: 1;
     overflow-y: auto;
     padding: 6px 0 16px;
+    transition: opacity 0.2s;
+  }
+  .scroll.stale {
+    opacity: 0.55;
+  }
+  /* No background fill of its own beyond a faint warning wash: the sidebar already
+     carries the single tint layer, and a second opaque/alpha panel here would stack. */
+  .manifest-error {
+    flex: none;
+    margin: 8px 8px 2px;
+    padding: 8px 10px;
+    border: 1px solid var(--warning);
+    border-left-width: 3px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--warning) 10%, transparent);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .me-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .me-icon {
+    flex: none;
+    display: inline-flex;
+    margin-top: 1px;
+    color: var(--warning);
+  }
+  .me-title {
+    font-weight: 600;
+    color: var(--text-strong);
+    line-height: 1.35;
+  }
+  .me-detail {
+    margin: 5px 0 0;
+    font-family: "Cascadia Code", Consolas, ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    cursor: help;
+  }
+  .me-hint {
+    margin: 5px 0 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .me-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 7px;
+  }
+  .me-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 4px 9px;
+    cursor: pointer;
+  }
+  .me-actions button:hover {
+    color: var(--text-strong);
+    border-color: var(--focus);
   }
   .group-label {
     display: flex;

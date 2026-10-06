@@ -40,6 +40,9 @@ export const zhHant: PartialDict = {
   "sidebar.portConflict": "{names} 都使用連接埠 {port}",
   "sidebar.portConflictBadge": "連接埠 {port}：{names}",
   "sidebar.noMatch": "沒有符合「{filter}」的應用程式。",
+  "sidebar.manifestErrorStale": "apps.json 有錯誤，目前顯示的是上次成功載入的清單。",
+  "sidebar.manifestErrorEmpty": "apps.json 有錯誤，因此沒有載入任何應用程式。",
+  "sidebar.manifestErrorHint": "請修正該檔案，然後重新載入 (F5)。在此之前，Moonpool 暫停儲存。",
 
   "app.dragToResize": "拖曳以調整大小",
   "app.closeTab": "關閉分頁",

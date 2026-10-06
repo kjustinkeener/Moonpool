@@ -40,6 +40,9 @@ export const ko: PartialDict = {
   "sidebar.portConflict": "{names}이(가) 모두 포트 {port}을(를) 사용합니다",
   "sidebar.portConflictBadge": "포트 {port}: {names}",
   "sidebar.noMatch": "‘{filter}’과(와) 일치하는 앱이 없습니다.",
+  "sidebar.manifestErrorStale": "apps.json에 오류가 있어 마지막으로 불러온 목록을 표시합니다.",
+  "sidebar.manifestErrorEmpty": "apps.json에 오류가 있어 불러온 앱이 없습니다.",
+  "sidebar.manifestErrorHint": "파일을 고친 뒤 새로 고침(F5)하세요. 그때까지 Moonpool에서 저장할 수 없습니다.",
 
   "app.dragToResize": "끌어서 크기 조절",
   "app.closeTab": "탭 닫기",
