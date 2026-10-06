@@ -1,6 +1,8 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import { satteri } from '@astrojs/markdown-satteri';
+import baseLinksPlugin from './base-links-plugin.mjs';
 
 // Moonpool help site.
 //
@@ -8,19 +10,32 @@ import starlight from '@astrojs/starlight';
 //   - in-app (offline): the built `dist/` is bundled with Moonpool and served to the
 //     help window through a Tauri custom protocol at the root path, so absolute asset
 //     URLs (`/_astro/...`) resolve. Do NOT open it via file://; absolute paths break.
-//   - web: the same `dist/` is deployed to the product page.
+//   - web: a second build (see below) deployed under the product site.
 //
-// `base` stays '/' so both targets agree; host the web copy at a root-mapped path
-// (subdomain or rewrite) rather than a subdirectory.
+// The in-app build MUST keep `base: '/'`: the custom URI scheme serves it at its root.
+// The web copy lives in a subdirectory of the product site, so `npm run build:web`
+// sets HELP_BASE (for example '/software/moonpool/help/'), which switches on:
+//   - `base` and `site` (canonical URLs, sitemap),
+//   - a Markdown (hast) plugin that prefixes root-absolute Markdown links, which Astro does
+//     not rewrite on its own,
+//   - a separate `dist-web/` output so it never overwrites the in-app `dist/`.
+// With HELP_BASE unset nothing below changes the default build.
 //
 // Sidebar convention (shared across all apps): each top-level entry is a category
 // GROUP whose `label` is a non-navigable heading; only the `items` (pages) are links.
+const webBase = process.env.HELP_BASE;
+
 export default defineConfig({
-	// No `site` until the help has a real public address: it would only feed canonical
-	// URLs and the sitemap with a domain we do not own. Add it when the web help ships.
+	...(webBase && {
+		base: webBase,
+		site: 'https://fasterdb.com',
+		outDir: 'dist-web',
+		markdown: { processor: satteri({ hastPlugins: [baseLinksPlugin(webBase)] }) },
+	}),
 	// Keep the help root useful without exposing a separate Home page.
 	redirects: {
-		'/': '/getting-started/overview/',
+		// Astro does not prefix redirect targets with `base`, so do it here.
+		'/': (webBase ? webBase.replace(/\/+$/, '') : '') + '/getting-started/overview/',
 	},
 	integrations: [
 		starlight({
