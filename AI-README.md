@@ -84,6 +84,12 @@ process images even under `"port"` mode as a backstop (see `platform::NEVER_KILL
 source), but don't rely on that list instead of setting the right `killMode` - it only covers
 process image names, not every way an app-specific config could point at shared infrastructure.
 
+`processName` and `port` don't know who started a process: they kill EVERY process with that name,
+or whatever listens on that port, including one another Moonpool copy started (an installed
+Moonpool and portable copies can run side by side) or one the user started by hand. Use them only
+for apps that won't clash that way; otherwise use `"none"` or a `"command"` that stops just this
+instance.
+
 `killMode` is independent of `type`: `port` works on a `cli` app and `processName` on a `web` app if
 you set it explicitly. If the field the mode reads is missing (no `port`, no `processName`, no
 `stopCommand`), the extra step is silently skipped, not an error.
@@ -121,11 +127,17 @@ line: running the Moonpool program again with a command word hands that command 
 already-open Moonpool instead of opening a second window. Use this to launch, stop, reload,
 or refresh on the user's behalf.
 
-First find the running program's own path - don't assume a fixed install location (a
-per-user install lives under `%USERPROFILE%\.moonpool\moonpool.exe`, not `Program Files`):
+One Moonpool runs per folder: the installed copy and any portable copies (each in its own
+folder) can run at the same time, each with its own apps.json and its own control channel.
+A command goes to the copy whose `moonpool.exe` you run, never to another one. On Windows the
+copy that owns THIS file is the `moonpool.exe` in the folder above this config folder.
+
+Use that copy's own path - don't assume a fixed install location (a per-user install lives
+under `%USERPROFILE%\.moonpool\moonpool.exe`, not `Program Files`), and with several copies
+running don't just take the first `moonpool` process:
 
 ```powershell
-$mp = (Get-Process moonpool -ErrorAction SilentlyContinue | Select-Object -First 1).Path
+$mp = "$env:USERPROFILE\.moonpool\moonpool.exe"   # installed; a portable copy: <folder>\.moonpool\moonpool.exe
 ```
 
 Then run it with a command word:
@@ -181,9 +193,13 @@ Tools: `moonpool_list_apps`, `moonpool_bootup_launcher`, `moonpool_shutdown_laun
 `moonpool_window_state` and `moonpool_reset_mcp_seen`. Full reference: the Automation section
 of Moonpool's built-in help.
 
-The server is a *client* of the resident tray instance: it sends each command over the
-control channel (a named pipe on Windows, a Unix socket on Linux/macOS; an older build with
-no channel is driven through the argv channel described below) and returns the real outcome.
+With more than one Moonpool copy, register each copy's exe under its own server name (e.g.
+`moonpool` and `moonpool-work`); the tool names are identical across copies. A portable copy
+announces itself as `moonpool (<folder>)` and names its folder in its server instructions.
+
+The server is a *client* of the resident tray instance of ITS copy: it sends each command over
+that copy's control channel (a named pipe on Windows, `\\.\pipe\moonpool` installed or
+`\\.\pipe\moonpool-<id>` portable; a Unix socket on Linux/macOS) and returns the real outcome.
 Whether Moonpool is running is decided by pinging that channel. Most tools need Moonpool
 already running; call `moonpool_bootup_launcher` first if it is not. `moonpool_list_apps` is
 answered live by the running hub and fails with "Moonpool is not running" rather than
@@ -228,7 +244,8 @@ report `ok` when done. Requires v0.1.5+ (older builds ignore `--ticket` and writ
 
 So you can run, check, and stop the user's apps in future sessions without re-reading this
 guide, save the above to your own memory: the control commands, how to find the running
-`moonpool.exe` path (`Get-Process moonpool`), and the `state.json` location and shape.
+`moonpool.exe` path (the copy's own folder, not just the first `Get-Process moonpool`), and
+the `state.json` location and shape.
 
 ## Icons (optional)
 
