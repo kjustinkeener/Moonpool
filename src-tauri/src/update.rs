@@ -101,12 +101,20 @@ fn is_newer(current: &str, candidate: &str) -> Result<bool, String> {
 /// Fetch and parse the manifest. Returns whether a newer app version is offered.
 #[tauri::command]
 pub fn update_check() -> Result<CheckResult, String> {
-    let current = current_version().to_string();
     let body = http_get_string(MANIFEST_URL)?;
+    check_manifest(current_version(), &body)
+}
+
+/// Parse a fetched manifest and decide whether it offers an upgrade over `current`. Split out
+/// of `update_check` so the parse rules are testable without the network.
+fn check_manifest(current: &str, body: &str) -> Result<CheckResult, String> {
     let manifest: UpdateInfo =
-        serde_json::from_str(&body).map_err(|e| format!("bad update manifest: {e}"))?;
-    let available = is_newer(&current, &manifest.version)?.then_some(manifest);
-    Ok(CheckResult { current, available })
+        serde_json::from_str(body).map_err(|e| format!("bad update manifest: {e}"))?;
+    let available = is_newer(current, &manifest.version)?.then_some(manifest);
+    Ok(CheckResult {
+        current: current.to_string(),
+        available,
+    })
 }
 
 /// Download, verify, and apply an update, then relaunch. On success this never
@@ -320,7 +328,90 @@ pub fn exe_dir() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::is_newer;
+    use super::{check_manifest, is_newer};
+
+    const SIG: &str = "untrusted comment: x\\nRUQ=\\ntrusted comment: y\\nAA==\\n";
+
+    fn manifest(version: &str, extra: &str) -> String {
+        format!(
+            r#"{{"version":"{version}","notes":"n","url":"https://example.invalid/m.exe","signature":"{SIG}"{extra}}}"#
+        )
+    }
+
+    #[test]
+    fn manifest_without_help_parses() {
+        let r = check_manifest("0.3.15", &manifest("0.3.16", "")).unwrap();
+        assert_eq!(r.current, "0.3.15");
+        let a = r.available.expect("newer is offered");
+        assert_eq!(a.version, "0.3.16");
+        assert_eq!(a.notes, "n");
+        assert!(a.signature.starts_with("untrusted comment"));
+    }
+
+    /// Manifests from before help-only updates were dropped carry a `help` object. They must
+    /// still parse, or every older release's update.json would read as "bad manifest".
+    #[test]
+    fn manifest_with_legacy_help_field_still_parses() {
+        let help =
+            r#","help":{"version":"2026.1","url":"https://example.invalid/h.zip","signature":"s"}"#;
+        let r = check_manifest("0.3.15", &manifest("0.4.0", help)).unwrap();
+        assert_eq!(r.available.unwrap().version, "0.4.0");
+        // Any other unknown field is ignored too.
+        let r = check_manifest("0.3.15", &manifest("0.4.0", r#","future":[1,2]"#)).unwrap();
+        assert!(r.available.is_some());
+    }
+
+    #[test]
+    fn notes_are_optional() {
+        let body = format!(r#"{{"version":"1.0.0","url":"u","signature":"{SIG}"}}"#);
+        let r = check_manifest("0.1.0", &body).unwrap();
+        assert_eq!(r.available.unwrap().notes, "");
+    }
+
+    #[test]
+    fn same_or_older_version_offers_nothing() {
+        for v in ["0.3.15", "0.3.14", "v0.1.0"] {
+            let r = check_manifest("0.3.15", &manifest(v, "")).unwrap();
+            assert!(r.available.is_none(), "{v} must not be offered");
+        }
+    }
+
+    #[test]
+    fn malformed_manifests_are_errors() {
+        assert!(check_manifest("0.3.15", "not json").is_err());
+        assert!(
+            check_manifest("0.3.15", r#"{"version":"1.0.0"}"#).is_err(),
+            "no url/signature"
+        );
+        assert!(check_manifest("0.3.15", &manifest("banana", "")).is_err());
+    }
+
+    #[cfg(any(windows, target_os = "linux"))]
+    #[test]
+    fn garbage_signatures_are_refused() {
+        assert!(super::verify_signature(b"payload", "").is_err());
+        assert!(super::verify_signature(b"payload", "untrusted comment: x\nnot base64\n").is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn write_new_exe_replaces_the_target_and_leaves_no_temp() {
+        let dir = std::env::temp_dir().join(format!(
+            "moonpool-update-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let target = dir.join("app.exe");
+        std::fs::write(&target, b"old").unwrap();
+        super::write_new_exe(&target, b"new bytes").unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"new bytes");
+        assert!(!target.with_extension("new").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn only_strictly_newer_versions_apply() {

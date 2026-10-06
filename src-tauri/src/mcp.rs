@@ -1342,6 +1342,116 @@ mod identity_tests {
     }
 }
 
+/// JSON-RPC plumbing that answers without the hub. Nothing here may reach `control()`: in a
+/// test process that would be the installed copy's real channel.
+#[cfg(test)]
+mod rpc_tests {
+    use super::{
+        call_tool, handle, timeout_for, tool_list, DIRECT_TIMEOUT, QUICK_TIMEOUT, UI_ACTION_TIMEOUT,
+    };
+    use serde_json::{json, Value};
+
+    #[test]
+    fn initialize_reports_identity_and_tools_capability() {
+        let r = handle(&json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize" })).unwrap();
+        assert_eq!(r["id"], json!(1));
+        assert_eq!(r["result"]["serverInfo"]["name"], json!("moonpool"));
+        assert_eq!(
+            r["result"]["serverInfo"]["version"],
+            json!(env!("CARGO_PKG_VERSION"))
+        );
+        assert!(r["result"]["capabilities"]["tools"].is_object());
+        assert!(r["result"]["instructions"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty()));
+    }
+
+    #[test]
+    fn notifications_get_no_answer() {
+        assert!(
+            handle(&json!({ "jsonrpc": "2.0", "method": "notifications/initialized" })).is_none()
+        );
+        assert!(handle(&json!({ "jsonrpc": "2.0", "id": null, "method": "ping" })).is_none());
+    }
+
+    #[test]
+    fn ping_empty_lists_and_unknown_methods() {
+        let r = handle(&json!({ "id": "a", "method": "ping" })).unwrap();
+        assert_eq!(r["result"], json!({}));
+        let r = handle(&json!({ "id": 2, "method": "resources/list" })).unwrap();
+        assert_eq!(r["result"]["resources"], json!([]));
+        let r = handle(&json!({ "id": 3, "method": "nope" })).unwrap();
+        assert_eq!(r["error"]["code"], json!(-32601));
+    }
+
+    #[test]
+    fn tool_list_is_well_formed_and_unique() {
+        let tools = tool_list();
+        let tools = tools.as_array().unwrap();
+        let mut names = std::collections::HashSet::new();
+        for t in tools {
+            let name = t["name"].as_str().unwrap();
+            assert!(name.starts_with("moonpool_"), "{name}");
+            assert!(names.insert(name.to_string()), "{name} listed twice");
+            assert!(
+                t["description"].as_str().is_some_and(|d| !d.is_empty()),
+                "{name}"
+            );
+            assert_eq!(t["inputSchema"]["type"], json!("object"), "{name}");
+        }
+        for must in [
+            "moonpool_list_apps",
+            "moonpool_bootup_launcher",
+            "moonpool_shutdown_launcher",
+            "moonpool_raise_launcher",
+            "moonpool_launcher_paths",
+        ] {
+            assert!(names.contains(must), "{must} missing");
+        }
+        // tools/list over JSON-RPC is the same list.
+        let r = handle(&json!({ "id": 9, "method": "tools/list" })).unwrap();
+        assert_eq!(r["result"]["tools"].as_array().unwrap().len(), tools.len());
+    }
+
+    /// Argument validation answers before any channel call is made.
+    #[test]
+    fn bad_tool_arguments_are_refused_locally() {
+        let err = |name: &str, args: Value| call_tool(name, &args).unwrap_err();
+        assert_eq!(err("moonpool_start_app", json!({})), "app_id is required");
+        assert!(err("moonpool_stop_app", json!({ "app_id": "--uninstall" }))
+            .starts_with("invalid app_id"));
+        assert!(
+            err("moonpool_restart_app", json!({ "app_id": "a b" })).starts_with("invalid app_id")
+        );
+        assert!(err("moonpool_screenshot", json!({ "window": "explorer" }))
+            .starts_with("unknown window"));
+        assert!(
+            err("moonpool_window_state", json!({ "window": "x" })).starts_with("unknown window")
+        );
+        assert_eq!(
+            err("moonpool_bogus", json!({})),
+            "unknown tool 'moonpool_bogus'"
+        );
+        // Over JSON-RPC a tool error is a result with isError, not a protocol error.
+        let r = handle(&json!({
+            "id": 4, "method": "tools/call",
+            "params": { "name": "moonpool_start_app", "arguments": {} }
+        }))
+        .unwrap();
+        assert_eq!(r["result"]["isError"], json!(true));
+    }
+
+    #[test]
+    fn verbs_get_the_right_time_budget() {
+        assert_eq!(timeout_for("ping"), QUICK_TIMEOUT);
+        assert_eq!(timeout_for("quit"), QUICK_TIMEOUT);
+        assert_eq!(timeout_for("launch"), UI_ACTION_TIMEOUT);
+        assert_eq!(timeout_for("paths"), DIRECT_TIMEOUT);
+        // The client must outwait the hub's own wait on a UI action.
+        assert!(UI_ACTION_TIMEOUT > crate::control::ACTION_TIMEOUT);
+    }
+}
+
 #[cfg(test)]
 mod pipe_reply_tests {
     use super::reply_to_result;
@@ -1532,6 +1642,48 @@ mod channel_tests {
         {
             std::env::temp_dir().join(format!("{name}.sock"))
         }
+    }
+
+    /// A hub that accepts the connection but never answers must read as Unreachable (not Down,
+    /// not a hang) within the caller's budget.
+    #[test]
+    fn hung_hub_times_out_as_unreachable() {
+        let endpoint = test_endpoint("hung");
+        let handler: Handler = Arc::new(|_req| {
+            Box::pin(async move {
+                tokio::time::sleep(Duration::from_secs(30)).await;
+                json!({ "ok": true, "result": "late" })
+            })
+        });
+        let log: LogFn = Arc::new(|_| {});
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap();
+        {
+            let endpoint = endpoint.clone();
+            rt.spawn(async move {
+                let _ = serve_at(&endpoint, handler, log).await;
+            });
+        }
+        // Wait for the bind: until then a call is Down.
+        let mut bound = false;
+        for _ in 0..100 {
+            if call_at(&endpoint, "ping", &[], Duration::from_millis(200)) != Err(CallError::Down) {
+                bound = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(bound, "test server never bound");
+        let start = std::time::Instant::now();
+        let r = call_at(&endpoint, "ping", &[], Duration::from_millis(500));
+        assert!(matches!(r, Err(CallError::Unreachable(_))), "{r:?}");
+        assert!(start.elapsed() < Duration::from_secs(3));
+        rt.shutdown_background();
+        #[cfg(unix)]
+        let _ = std::fs::remove_file(&endpoint);
     }
 
     #[test]

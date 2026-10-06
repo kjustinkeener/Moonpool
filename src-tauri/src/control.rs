@@ -426,10 +426,7 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
         // A second launch of this copy handing over its argv (`instance::forward`). Run on
         // the same path the old single-instance plugin callback used.
         "argv" => {
-            let argv: Vec<String> = std::iter::once(String::from("moonpool"))
-                .chain(req.args.iter().cloned())
-                .collect();
-            dispatch_control(app, &argv);
+            dispatch_control(app, &forwarded_argv(&req.args));
             json!({ "ok": true, "result": Value::Null })
         }
         "list" => list_verb(app),
@@ -470,6 +467,14 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
         action if UI_OWNED_ACTIONS.contains(&action) => run_ui_action(app, action, arg).await,
         other => json!({ "ok": false, "error": format!("unknown cmd: {other}") }),
     }
+}
+
+/// Rebuild a full argv from a forwarded launch's arguments (`instance::forward` sends argv
+/// without the exe path): `dispatch_control` skips `argv[0]`, so a placeholder goes there.
+pub(crate) fn forwarded_argv(args: &[String]) -> Vec<String> {
+    std::iter::once(String::from("moonpool"))
+        .chain(args.iter().cloned())
+        .collect()
 }
 
 fn reply(status: &str, detail: String) -> Value {
@@ -935,6 +940,82 @@ mod tests {
                 "a second hub of copy A must not bind A's name"
             );
         });
+    }
+
+    /// The forwarded argv, re-split the way `dispatch_control` splits it, gives back exactly
+    /// the action words and ticket the second launch was started with.
+    #[test]
+    fn forwarded_argv_round_trips_through_the_dispatch_split() {
+        let sent = v(&["launch", "my-app", "--ticket", "t-1"]);
+        let argv = super::forwarded_argv(&sent);
+        assert_eq!(argv[0], "moonpool");
+        assert_eq!(&argv[1..], &sent[..]);
+        let (positional, ticket) = crate::split_ticket(&argv);
+        assert_eq!(positional, vec!["launch", "my-app"]);
+        assert_eq!(ticket.as_deref(), Some("t-1"));
+
+        // A bare second launch forwards nothing: no action, which dispatch reads as "show".
+        let bare = super::forwarded_argv(&[]);
+        let (positional, ticket) = crate::split_ticket(&bare);
+        assert!(positional.is_empty());
+        assert!(ticket.is_none());
+
+        // The ticket may come first, and a dangling `--ticket` swallows nothing else.
+        let first = super::forwarded_argv(&v(&["--ticket", "k", "stop", "x"]));
+        let (positional, ticket) = crate::split_ticket(&first);
+        assert_eq!(positional, vec!["stop", "x"]);
+        assert_eq!(ticket.as_deref(), Some("k"));
+        let dangling = super::forwarded_argv(&v(&["reload", "--ticket"]));
+        let (positional, ticket) = crate::split_ticket(&dangling);
+        assert_eq!(positional, vec!["reload"]);
+        assert!(ticket.is_none());
+    }
+
+    /// Framing over an in-memory stream: one reply per request line, blank lines skipped, a bad
+    /// line answered with an error (connection kept), args passed through untouched.
+    #[test]
+    fn serve_conn_frames_requests_and_survives_bad_lines() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let handler: super::Handler = Arc::new(|req: Request| {
+                Box::pin(async move {
+                    json!({ "ok": true, "result": format!("{}:{}", req.cmd, req.args.join("|")) })
+                })
+            });
+            let (client, server) = tokio::io::duplex(4096);
+            let srv = tokio::spawn(super::serve_conn(server, handler));
+            let (r, mut w) = tokio::io::split(client);
+            let mut lines = BufReader::new(r).lines();
+            w.write_all(b"\n{\"cmd\":\"ping\"}\nnot json\n{\"cmd\":\"argv\",\"args\":[\"launch\",\"a b\",\"--ticket\",\"t\"]}\n")
+                .await
+                .unwrap();
+            let first: serde_json::Value =
+                serde_json::from_str(&lines.next_line().await.unwrap().unwrap()).unwrap();
+            assert_eq!(first, json!({ "ok": true, "result": "ping:" }));
+            let bad: serde_json::Value =
+                serde_json::from_str(&lines.next_line().await.unwrap().unwrap()).unwrap();
+            assert_eq!(bad["ok"], json!(false));
+            assert!(bad["error"].as_str().unwrap().starts_with("bad request"));
+            let argv: serde_json::Value =
+                serde_json::from_str(&lines.next_line().await.unwrap().unwrap()).unwrap();
+            assert_eq!(argv["result"], json!("argv:launch|a b|--ticket|t"));
+            drop(w);
+            drop(lines);
+            srv.await.unwrap().unwrap();
+        });
+    }
+
+    #[test]
+    fn control_verbs_have_no_duplicates() {
+        let mut seen = std::collections::HashSet::new();
+        for verb in CONTROL_VERBS {
+            assert!(seen.insert(verb), "{verb} listed twice");
+        }
+        assert!(CONTROL_VERBS.contains(&"argv") && CONTROL_VERBS.contains(&"ping"));
     }
 
     #[test]
