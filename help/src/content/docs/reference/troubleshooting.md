@@ -161,7 +161,7 @@ portable copies can run side by side. See
 [Portable mode](/guides/portable-mode/#several-copies-at-once).
 
 **Does Moonpool phone home?**
-Only to check for updates: it fetches the release manifest from GitHub at startup (if
+Only to check for updates: it fetches the release file (`update.json`) from GitHub at startup (if
 **Check for updates on startup** is on) and when you press **Check for updates**. Every
 download is verified against Moonpool's signing key before it is used.
 

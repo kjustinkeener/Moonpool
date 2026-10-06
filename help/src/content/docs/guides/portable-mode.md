@@ -1,5 +1,5 @@
 ---
-title: Portable Mode
+title: Portable mode
 description: Run Moonpool from a movable folder with all of its data beside it.
 ---
 

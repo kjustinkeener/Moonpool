@@ -1,6 +1,6 @@
 ---
-title: Terminal
-description: Terminal tabs in the hub - opening and closing, collapsing the pane, copy and paste, restarts, and where session logs live.
+title: Terminal tabs
+description: Terminal tabs in the hub, opening and closing, collapsing the pane, copy and paste, restarts, and where session logs live.
 ---
 
 Each app runs in its own terminal tab in the CLI pane.
@@ -15,7 +15,11 @@ Each app runs in its own terminal tab in the CLI pane.
 
 ## Collapsing the pane
 
-The **x** at the far right of the tab strip ("Hide CLI pane") collapses the CLI pane and shrinks the window to just the sidebar. Terminals keep running and keep their scrollback. A chevron appears beside the filter box to bring the pane back at its previous width. The chevron pulses when an update is waiting, because the update banner lives in the pane.
+The **x** at the far right of the tab strip ("Hide CLI pane") collapses the CLI pane and
+shrinks the window to just the sidebar. Terminals keep running and keep their scrollback.
+
+A chevron appears beside the filter box to bring the pane back at its previous width. The
+chevron pulses when an update is waiting, because the update banner lives in the pane.
 
 ## Copy and paste
 

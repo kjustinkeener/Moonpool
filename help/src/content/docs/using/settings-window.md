@@ -20,8 +20,8 @@ reset.
 
 | Control | Key | Default | What it does |
 | --- | --- | --- | --- |
-| Language | `locale` | Auto (system) | Language of Moonpool's own text. Applies instantly. See [Appearance](/using/appearance/). |
-| Theme | none (browser storage) | Auto (system) | Colour theme. The button opens a theme browser with a preview of every theme; clicking one applies it instantly. See [Appearance](/using/appearance/). |
+| Language | `locale` | Auto (system) | Language of Moonpool's own text. Applies instantly. See [Themes, language and transparency](/using/appearance/). |
+| Theme | none (browser storage) | Auto (system) | Colour theme. The button opens a theme browser with a preview of every theme; clicking one applies it instantly. See [Themes, language and transparency](/using/appearance/). |
 | Close to tray | `closeToTray` | off | On: closing the window hides Moonpool to the tray. Off: closing quits. |
 | Minimize to tray | `minimizeToTray` | on | On: minimizing hides Moonpool to the tray and it leaves the taskbar. Off: minimizes to the taskbar. |
 | Always on top | `alwaysOnTop` | off | Keeps every Moonpool window above other windows. |
@@ -29,7 +29,7 @@ reset.
 | Show in taskbar | `showInTaskbar` | on | Keeps the taskbar button visible. |
 | Show CPU/memory status bar | `showStatusbar` | on | Live CPU and memory bar at the bottom of the hub. |
 | Show MCP processes | `showMcpProcesses` | on | Shows an app's MCP process as an MCP sub-row in the sidebar while its MCP tools are in use. |
-| Background transparency | `transparency` | 0% | Slider from 0 to 90 in steps of 5. See [Appearance](/using/appearance/#transparency). |
+| Background transparency | `transparency` | 0% | Slider from 0 to 90 in steps of 5. See [Themes, language and transparency](/using/appearance/#transparency). |
 | Check for updates on startup | `checkOnStartup` | on | Checks GitHub for a newer version at launch and shows a banner if one is found. See [Updating](/guides/updating/). |
 
 ### Tray and taskbar lockout
@@ -44,7 +44,7 @@ turn the other back on.
 | --- | --- | --- | --- |
 | Keep app output logs between sessions | `cliLogging` | off | The running session's terminal output is always kept for its own tabs. On: logs from older sessions stay on disk under `cli-output\`, capped by the retention setting. Off: they are deleted the next time that app launches. |
 | Log retention per app | `logRetentionMb` | 10 MB | Cap on each app's combined logs. Minimum 1. Disabled while the toggle above is off. The current session's log counts toward the cap but is never truncated or deleted by it. |
-| Log debug info to a file | `debugLogging` | off | Records manifest loads, launches and errors to `moonpool.log`. |
+| Log debug info to a file | `debugLogging` | off | Records `apps.json` loads, launches and errors to `moonpool.log`. |
 
 Under each log group a path field shows the location, with two buttons:
 

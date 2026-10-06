@@ -1,5 +1,5 @@
 ---
-title: Shortcuts and Zoom
+title: Shortcuts and zoom
 description: Keyboard shortcuts, mouse shortcuts and UI zoom in the Moonpool hub.
 ---
 
@@ -44,5 +44,5 @@ scroll back the same number of notches, or quit Moonpool, set `uiScale` to `1` i
 
 ## See also
 
-- [Appearance](/using/appearance/)
+- [Themes, language and transparency](/using/appearance/)
 - [Sidebar and menus](/using/sidebar-and-menus/)

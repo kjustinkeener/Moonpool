@@ -7,17 +7,8 @@ description: The control channel (named pipe or Unix socket), its protocol, and 
 
 Every Moonpool copy has its own channel, so the installed Moonpool and any portable copies
 can run side by side without answering for each other. On Windows the installed Moonpool
-listens on this named pipe:
-
-```text
-\\.\pipe\moonpool
-```
-
-A portable copy adds an id made from its folder:
-
-```text
-\\.\pipe\moonpool-<id>
-```
+listens on the named pipe `\\.\pipe\moonpool`. A portable copy adds an id made from its
+folder: `\\.\pipe\moonpool-<id>`.
 
 `<id>` is 8 hex digits derived from the copy's `moonpool-config` folder path, so it stays the
 same for that folder across restarts and updates, and changes if you move the folder. The
@@ -28,7 +19,7 @@ On Linux and macOS it listens on a Unix domain socket instead, with mode `0600`:
 | Case | Socket path |
 | --- | --- |
 | Normal | `$XDG_RUNTIME_DIR/moonpool.sock` when that variable is set, else `moonpool.sock` in Moonpool's config folder |
-| Portable mode | `moonpool.sock` in the portable data folder, so a portable copy never collides with an installed one |
+| Portable mode | `moonpool.sock` in the portable copy's config folder, so a portable copy never collides with an installed one |
 | Path too long for a socket (about 100 characters) | `/tmp/moonpool-<uid>/moonpool.sock`, in a directory only you can open (`moonpool-<id>.sock` for a portable copy) |
 
 A socket file left behind by a crash is detected and replaced on the next start. A socket that
@@ -49,7 +40,7 @@ requests.
 {"cmd": "restart", "args": ["my-app"]}
 ```
 
-```json title="reply"
+```jsonl title="replies"
 {"ok": true, "result": "..."}
 {"ok": false, "error": "unknown app id: ..."}
 ```
@@ -107,7 +98,7 @@ $r.ReadLine()
 
 Example exchanges:
 
-```json title="request, reply"
+```jsonl title="request, reply"
 {"cmd": "launch", "args": ["nope"]}
 {"ok": false, "error": "unknown app id: nope"}
 

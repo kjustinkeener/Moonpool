@@ -1,9 +1,9 @@
 ---
-title: Sidebar and Menus
+title: Sidebar and menus
 description: Sidebar rows, status dots, groups, the filter box, the row context menu, and resizing the sidebar.
 ---
 
-The sidebar lists every app in `apps.json`, grouped by each app's `group` field. See [Fields](/configuration/fields/).
+The sidebar lists every app in `apps.json`, grouped by each app's `group` field. See [App fields](/configuration/fields/).
 
 ## Rows
 
@@ -16,6 +16,10 @@ Each row shows a status dot, the app icon (or a type glyph if there is no icon),
 | Grey | stopped |
 
 Hover the dot for the word.
+
+![The sidebar with two running web apps outlined: lit dots and Stop buttons](../../../assets/screenshots/sidebar-running-narrow.png)
+
+1. Two running apps. Their dots are lit and Stop (the square) replaces Launch.
 
 | Control | Does |
 | --- | --- |
@@ -42,7 +46,12 @@ Hovering the name shows the app's `note` if it has one, otherwise its name. Set 
 
 ### MCP sub-row
 
-When an AI client has used Moonpool's MCP tools for an app, a dimmed sub-row `MCP server` appears under it. Its dot is lit and the tooltip reads "MCP client attached" while the client is connected, and a stop button ends that process. Hide these rows with **Show MCP processes** in Settings. See [MCP setup](/automation/mcp-setup/).
+When an AI client has used an app's own MCP tools, a dimmed sub-row `MCP server` appears
+under the app. Its dot is lit and the tooltip reads "MCP client attached" while the client
+is connected. A stop button ends that process.
+
+Hide these rows with **Show MCP processes** in Settings. See
+[MCP setup](/automation/mcp-setup/#apps-that-have-their-own-mcp-server).
 
 ## Groups
 
@@ -76,4 +85,4 @@ Right-click a row for:
 
 ## Resizing
 
-Drag the divider between the sidebar and the CLI pane. The width is limited to 180 to 620 px (default 280) and is remembered. The divider is locked while the CLI pane is collapsed. See [Terminal](/using/terminal/).
+Drag the divider between the sidebar and the CLI pane. The width is limited to 180 to 620 px (default 280) and is remembered. The divider is locked while the CLI pane is collapsed. See [Terminal tabs](/using/terminal/).

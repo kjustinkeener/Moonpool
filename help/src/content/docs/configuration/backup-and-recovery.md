@@ -39,7 +39,9 @@ travel with a backup; pick it again after a restore.
    from `dashboards\`.
 
 ```powershell frame="terminal"
-Copy-Item "$env:USERPROFILE\.moonpool\moonpool-config\apps.json", "$env:USERPROFILE\.moonpool\moonpool-config\settings.json" D:\backup\
+$cfg = "$env:USERPROFILE\.moonpool\moonpool-config"
+Copy-Item "$cfg\apps.json", "$cfg\settings.json" D:\backup\
+Copy-Item "$cfg\icons" D:\backup\ -Recurse
 ```
 
 To restore, quit Moonpool, copy the files back, and start it.
@@ -54,7 +56,8 @@ is named by the time it was taken, for example `1767225600000.json`. There is no
 - **By hand.** Copy a snapshot over `apps.json`, then choose **Reload**.
 
   ```powershell frame="terminal"
-  Copy-Item "$env:USERPROFILE\.moonpool\moonpool-config\apps.json.history\<snapshot>" "$env:USERPROFILE\.moonpool\moonpool-config\apps.json"
+  $cfg = "$env:USERPROFILE\.moonpool\moonpool-config"
+  Copy-Item "$cfg\apps.json.history\<snapshot>" "$cfg\apps.json"
   ```
 
 - **From a script.** `moonpool.exe restore-config` lists the snapshots;

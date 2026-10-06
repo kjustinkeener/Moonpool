@@ -1,9 +1,9 @@
 ---
-title: The Hub Window
+title: The hub window
 description: A tour of the Moonpool hub window, its menu, the apps.json error banner, the empty screen, and how it remembers its size and position.
 ---
 
-![The hub with three apps running: the outlined areas are numbered 1 to 4](../../../assets/screenshots/hub-window.png)
+![The hub with three apps running: two running web app rows (1), the tab strip (2), the active app's live output (3) and the status bar (4)](../../../assets/screenshots/hub-window.png)
 
 1. Two of the running apps: a lit status dot and a stop button instead of play.
 2. The tab strip, one tab per opened app, with the active tab highlighted.
@@ -16,14 +16,17 @@ description: A tour of the Moonpool hub window, its menu, the apps.json error ba
 | --- | --- |
 | Title bar | Minimize, maximize and close. |
 | Sidebar | The filter box, the **...** menu, and your apps grouped by `group`. See [Sidebar and menus](/using/sidebar-and-menus/). |
-| CLI pane | One terminal tab per opened app. See [Terminal](/using/terminal/). |
+| CLI pane | One terminal tab per opened app. See [Terminal tabs](/using/terminal/). |
 | Status bar | Live CPU and memory, along the bottom. |
 
 Drag the divider between the sidebar and the CLI pane to resize the sidebar.
 
 ## Status bar
 
-The status bar shows one thin bar per CPU core (hover for "Per-core CPU usage"), then a memory bar with a `used/total GB` label. Turn it off with **Show CPU/memory status bar** in Settings (`showStatusbar`; see [Settings window](/using/settings-window/)). The change applies immediately.
+![The status bar: per-core CPU bars on the left, the memory bar on the right](../../../assets/screenshots/status-bar.png)
+
+The status bar shows one thin bar per CPU core (hover for "Per-core CPU usage"), then a
+memory bar with a `used/total GB` label. Turn it off with **Show CPU/memory status bar** in Settings (`showStatusbar`; see [Settings window](/using/settings-window/)). The change applies immediately.
 
 ## The ... menu
 
@@ -37,7 +40,7 @@ The **...** button left of the filter box opens the menu.
 | Item | Does |
 | --- | --- |
 | Add app | Opens the app editor. See [Adding apps](/guides/adding-apps/). |
-| Edit apps.json | Opens the manifest file for hand editing. |
+| Edit apps.json | Opens `apps.json` in your default editor for hand editing. |
 | Reload | Re-reads `apps.json` from disk (also F5, see [Shortcuts and zoom](/using/shortcuts-and-zoom/)). |
 | Settings | Opens the Settings window. |
 | Help | Opens this help. |
@@ -52,7 +55,7 @@ If two apps in `apps.json` use the same `port`, a warning row appears at the bot
 port 3000: App A / App B
 ```
 
-Hover it for the full sentence. Fix the clash in the manifest or the editor; the row disappears once no port is shared.
+Hover it for the full sentence. Fix the clash in `apps.json` or the app editor; the row disappears once no port is shared.
 
 ## When apps.json has an error
 
@@ -88,6 +91,9 @@ The tray icon, closing, minimizing, Quit and always on top are on
 Moonpool remembers the hub window's size, position and maximized state between runs. The
 first run opens at 1200x780, at the position Windows picks.
 
-If the saved position is no longer on any connected display (for example an unplugged monitor), the position is ignored and the saved size is used at the default location. The file is `window-state.json` in the config folder (see [Overview](/configuration/overview/#where-the-config-lives)).
+If the saved position is no longer on any connected display (for example an unplugged
+monitor), the position is ignored and the saved size is used at the default location. The
+file is `window-state.json` in the config folder (see
+[Where the config lives](/configuration/overview/#where-the-config-lives)).
 
 The sidebar width and whether the CLI pane is collapsed are remembered too.

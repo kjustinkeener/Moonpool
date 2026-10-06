@@ -58,7 +58,7 @@ So one very large current log can push out every older one.
 ## moonpool.log
 
 With **Log debug info to a file** (`debugLogging`) on, Moonpool appends timestamped lines to
-`moonpool.log` in the config folder: manifest loads, launches (with the command and folder),
+`moonpool.log` in the config folder: `apps.json` loads, launches (with the command and folder),
 control commands and errors. Turn it on before you reproduce a problem.
 
 ## Reveal and Copy

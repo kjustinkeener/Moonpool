@@ -18,7 +18,7 @@ independently, each with its own control channel. A surface always reaches the c
 
 ## How they relate
 
-- The hub owns everything: launching apps, the terminal logs, `apps.json`.
+- The hub owns everything: launching apps, the session logs, `apps.json`.
 - The MCP server is a client of the hub, not a second copy of it. Most tool calls are
   forwarded to the hub over the control channel, and the reply comes back as the tool
   result. The exceptions: `moonpool_bootup_launcher` starts `moonpool.exe` itself;
@@ -53,7 +53,7 @@ Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_con
 ## Safety properties
 
 - **Config writes are guarded.** A write must carry the version token from the last read, a
-  stale token is rejected, and the new manifest is validated before anything is written. A
+  stale token is rejected, and the new `apps.json` is validated before anything is written. A
   rejected write leaves `apps.json` untouched. See [MCP tools](/automation/mcp-tools/#configuration).
 - **App ids are restricted.** The MCP server accepts only letters, digits, `.`, `_` and `-`,
   and never a leading `-`, so an id cannot be read as a command-line flag.
