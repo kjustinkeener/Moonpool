@@ -1,6 +1,6 @@
 ---
-title: Example dashboards
-description: The bundled offline dashboards, where they live, and how to add the example apps to an existing config.
+title: "Try the example dashboards that ship with Moonpool"
+description: "Open the bundled offline example dashboards, see where they live and how example apps reference them, and add them to an existing config."
 ---
 
 Moonpool ships a set of self-contained dashboards inside the program. They run entirely
@@ -42,7 +42,7 @@ file:///{MP_HOME}/dashboards/examples/csv/index.html
 
 `{MP_HOME}` resolves to the install folder or, in portable mode, the bundle folder, so the entry still
 works from a moved bundle. `file://` URLs are allowed. See
-[Paths and environment](/configuration/paths-and-environment/).
+[Paths and environment](/apps/paths-and-environment/).
 
 ## Example apps appear only on first run
 
@@ -86,9 +86,9 @@ your other entries by commas:
 }
 ```
 
-Field meanings are in [App fields](/configuration/fields/).
+Field meanings are in [App fields](/apps/fields/).
 
 ## See also
 
-- [Examples](/configuration/examples/): more complete entries to copy.
-- [App types](/configuration/app-types/#static)
+- [Examples](/apps/examples/): more complete entries to copy.
+- [App types](/apps/types/#static)

@@ -1,6 +1,6 @@
 ---
-title: Command line
-description: Drive a running Moonpool with moonpool.exe verbs, tag a command with a ticket, and read the outcome from state.json.
+title: "Control Moonpool from the command line"
+description: "Drive a running Moonpool with moonpool.exe verbs from a terminal or script, tag a command with a ticket, and read the outcome from state.json."
 ---
 
 Running a `moonpool.exe` again while that same Moonpool is already running does not open a
@@ -10,7 +10,7 @@ with nothing resident, the same command starts a new Moonpool and the verb is no
 
 "Same Moonpool" means the same folder. The installed Moonpool and every portable copy each
 run on their own, so a command reaches the copy whose `moonpool.exe` you ran, never another
-one. See [Portable mode](/guides/portable-mode/#several-copies-at-once).
+one. See [Portable mode](/data/portable-mode/#several-copies-at-once).
 
 Use the path of the copy you mean. For the installed one:
 
@@ -63,7 +63,7 @@ The command line prints nothing, so tag a command with `--ticket <key>` (any uni
 any position) and read the result from `state.json` in the config folder. That is
 `%USERPROFILE%\.moonpool\moonpool-config\` installed, `<your .moonpool folder>\moonpool-config\`
 for a portable copy, and `~/.config/Moonpool/` on Linux (see
-[Configuration overview](/configuration/overview/#where-the-config-lives)). `show` and `quit`
+[Configuration overview](/apps/apps-json/#where-the-config-lives)). `show` and `quit`
 write no ticket.
 
 ```powershell frame="terminal"

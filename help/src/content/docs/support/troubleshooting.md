@@ -1,6 +1,6 @@
 ---
-title: Troubleshooting and FAQ
-description: Fixes for common problems, found by what you see, plus short answers to common questions.
+title: "Troubleshoot Moonpool: tray, apps that will not start, updates"
+description: "Fix common Moonpool problems by what you see: missing tray icon, apps that will not start or stop, wrong status dots, failed updates and MCP errors."
 ---
 
 Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
@@ -12,7 +12,7 @@ Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
 - **Linux on stock GNOME.** GNOME shows no tray icons without the AppIndicator extension.
   See [Linux](/platforms/linux/#tray-on-gnome).
 - **Settings.** **Show in tray** may be off. Open the hub from the taskbar or Start Menu
-  and turn it back on in [Settings](/using/settings-window/).
+  and turn it back on in [Settings](/using/settings/).
 
 ## The installer shows an error
 
@@ -27,11 +27,11 @@ Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
 1. Click the app's name to open its terminal tab and read the output. An agent can read the
    same text with `moonpool_app_output`.
 2. Check `cwd`. A missing folder, or a relative path without `./`, is the usual cause. See
-   [Paths and environment](/configuration/paths-and-environment/).
+   [Paths and environment](/apps/paths-and-environment/).
 3. Check `command`. Run it by hand in a terminal in `cwd`. On Windows avoid nested double
    quotes; `cmd /c` mangles them.
 4. Turn on **Log debug info to a file** in Settings and launch again. `moonpool.log` records
-   the exact command and folder. See [Logs](/configuration/logs/).
+   the exact command and folder. See [Logs](/data/logs/).
 
 | Message | Meaning |
 | --- | --- |
@@ -42,7 +42,7 @@ Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
 ## The status dot is wrong
 
 Moonpool decides Running from `port`, then `processName`, then whether its own terminal is
-still alive. See [How Running is decided](/configuration/app-types/#how-running-is-decided).
+still alive. See [How Running is decided](/apps/types/#how-running-is-decided).
 
 - **Never turns solid.** A `web` app's `port` does not answer, or a `desktop` app's
   `processName` does not match. On Linux `processName` must be 15 characters or fewer.
@@ -63,7 +63,7 @@ Change one app's `port` (and its `env`, if it reads `PORT`). See
 From a script or agent the error is `still running after stop` (after 15 seconds).
 
 - The app outlives its terminal. Set `killMode` to `port` or `processName`. See
-  [Stop and restart](/configuration/stop-and-restart/).
+  [Stop and restart](/apps/stop-and-restart/).
 - A Docker app on Windows: use `killMode` `command` with a `stopCommand` such as
   `docker compose stop app`. Never `port`.
 
@@ -84,9 +84,9 @@ apps.json entry 4 (api) has invalid port 0
 
 1. Choose **Edit apps.json** in the banner, fix the entry, save, then **Reload** (F5).
 2. Or roll back to a recent good copy. See
-   [Backup and recovery](/configuration/backup-and-recovery/#roll-back-appsjson).
+   [Backup and recovery](/data/backup-and-recovery/#roll-back-appsjson).
 
-The full rule list is in [Validation](/configuration/overview/#validation).
+The full rule list is in [Validation](/apps/apps-json/#validation).
 
 If a setting cannot be changed and the message ends with `Repair settings.json and restart
 Moonpool before changing settings`, fix or delete `settings.json` in the config folder and
@@ -104,13 +104,13 @@ start Moonpool again. Deleting it resets every setting to its default.
 ## The example apps are missing
 
 Examples are written only when no `apps.json` exists. To get them back, see
-[Reset to the examples](/configuration/backup-and-recovery/#reset-to-the-examples), or copy
-the entries from [Example dashboards](/using/example-dashboards/#example-apps-appear-only-on-first-run).
+[Reset to the examples](/data/backup-and-recovery/#reset-to-the-examples), or copy
+the entries from [Example dashboards](/getting-started/example-dashboards/#example-apps-appear-only-on-first-run).
 
 ## An update failed
 
 The banner shows `Update failed: <error>`. See
-[When an update fails](/guides/updating/#when-an-update-fails).
+[When an update fails](/data/updating/#when-an-update-fails).
 
 ## A web link will not open
 
@@ -135,18 +135,18 @@ More in [MCP setup](/automation/mcp-setup/#notes) and
 - **Off screen.** Moonpool ignores a saved position that is on no connected display. If the
   window is still lost, quit Moonpool and delete `window-state.json` in the config folder.
 - **Zoom stuck too big or too small.** Ctrl + wheel over the hub changes it. See
-  [Shortcuts and zoom](/using/shortcuts-and-zoom/#zoom).
+  [Shortcuts and zoom](/using/keyboard-shortcuts/#zoom).
 - **Settings opens behind the hub.** Turn **Always on top** off, or on, in Settings. It
   applies to every Moonpool window, so they stay in the same layer.
 
 ## Where are the logs?
 
-See [Logs](/configuration/logs/).
+See [Logs](/data/logs/).
 
 ## Back up, reset or uninstall
 
-See [Backup and recovery](/configuration/backup-and-recovery/) and
-[Uninstalling](/getting-started/installing/#uninstalling).
+See [Backup and recovery](/data/backup-and-recovery/) and
+[Uninstalling](/getting-started/install/#uninstalling).
 
 ## FAQ
 
@@ -158,7 +158,7 @@ on **Close to tray** to keep Moonpool running when you close the window. See
 **Can I run Moonpool twice?**
 One per folder. Starting the same copy again brings its window back. The installed copy and
 portable copies can run side by side. See
-[Portable mode](/guides/portable-mode/#several-copies-at-once).
+[Portable mode](/data/portable-mode/#several-copies-at-once).
 
 **Does Moonpool phone home?**
 Only to check for updates: it fetches the release file (`update.json`) from GitHub at startup (if

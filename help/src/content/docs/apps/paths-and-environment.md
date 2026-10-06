@@ -1,6 +1,6 @@
 ---
-title: Paths and environment
-description: The {MP_HOME} and {MP_DATA} tokens, ./ paths, which fields expand them, and how env and the working folder behave.
+title: "Use paths, MP_HOME tokens and environment variables in apps"
+description: "Use the {MP_HOME} and {MP_DATA} tokens and relative ./ paths in app entries, see which fields expand them, and set env and the working folder."
 ---
 
 ## Tokens
@@ -42,7 +42,7 @@ apps\tool                          left alone, resolves against Moonpool's worki
 
 Both forms keep working when you move the portable folder. A fixed path such as
 `C:\tools\notes` does not travel. In portable mode the Edit app dialog marks absolute `cwd`
-and `url` values with a "not portable" badge. See [Portable mode](/guides/portable-mode/).
+and `url` values with a "not portable" badge. See [Portable mode](/data/portable-mode/).
 
 ## Environment
 

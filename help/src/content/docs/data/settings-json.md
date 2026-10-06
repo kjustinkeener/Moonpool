@@ -1,12 +1,12 @@
 ---
-title: settings.json
-description: The shape of settings.json, the keys Moonpool writes for you, and what happens when the file is broken.
+title: "Understand settings.json and repair a broken one"
+description: "See the shape of Moonpool's settings.json, which keys Moonpool writes for you, and how to read it and repair it when the file is broken."
 ---
 
 App-wide settings live in `settings.json` in the config folder (see
-[Where the config lives](/configuration/overview/#where-the-config-lives)). Change them in the
-[Settings window](/using/settings-window/), which lists every setting with its JSON key and
-default. Logs and their retention are on the [Logs](/configuration/logs/) page.
+[Where the config lives](/apps/apps-json/#where-the-config-lives)). Change them in the
+[Settings window](/using/settings/), which lists every setting with its JSON key and
+default. Logs and their retention are on the [Logs](/data/logs/) page.
 
 ## Shape
 
@@ -42,7 +42,7 @@ One JSON object. Keys you leave out take their defaults:
 
 Moonpool also stores the UI zoom (`uiScale`, 0.5 to 3.0) and the resolved language
 (`localeResolved`) in this file. You do not need to set either. The theme is not here: it is
-kept in the webview's storage (see [Themes, language and transparency](/using/appearance/)).
+kept in the webview's storage (see [Themes, language and transparency](/using/themes-and-language/)).
 
 ## Reading and repair
 

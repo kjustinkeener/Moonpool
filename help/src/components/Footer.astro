@@ -1,0 +1,20 @@
+---
+// Web build only (registered in astro.config.mjs when HELP_BASE is set): Starlight's footer
+// plus a link back to FasterDB. The in-app build keeps Starlight's default.
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default {...Astro.props}><slot /></Default>
+<p class="fasterdb">Moonpool is free software from <a href="https://fasterdb.com/">FasterDB</a></p>
+
+<style>
+	.fasterdb {
+		margin: 1.5rem 0 0;
+		font-size: var(--sl-text-sm);
+		color: var(--sl-color-gray-3);
+		text-align: center;
+	}
+	.fasterdb a {
+		color: var(--sl-color-text-accent);
+	}
+</style>

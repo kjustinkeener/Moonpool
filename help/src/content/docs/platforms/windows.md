@@ -1,10 +1,10 @@
 ---
-title: Windows
-description: Windows notes for Moonpool, and a table of what differs between Windows and Linux.
+title: "Use Moonpool on Windows"
+description: "Windows is the main Moonpool platform: how to install it, and a table of what differs between Windows and Linux so you know what to expect."
 ---
 
 Windows is Moonpool's main platform. Install it as described in
-[Installing](/getting-started/installing/).
+[Installing](/getting-started/install/).
 
 ## Before you run it
 
@@ -32,7 +32,7 @@ the right of the taskbar to find it, and drag it onto the taskbar to keep it vis
 - Stop ends the whole process tree Moonpool started, including processes that detached from
   it.
 - Docker Desktop apps need `killMode` `none` or `command`, never `port`. See
-  [Docker apps on Windows](/configuration/stop-and-restart/#docker-apps-on-windows).
+  [Docker apps on Windows](/apps/stop-and-restart/#docker-apps-on-windows).
 
 ## What differs by platform
 

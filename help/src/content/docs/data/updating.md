@@ -1,6 +1,6 @@
 ---
-title: Updating
-description: How Moonpool checks for, downloads and applies updates, the update banner, portable and Linux copies, and what to do when an update fails.
+title: "Update Moonpool and fix a failed update"
+description: "See how Moonpool checks for, downloads and applies updates, what the update banner does, how portable and Linux copies update, and what to do on failure."
 ---
 
 Moonpool updates itself. There is no separate installer to download and no wizard to click
@@ -12,7 +12,7 @@ Moonpool fetches `update.json` (`linux-update.json` on Linux) from the project's
 Releases, compares versions, and only offers a strictly newer one. It checks:
 
 - at startup, unless **Check for updates on startup** is off in
-  [Settings](/using/settings-window/);
+  [Settings](/using/settings/);
 - whenever you press **Check for updates** in the About window. That button installs a newer
   version straight away and restarts Moonpool. Otherwise it says you are on the latest
   version, or shows the error.
@@ -91,4 +91,4 @@ The offline copy always matches the version you run.
 ## See also
 
 - [What's new](/getting-started/whats-new/)
-- [Settings window](/using/settings-window/)
+- [Settings window](/using/settings/)

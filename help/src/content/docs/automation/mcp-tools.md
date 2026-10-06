@@ -1,6 +1,6 @@
 ---
-title: MCP tools
-description: Every tool the Moonpool MCP server exposes, with parameters, results and error cases.
+title: "Moonpool MCP tools reference: parameters and results"
+description: "Every tool the Moonpool MCP server exposes for agents, with its parameters, what it returns, and the error cases you may see."
 ---
 
 All tools return text, except `moonpool_screenshot`, which returns a PNG image. A failure

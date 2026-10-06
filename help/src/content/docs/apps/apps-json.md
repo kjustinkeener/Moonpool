@@ -1,6 +1,6 @@
 ---
-title: Configuration overview
-description: Where apps.json lives, how to edit and reload it, how it is validated, and how to recover from a bad edit.
+title: "Edit apps.json: where it lives, how to reload and recover it"
+description: "Find the apps.json file Moonpool reads for every managed app, edit it in the app editor or by hand, reload it, and recover from a bad edit."
 ---
 
 Every app Moonpool manages is one entry in `apps.json`. You can edit it from the app editor
@@ -20,8 +20,8 @@ messages call this file the manifest.
 | Item | Purpose |
 | --- | --- |
 | `apps.json.history\` | Rollback ring of the last 10 valid `apps.json` files. |
-| `settings.json` | App settings. See [settings.json](/configuration/settings-and-logs/). |
-| `cli-output\<id>\` | Per-app session logs. See [Logs](/configuration/logs/). |
+| `settings.json` | App settings. See [settings.json](/data/settings-json/). |
+| `cli-output\<id>\` | Per-app session logs. See [Logs](/data/logs/). |
 | `moonpool.log` | Debug log, while **Log debug info to a file** is on. |
 | `icons\` | Optional `<id>.png` (also `.ico`, `.svg`, `.jpg`, `.jpeg`, `.webp`) icon overrides. |
 | `state.json` | Live status snapshot, refreshed every couple of seconds. |
@@ -30,7 +30,7 @@ messages call this file the manifest.
 | `window-state.json` | The hub window's size and position. |
 | `AI-README.md` | The guide for AI agents, rewritten at every launch. |
 
-Which of these to back up is in [Backup and recovery](/configuration/backup-and-recovery/#the-config-folder).
+Which of these to back up is in [Backup and recovery](/data/backup-and-recovery/#the-config-folder).
 
 On first run Moonpool seeds `apps.json` with example entries. A file that already exists is
 never overwritten.
@@ -52,7 +52,7 @@ does not know are dropped, and JSON has no comments, so keep notes in the `note`
 ## Shape
 
 The file is a JSON array of objects. Four keys are required on every entry: `id`, `name`,
-`group`, `type`. Everything else is optional. See [App fields](/configuration/fields/).
+`group`, `type`. Everything else is optional. See [App fields](/apps/fields/).
 
 ```json title="apps.json"
 [
@@ -120,8 +120,8 @@ never changes the id afterward, so renaming an app keeps its id. The name `Habit
   on disk stays as it was.
 
 Moonpool keeps the last 10 good versions of `apps.json` in `apps.json.history\`. How to roll
-back is in [Backup and recovery](/configuration/backup-and-recovery/#roll-back-appsjson).
-Symptoms and fixes are in [Troubleshooting](/reference/troubleshooting/#appsjson-has-an-error).
+back is in [Backup and recovery](/data/backup-and-recovery/#roll-back-appsjson).
+Symptoms and fixes are in [Troubleshooting](/support/troubleshooting/#appsjson-has-an-error).
 
 ## Agents
 

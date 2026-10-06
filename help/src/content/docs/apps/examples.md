@@ -1,6 +1,6 @@
 ---
-title: Examples
-description: Complete, valid apps.json entries for a dev server, a desktop app, a static page, a CLI tool, Docker Compose, and a portable app.
+title: "Copy-paste apps.json examples for common app setups"
+description: "Complete, valid apps.json entries for a dev server, a desktop app, a static page, a CLI tool, Docker Compose, and a portable app to copy and adapt."
 ---
 
 Each snippet is one entry. Put them inside the top-level array of `apps.json`, separated by
@@ -112,7 +112,7 @@ Runs in a terminal tab. The `-NoExit` keeps the shell open after the script fini
 
 `command` already recreates the container and exits, so Running comes from the port. Stop
 runs `stopCommand` instead of killing the port's owner, which on Windows would be Docker
-Desktop. See [Stop and restart](/configuration/stop-and-restart/#docker-apps-on-windows).
+Desktop. See [Stop and restart](/apps/stop-and-restart/#docker-apps-on-windows).
 
 ```json title="apps.json"
 {
@@ -151,5 +151,5 @@ Paths anchor to the portable folder, so the entry still works after the folder m
 
 ## See also
 
-- [Example dashboards](/using/example-dashboards/): the dashboards that ship with Moonpool.
-- [App fields](/configuration/fields/)
+- [Example dashboards](/getting-started/example-dashboards/): the dashboards that ship with Moonpool.
+- [App fields](/apps/fields/)

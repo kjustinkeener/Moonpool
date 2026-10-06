@@ -7,6 +7,7 @@
     "start": "astro dev",
     "build": "astro build",
     "build:web": "node scripts/build-web.mjs",
+    "check:links": "node scripts/check-links.mjs dist / && node scripts/check-links.mjs dist-web /software/moonpool/help/",
     "preview": "astro preview",
     "astro": "astro"
   },
