@@ -62,8 +62,9 @@ page. So a partial translation always builds; translate pages in any order.
 6. **Images.** Keep the image, translate the alt text. Relative paths gain one `../` because the
    file is one directory deeper (`../../../assets/...` becomes `../../../../assets/...`). The
    screenshots show the English UI; do not edit them.
-7. **Register.** Natural, idiomatic technical documentation. Use the formal address where the
-   language has one (German "Sie", French "vous", and so on). Keep terminology consistent across
+7. **Register.** Natural, idiomatic technical documentation. Use the same form of address as the
+   app's own catalog for that language (German uses "Sie"; Dutch uses "je"), so the help and the
+   UI never disagree. Keep terminology consistent across
    pages (see "Terms" below) and with the app's catalog.
 8. **Structure.** Keep headings, lists, tables, bold and code formatting one to one with the English.
    The troubleshooting page builds FAQ structured data from its `##` headings, so keep each
