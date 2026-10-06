@@ -45,6 +45,8 @@ page. So a partial translation always builds; translate pages in any order.
    `src/lib/locales/<id>.ts`, and copy that text. Never invent a different translation for a label
    the app already translates. If the app does not translate a label (it shows English or the
    catalog lacks the key), keep the English text.
+   The two tray menu items ("Show Moonpool", "Quit") are not in the JS catalog: take them from
+   `src-tauri/src/i18n.rs`.
 4. **Never translate:**
    - code blocks and inline code;
    - `apps.json` field names and values (`killMode`, `"type": "web"`), CLI verbs, MCP tool names,

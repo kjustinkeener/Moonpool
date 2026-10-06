@@ -42,7 +42,7 @@ Standard für `web`).
 Standardmäßig beendet die Schaltfläche zum Schließen Moonpool, und unter Windows stoppt das
 Beenden jede App, die es gestartet hat. Schalten Sie in den
 [Einstellungen](/de/using/settings/) **Beim Schließen in den Infobereich** ein, dann blendet
-das Schließen des Fensters es nur aus. Das Tray-Symbol (oder **Show Moonpool**) holt es
+das Schließen des Fensters es nur aus. Das Tray-Symbol (oder **Moonpool anzeigen**) holt es
 zurück. Einzelheiten stehen unter
 [Tray, Schließen und Minimieren](/de/using/tray-and-closing/).
 
