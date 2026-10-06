@@ -82,6 +82,36 @@ Hub-Fenster, port = Port, process = Prozess, background = Hintergrund, tab = Tab
 beenden, launch = starten. Windows SmartScreen: "Der Computer wurde durch Windows geschützt",
 "Weitere Informationen", "Trotzdem ausführen", "Unbekannter Herausgeber".
 
+## Terms (Japanese)
+
+Register and address follow the app catalog (`src/lib/locales/ja.ts`): polite desu/masu, no
+second-person address. Use the catalog first. Words it does not settle: app = アプリ, dev server =
+開発サーバー, tray = トレイ, hub = ハブ, hub window = ハブウィンドウ, CLI pane = CLI パネル,
+process = プロセス, port = ポート, log = ログ, session = セッション, session log = セッションログ,
+dump = ダンプ, snapshot = スナップショット, scrollback = スクロールバック, control channel =
+制御チャネル, verb = 動詞, ticket = チケット, token = トークン, config folder = 設定フォルダー,
+manifest = マニフェスト, backup = バックアップ, portable mode = ポータブルモード (catalog), portable
+copy = ポータブル版, installed = インストール版, launch = 起動, stop = 停止, restart = 再起動,
+background = バックグラウンド. Windows SmartScreen strings stay in English with a Japanese gloss in
+parentheses (Windows によって PC が保護されました, 詳細情報, 実行, 不明な発行元). Error strings printed by
+Moonpool's backend, Node or Vite stay in English; strings the app catalog translates (update banner,
+"name は必須です。", the apps.json banners) use the catalog text.
+
+## Terms (Korean)
+
+Register and address follow the app catalog (`src/lib/locales/ko.ts`): polite 합니다체 and 해요체 as
+the catalog uses them in prose, no second-person address; particles as in the catalog (Moonpool을,
+apps.json에). Use the catalog first. Words it does not settle: app = 앱, dev server = 개발 서버, tray
+= 트레이, hub = 허브, hub window = 허브 창, CLI pane = CLI 창, process = 프로세스, port = 포트, log =
+로그, session = 세션, session log = 세션 로그, dump = 덤프, snapshot = 스냅샷, scrollback = 스크롤백,
+control channel = 제어 채널, verb = 동사, ticket = 티켓, token = 토큰, config folder = 설정 폴더,
+manifest = 매니페스트, backup = 백업, portable mode = 포터블 모드 (catalog), portable copy = 포터블
+복사본, installed = 설치형, launch = 실행, stop = 중지, restart = 다시 시작, background = 백그라운드,
+taskbar = 작업 표시줄. Windows SmartScreen strings stay in English with a Korean gloss in parentheses
+(추가 정보, 실행, 알 수 없는 게시자). Error strings printed by Moonpool's backend, Node or Vite stay in
+English; strings the app catalog translates (update banner, "name은 필수입니다.", the apps.json
+banners) use the catalog text.
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
