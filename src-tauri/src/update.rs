@@ -153,7 +153,7 @@ pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
 }
 
 /// Atomically replace the AppImage that launched us, then start the replacement
-/// behind the normal single-instance handoff. The running image remains mapped by
+/// behind the normal per-copy lock handoff. The running image remains mapped by
 /// its inode after the rename, so the swap is safe on Linux filesystems.
 #[cfg(target_os = "linux")]
 fn self_replace_appimage_and_relaunch(
@@ -252,7 +252,7 @@ fn self_replace_and_relaunch(
 
     // Launch the freshly written exe, then bow out. Tell the child to wait for THIS
     // process to exit (`--wait-pid`) before it builds anything, so it doesn't race the
-    // single-instance lock we still hold and get routed straight back into us (leaving
+    // per-copy lock (`instance`) we still hold and get routed straight back into us (leaving
     // no resident instance). Mirrors `install::relaunch_and_exit`.
     let mut c = std::process::Command::new(&cur);
     c.arg("--wait-pid").arg(std::process::id().to_string());

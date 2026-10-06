@@ -133,7 +133,7 @@ pub fn perform_install(desktop_shortcut: bool) -> Result<String, String> {
 
 /// Spawn `exe` and quit this process, handing off cleanly. The child is told to wait
 /// for THIS process to exit (`--wait-pid`) before it builds anything, so it doesn't
-/// race the single-instance lock we still hold and get routed back into us (which, for
+/// race the per-copy lock (`instance`) we still hold and get routed back into us (which, for
 /// the installer, would just re-show the install card instead of booting the copy).
 pub fn relaunch_and_exit(app: &AppHandle, exe: &Path) {
     let mut c = Command::new(exe);
@@ -173,13 +173,16 @@ pub fn run_uninstall() {
         // ("syntax is incorrect"), so the delete silently never ran. PowerShell takes
         // the path as a single-quoted literal and retries until the lock clears, and
         // -Recurse -Force clears the seeded dashboards tree too.
-        // Stop any OTHER running Moonpool first (a hub left open holds moonpool.exe
-        // locked, which is what made the delete fail and left the folder behind - and
-        // a leftover folder is exactly what makes Windows' Program Compatibility
-        // Assistant claim the uninstall failed). Then retry for ~30s.
+        // Stop any OTHER running installed Moonpool first (a hub left open holds
+        // moonpool.exe locked, which is what made the delete fail and left the folder
+        // behind - and a leftover folder is exactly what makes Windows' Program
+        // Compatibility Assistant claim the uninstall failed). Then retry for ~30s.
+        // Only processes whose exe lives in the install dir: a portable Moonpool copy
+        // elsewhere is a separate launcher and must keep running.
         let dir_s = dir.display().to_string().replace('\'', "''"); // ' -> '' for PS
         let script = format!(
-            "Get-Process moonpool -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue;\
+            "$d='{dir_s}'.TrimEnd('\\')+'\\';\
+             Get-Process moonpool -ErrorAction SilentlyContinue|Where-Object {{$_.Path -and $_.Path.StartsWith($d,[System.StringComparison]::OrdinalIgnoreCase)}}|Stop-Process -Force -ErrorAction SilentlyContinue;\
              Start-Sleep -Milliseconds 400;\
              for($i=0;$i -lt 60;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 500}}}}"
         );
