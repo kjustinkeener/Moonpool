@@ -1,6 +1,6 @@
 ---
-title: MCP setup
-description: Register moonpool.exe mcp with an MCP host, installed or portable, and how Moonpool tracks an app's own MCP helper.
+title: "Connect an AI agent to Moonpool over MCP"
+description: "Register moonpool.exe mcp as a stdio MCP server with your host, installed or portable, and learn how Moonpool tracks an app's own MCP helper."
 ---
 
 Moonpool's executable is its own MCP server. Register it with the host as a stdio server

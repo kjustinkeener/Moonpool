@@ -1,6 +1,6 @@
 ---
-title: Automation overview
-description: The three ways to drive a running Moonpool from scripts and AI agents, how they relate, and what each one can change.
+title: "Automate Moonpool with scripts and AI agents"
+description: "The three ways to drive a running Moonpool from scripts and AI agents (MCP, command line and control verbs), how they relate, and what each can change."
 ---
 
 Moonpool can be driven without touching its window. There are three surfaces, all served by

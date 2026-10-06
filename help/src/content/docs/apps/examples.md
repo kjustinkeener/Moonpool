@@ -1,6 +1,6 @@
 ---
-title: Examples
-description: Complete, valid apps.json entries for a dev server, a desktop app, a static page, a CLI tool, Docker Compose, and a portable app.
+title: "Copy-paste apps.json examples for common app setups"
+description: "Complete, valid apps.json entries for a dev server, a desktop app, a static page, a CLI tool, Docker Compose, and a portable app to copy and adapt."
 ---
 
 Each snippet is one entry. Put them inside the top-level array of `apps.json`, separated by

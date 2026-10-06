@@ -1,6 +1,6 @@
 ---
-title: Your first app
-description: From first launch to one running app of your own in a few minutes, and how to find the hub and this help later.
+title: "Add and run your first app in Moonpool"
+description: "Go from first launch to one running app of your own in a few minutes: add it, start it, stop it, and find the hub and this help again later."
 ---
 
 ## 1. Start Moonpool

@@ -1,6 +1,6 @@
 ---
-title: Sidebar and menus
-description: Sidebar rows, status dots, groups, the filter box, the row context menu, and resizing the sidebar.
+title: "Read the sidebar: status dots, groups, filter and row menu"
+description: "Learn what each sidebar row shows, how status dots and groups work, how to filter apps, use the row context menu, and resize the sidebar."
 ---
 
 The sidebar lists every app in `apps.json`, grouped by each app's `group` field. See [App fields](/apps/fields/).

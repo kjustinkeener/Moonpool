@@ -1,6 +1,6 @@
 ---
-title: Terminal tabs
-description: Terminal tabs in the hub, opening and closing, collapsing the pane, copy and paste, restarts, and where session logs live.
+title: "Use Moonpool terminal tabs: open, close, copy, restart"
+description: "Work with the per-app terminal tabs in the hub: open and close tabs, collapse the pane, copy and paste, restart a session, and find session logs."
 ---
 
 Each app runs in its own terminal tab in the CLI pane.

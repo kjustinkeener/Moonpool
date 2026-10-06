@@ -1,6 +1,6 @@
 ---
-title: Glossary
-description: The words this help uses for Moonpool's parts, app states, files and settings.
+title: "Moonpool glossary: apps, states, files and settings"
+description: "Plain definitions of the words Moonpool help uses for its parts, app states, files and settings, so you can follow the rest of the docs."
 ---
 
 ## Apps

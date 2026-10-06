@@ -1,6 +1,6 @@
 ---
-title: What's new
-description: Highlights of recent Moonpool releases, and where to find the full release notes.
+title: "Moonpool release notes and recent changes"
+description: "See what changed in recent Moonpool releases, the requirements for running it, and where to find the full release notes on GitHub."
 ---
 
 The full notes for every release are on the project's

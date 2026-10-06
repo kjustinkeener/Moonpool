@@ -1,6 +1,6 @@
 ---
-title: Adding apps
-description: Register an app or dev server so Moonpool can launch and manage it.
+title: "Add an app or dev server to Moonpool"
+description: "Register a local app or dev server with a launch command, working folder and environment so Moonpool can start, stop and watch it for you."
 ---
 
 Each app in Moonpool is one entry with a launch command, a working folder, and an optional

@@ -1,6 +1,6 @@
 ---
-title: Backup and recovery
-description: What to back up, how to roll back apps.json, reset to the examples, move to a portable copy, and what uninstalling deletes.
+title: "Back up Moonpool, roll back apps.json and recover a setup"
+description: "Know what to back up, roll back a bad apps.json, reset to the example apps, move an installed setup to a portable copy, and see what uninstall removes."
 ---
 
 Everything Moonpool keeps is in two places: the config folder and the dashboards folder.

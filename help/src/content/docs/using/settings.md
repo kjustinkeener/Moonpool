@@ -1,6 +1,6 @@
 ---
-title: Settings window
-description: Every control in the Settings and About windows, what it does, and how to reset it.
+title: "Change Moonpool settings: every option in Settings and About"
+description: "A full list of the controls in the Moonpool Settings and About windows, the settings.json key each one writes, and how to reset a setting."
 ---
 
 Open **Settings** from the hub's "..." menu. Changes save as you make them. Escape closes

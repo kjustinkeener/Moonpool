@@ -1,6 +1,6 @@
 ---
-title: Command line
-description: Drive a running Moonpool with moonpool.exe verbs, tag a command with a ticket, and read the outcome from state.json.
+title: "Control Moonpool from the command line"
+description: "Drive a running Moonpool with moonpool.exe verbs from a terminal or script, tag a command with a ticket, and read the outcome from state.json."
 ---
 
 Running a `moonpool.exe` again while that same Moonpool is already running does not open a

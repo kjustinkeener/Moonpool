@@ -1,6 +1,6 @@
 ---
-title: App fields
-description: Every key of an apps.json entry with its type, default, and which app types use it.
+title: "Every apps.json field: type, default and what it does"
+description: "Look up every key of an apps.json entry with its type, default value and which app types use it, matching the names in the Edit app dialog."
 ---
 
 The Edit app dialog shows the same fields under the same names. Fields that do not apply to

@@ -1,6 +1,6 @@
 ---
-title: Updating
-description: How Moonpool checks for, downloads and applies updates, the update banner, portable and Linux copies, and what to do when an update fails.
+title: "Update Moonpool and fix a failed update"
+description: "See how Moonpool checks for, downloads and applies updates, what the update banner does, how portable and Linux copies update, and what to do on failure."
 ---
 
 Moonpool updates itself. There is no separate installer to download and no wizard to click

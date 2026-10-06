@@ -1,6 +1,6 @@
 ---
-title: Shortcuts and zoom
-description: Keyboard shortcuts, mouse shortcuts and UI zoom in the Moonpool hub.
+title: "Moonpool keyboard shortcuts, mouse shortcuts and zoom"
+description: "See every keyboard and mouse shortcut in the Moonpool hub, and how to zoom the interface in and out so text is comfortable to read."
 ---
 
 ## Keyboard

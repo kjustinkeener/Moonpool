@@ -1,6 +1,6 @@
 ---
-title: App types
-description: How web, desktop, static and cli apps launch, how Running is detected, and what Stop does by default.
+title: "Choose an app type: web, desktop, static or cli"
+description: "Learn how web, desktop, static and cli apps launch in Moonpool, how Running is detected for each, and what the Stop button does by default."
 ---
 
 `type` decides which fields matter and what Stop does by default.

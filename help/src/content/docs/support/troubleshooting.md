@@ -1,6 +1,6 @@
 ---
-title: Troubleshooting and FAQ
-description: Fixes for common problems, found by what you see, plus short answers to common questions.
+title: "Troubleshoot Moonpool: tray, apps that will not start, updates"
+description: "Fix common Moonpool problems by what you see: missing tray icon, apps that will not start or stop, wrong status dots, failed updates and MCP errors."
 ---
 
 Find the symptom, then follow the fix. Quoted text is what Moonpool shows.
