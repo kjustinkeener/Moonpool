@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 // Single source of truth for the help site's languages.
 //
 // The app's locale ids (src/lib/locales/*.ts, LOCALES in src/lib/i18n.svelte.ts) map to a
@@ -95,13 +97,36 @@ const GROUPS = {
 export const group = (label, items) => ({ label, translations: GROUPS[label], items });
 
 /**
- * A sidebar page link. `de` is the German label; other languages fall back to the English
- * label until their translator adds an entry (pass more tags via `extra`).
+ * Sidebar page labels for other languages, one file per language tag:
+ * `sidebar-labels/<tag>.json` maps a page slug to its label ({ "apps/fields": "..." }).
+ * One file per language lets translators work in parallel without touching shared files.
+ */
+const labelsDir = new URL('./sidebar-labels/', import.meta.url);
+const PAGE_LABELS = fs.existsSync(labelsDir)
+	? Object.fromEntries(
+			fs
+				.readdirSync(labelsDir)
+				.filter((f) => f.endsWith('.json'))
+				.map((f) => [f.slice(0, -5), JSON.parse(fs.readFileSync(new URL(f, labelsDir), 'utf8'))]),
+		)
+	: {};
+
+/**
+ * A sidebar page link. `de` is the German label; other languages come from
+ * `sidebar-labels/<tag>.json` and fall back to the English label until translated.
  */
 export const page = (slug, label, de, extra = {}) => ({
 	label,
 	slug,
-	translations: { ...(de ? { de } : {}), ...extra },
+	translations: {
+		...(de ? { de } : {}),
+		...Object.fromEntries(
+			Object.entries(PAGE_LABELS)
+				.filter(([, labels]) => labels[slug])
+				.map(([tag, labels]) => [tag, labels[slug]]),
+		),
+		...extra,
+	},
 });
 
 /** Strings in the web-only Starlight overrides (src/components/*.astro), per language tag. */
