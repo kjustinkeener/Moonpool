@@ -183,7 +183,7 @@ export const tr: PartialDict = {
   "editor.commandHint":
     "Uygulamayı başlatmak için gömülü terminalde çalıştırılan komut, örneğin 'npm run dev' ya da 'python app.py'. Yalnızca statik URL girdisi için boş bırakın.",
   "editor.portHint":
-    "Uygulamanın dinlediği yerel TCP bağlantı noktası. Bu bağlantı noktası yanıt verdiğinde Moonpool uygulamayı Çalışıyor olarak gösterir, Durdur ile de bu noktayı serbest bırakır. Web uygulamalarında kullanılır.",
+    "Uygulamanın dinlediği yerel TCP bağlantı noktası. Bu bağlantı noktası yanıt verdiğinde Moonpool uygulamayı Çalışıyor olarak gösterir. Durdur sırasında bu noktayı dinleyen her şeyi de sonlandırır, ancak yalnızca killMode port olduğunda (web uygulamalarında varsayılan).",
   "editor.killModeHint": "Durdur her zaman Moonpool'un başlattığı terminali sonlandırır. Bu ayar, ondan uzun yaşayan uygulamalar için fazladan bir temizlik adımı seçer. Durdur bir şeyi çalışır halde bırakmıyorsa varsayılanda bırakın.",
   "editor.killModeDefault": "varsayılan (türe göre)",
   "editor.killNoteDefault": "Türe göre varsayılan: desktop processName ile sonlandırır, web port'u tutanı sonlandırır, static ve cli ek bir şey yapmaz.",
@@ -193,7 +193,7 @@ export const tr: PartialDict = {
   "editor.killNoteNone": "Durdurulurken yalnızca Moonpool'un başlattığı terminali sonlandırır. Komutu kapsayıcıyı yeniden oluşturan Docker Compose uygulamaları için doğrudur.",
   "editor.stopCommandHint": "killMode command olduğunda cwd içinde çalıştırılır, örn. docker compose stop app. Yeniden başlatma uygulamayı yeniden açmadan önce biter.",
   "editor.processNameHint":
-    "Masaüstü uygulamaları için: Çalışıyor durumunu algılamak ve uygulamayı durdurmak için kullanılan süreç/çalıştırılabilir dosya adı (.exe olmadan). Linux'ta en fazla 15 karakter olabilir.",
+    "Masaüstü uygulamaları için: Çalışıyor durumunu algılamak için kullanılan süreç/çalıştırılabilir dosya adı (.exe olmadan). killMode processName olduğunda (masaüstü uygulamalarında varsayılan) Durdur sırasında bu ada sahip tüm süreçleri de sonlandırır. Linux'ta en fazla 15 karakter olabilir.",
   "editor.mcpProcessNameHint":
     "İsteğe bağlı. Bu uygulamanın MCP sunucusunun süreç adı processName değilse kullanılan joker karakterli desen (* herhangi bir karakter dizisi, ? tek karakter), örn. mog veya destiny-mcp-*. Büyük/küçük harf duyarsızdır ve adın tamamıyla eşleşir; .exe isteğe bağlıdır. Eşleşen süreç uygulamanın MCP sunucusu satırı olarak görünür ve mcp bağımsız değişkenine gerek duymaz.",
   "editor.urlHint":

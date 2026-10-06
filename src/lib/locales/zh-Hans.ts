@@ -176,7 +176,7 @@ export const zhHans: PartialDict = {
   "editor.commandHint":
     "在内置终端中运行、用来启动应用的命令，例如 'npm run dev' 或 'python app.py'。若这一项只是一个静态网址，请留空。",
   "editor.portHint":
-    "应用监听的本地 TCP 端口。该端口有响应时 Moonpool 会标记为“运行中”，停止时会释放它。web 类型的应用会用到。",
+    "应用监听的本地 TCP 端口。该端口有响应时 Moonpool 会标记为“运行中”。停止时还会结束监听该端口的进程，但仅当 killMode 为 port 时（web 类型应用的默认值）。",
   "editor.killModeHint": "停止时总会结束由 Moonpool 启动的终端。此项为那些比终端存活更久的应用额外选择一个清理步骤。除非停止后仍有东西在运行，否则请保持默认。",
   "editor.killModeDefault": "默认（按类型）",
   "editor.killNoteDefault": "按类型的默认行为：desktop 按 processName 结束，web 结束占用 port 的进程，static 和 cli 不做额外处理。",
@@ -186,7 +186,7 @@ export const zhHans: PartialDict = {
   "editor.killNoteNone": "停止时，只结束由 Moonpool 启动的终端。适用于命令会重新创建容器的 Docker Compose 应用。",
   "editor.stopCommandHint": "当 killMode 为 command 时在 cwd 中运行，例如 docker compose stop app。重启时会先等它完成，再重新启动应用。",
   "editor.processNameHint":
-    "用于 desktop 类型：判断是否在运行、以及停止它所用的进程名或可执行文件名（不含 .exe）。在 Linux 上不能超过 15 个字符。",
+    "用于 desktop 类型：判断是否在运行所用的进程名或可执行文件名（不含 .exe）。当 killMode 为 processName 时（desktop 类型的默认值），停止时还会结束所有同名进程。在 Linux 上不能超过 15 个字符。",
   "editor.mcpProcessNameHint":
     "可选。此应用的 MCP 服务器进程名不是 processName 时使用的通配符模式（* 匹配任意字符串，? 匹配单个字符），例如 mog 或 destiny-mcp-*。不区分大小写，匹配完整名称；.exe 可省略。匹配的进程会显示为该应用的 MCP 服务器行，且不需要 mcp 参数。",
   "editor.urlHint":

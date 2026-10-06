@@ -183,7 +183,7 @@ export const nl: PartialDict = {
   "editor.commandHint":
     "Het commando dat in de ingebouwde terminal wordt uitgevoerd om de app te starten, bijv. 'npm run dev' of 'python app.py'. Laat leeg voor een item met alleen een URL.",
   "editor.portHint":
-    "De lokale TCP-poort waarop de app luistert. Moonpool toont Actief zodra deze poort antwoordt en geeft de poort vrij bij Stoppen. Wordt gebruikt door web-apps.",
+    "De lokale TCP-poort waarop de app luistert. Moonpool toont Actief zodra deze poort antwoordt. Bij Stoppen wordt ook wat op deze poort luistert beëindigd, maar alleen als killMode port is (de standaard voor web-apps).",
   "editor.killModeHint": "Stoppen beëindigt altijd de terminal die Moonpool heeft gestart. Hier kies je één extra opruimstap voor apps die die terminal overleven. Laat op standaard staan, tenzij Stoppen iets laat doorlopen.",
   "editor.killModeDefault": "standaard (per type)",
   "editor.killNoteDefault": "Standaard per type: desktop stopt via processName, web stopt wat port gebruikt, static en cli doen niets extra.",
@@ -193,7 +193,7 @@ export const nl: PartialDict = {
   "editor.killNoteNone": "Bij Stoppen wordt alleen de terminal beëindigd die Moonpool heeft gestart. Geschikt voor Docker Compose-apps waarvan het commando de container opnieuw aanmaakt.",
   "editor.stopCommandHint": "Wordt in cwd uitgevoerd wanneer killMode command is, bijv. docker compose stop app. Is klaar voordat een herstart de app opnieuw start.",
   "editor.processNameHint":
-    "Voor desktop-apps: de proces- of programmanaam (zonder .exe) waarmee Actief wordt herkend en de app wordt gestopt. Op Linux maximaal 15 tekens.",
+    "Voor desktop-apps: de proces- of programmanaam (zonder .exe) waarmee Actief wordt herkend. Bij Stoppen worden ook alle processen met deze naam beëindigd als killMode processName is (de standaard voor desktop-apps). Op Linux maximaal 15 tekens.",
   "editor.mcpProcessNameHint":
     "Optioneel. Een jokerteken-patroon (* voor een willekeurige reeks tekens, ? voor één teken) voor de procesnaam van de MCP-server van deze app, als die niet processName is, bijv. mog of destiny-mcp-*. Hoofdletterongevoelig, geldt voor de hele naam; .exe is optioneel. Een overeenkomend proces verschijnt als de MCP-serverrij van de app en heeft het argument mcp niet nodig.",
   "editor.urlHint":

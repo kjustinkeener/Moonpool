@@ -182,7 +182,7 @@ export const it: PartialDict = {
   "editor.commandHint":
     "Il comando eseguito nel terminale integrato per avviare l'app, ad es. 'npm run dev' o 'python app.py'. Lascialo vuoto per una voce con solo URL statico.",
   "editor.portHint":
-    "La porta TCP locale su cui l'app resta in ascolto. Moonpool la segnala in esecuzione quando questa porta risponde e la libera all'arresto. Usata dalle app web.",
+    "La porta TCP locale su cui l'app resta in ascolto. Moonpool la segnala in esecuzione quando questa porta risponde. All'arresto termina anche ciò che è in ascolto su questa porta, ma solo quando killMode è port (il valore predefinito per le app web).",
   "editor.killModeHint": "Arresta termina sempre il terminale avviato da Moonpool. Qui scegli un passaggio di pulizia aggiuntivo per le app che gli sopravvivono. Lascia su predefinito, a meno che Arresta non lasci qualcosa in esecuzione.",
   "editor.killModeDefault": "predefinito (in base al tipo)",
   "editor.killNoteDefault": "Predefinito in base al tipo: desktop termina tramite processName, web termina ciò che occupa port, static e cli non fanno nulla di più.",
@@ -192,7 +192,7 @@ export const it: PartialDict = {
   "editor.killNoteNone": "All'arresto, termina solo il terminale avviato da Moonpool. Giusto per le app Docker Compose il cui comando ricrea il container.",
   "editor.stopCommandHint": "Eseguito in cwd quando killMode è command, ad es. docker compose stop app. Termina prima che un riavvio rilanci l'app.",
   "editor.processNameHint":
-    "Per le app desktop: il nome del processo o dell'eseguibile (senza .exe) usato per rilevare se è in esecuzione e per arrestarla. Su Linux non può superare i 15 caratteri.",
+    "Per le app desktop: il nome del processo o dell'eseguibile (senza .exe) usato per rilevare se è in esecuzione. All'arresto termina anche tutti i processi con questo nome quando killMode è processName (il valore predefinito per le app desktop). Su Linux non può superare i 15 caratteri.",
   "editor.mcpProcessNameHint":
     "Facoltativo. Un modello con caratteri jolly (* per qualsiasi sequenza di caratteri, ? per uno solo) per il nome del processo del server MCP di questa app, quando non è processName, ad es. mog o destiny-mcp-*. Senza distinzione tra maiuscole e minuscole, valido per l'intero nome; .exe è facoltativo. Un processo corrispondente appare come riga del server MCP dell'app e non richiede l'argomento mcp.",
   "editor.urlHint":
