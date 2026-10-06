@@ -62,8 +62,12 @@ a path like this:
 ...\Packages\<package>\LocalCache\...
 ```
 
-It also detects it when a hub is running but `state.json` cannot be read. Every tool then
-returns an error that names the cause, rather than empty or stale data.
+It also detects it when the control channel answers but `state.json` cannot be read. The
+tools that read or write files (`moonpool_app_output`, `moonpool_read_config`,
+`moonpool_write_config`, `moonpool_restore_config`) then return an error that names the
+cause, rather than empty or stale data. Tools that only use the control channel, such as
+`moonpool_list_apps`, are not blocked while the channel is reachable. If the sandbox also
+hides the channel, the tools report the sandbox instead of "Moonpool is not running".
 Use the [command line](/automation/command-line/) from a shell outside the sandbox instead.
 
 ## Apps that have their own MCP server

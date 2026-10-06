@@ -177,13 +177,18 @@ Tools: `moonpool_list_apps`, `moonpool_bootup_launcher`, `moonpool_shutdown_laun
 `moonpool_app_output` (returns the terminal output as text, `tail_lines` to bound it),
 `moonpool_stop_mcp_server`, `moonpool_reload_config`, `moonpool_read_config`,
 `moonpool_write_config`, `moonpool_restore_config`, `moonpool_refresh_app_icons`,
-`moonpool_launcher_paths`, plus the Windows test tools `moonpool_screenshot`,
+`moonpool_launcher_paths`, plus the test tools `moonpool_screenshot` (Windows only),
 `moonpool_window_state` and `moonpool_reset_mcp_seen`. Full reference: the Automation section
 of Moonpool's built-in help.
 
 The server is a *client* of the resident tray instance: it sends each command over the
-control pipe (falling back to the channel described below) and returns the real outcome.
-Most tools need Moonpool already running; call `moonpool_bootup_launcher` first if it is not.
+control channel (a named pipe on Windows, a Unix socket on Linux/macOS; an older build with
+no channel is driven through the argv channel described below) and returns the real outcome.
+Whether Moonpool is running is decided by pinging that channel. Most tools need Moonpool
+already running; call `moonpool_bootup_launcher` first if it is not. `moonpool_list_apps` is
+answered live by the running hub and fails with "Moonpool is not running" rather than
+returning a stale list. `state.json` (below) is still written for scripts, but it is not
+deleted when Moonpool quits, so a leftover file does not mean Moonpool is running.
 
 ### Checking what's running
 

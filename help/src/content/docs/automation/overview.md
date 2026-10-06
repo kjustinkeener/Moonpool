@@ -10,20 +10,23 @@ the same resident Moonpool (the tray instance, called the hub here).
 | --- | --- | --- |
 | MCP server | `moonpool.exe mcp`, a stdio [MCP](https://modelcontextprotocol.io) server that an AI host starts. | [MCP setup](/automation/mcp-setup/), [MCP tools](/automation/mcp-tools/) |
 | Command line | `moonpool.exe <verb> [args]`. A second run hands the verb to the hub and exits. | [Command line](/automation/command-line/) |
-| Control pipe | A named pipe, `\\.\pipe\moonpool`, speaking one JSON request per line. Windows only. | [Control verbs](/automation/control-verbs/) |
+| Control channel | A named pipe, `\\.\pipe\moonpool`, on Windows and a Unix socket on Linux and macOS, speaking one JSON request per line. | [Control verbs](/automation/control-verbs/) |
 
 ## How they relate
 
 - The hub owns everything: launching apps, the terminal logs, `apps.json`.
 - The MCP server is a client of the hub, not a second copy of it. Each tool call is
-  forwarded to the hub over the control pipe, and the reply comes back as the tool result.
-  If the pipe cannot be reached, it falls back to running `moonpool.exe <verb>` and
-  waiting for the outcome in `state.json`.
+  forwarded to the hub over the control channel, and the reply comes back as the tool result.
+- Whether a hub is running is decided by pinging that channel, not by looking for a
+  process. A hub that answers is running; a missing pipe or socket means it is not.
 - Every surface runs the same handlers as the window, so a verb does what the matching click
   does.
-- If no hub is running, the tools that act on it refuse with "Moonpool is not running".
-  `moonpool_bootup_launcher` starts it. `moonpool_list_apps` still answers from the last
-  `state.json` and says the hub is not running.
+- If no hub is running, the tools that act on it, including `moonpool_list_apps`, refuse with
+  "Moonpool is not running". There is no stale list. `moonpool_bootup_launcher` starts it.
+  If something holds the channel but does not answer within a few seconds, the error says a
+  Moonpool process may be hung.
+- A hub build that predates the control channel is still driven through
+  `moonpool.exe <verb>` and `state.json`, as a fallback.
 
 ## What can change things
 
@@ -48,15 +51,19 @@ Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_con
   windows (`main`, `settings`, `about`, `installer`, `editor`, `help`), never the screen or
   another app. The PNG is built in memory and returned inline; Moonpool does not save it to a
   file.
-- **No authentication on the pipe.** Moonpool adds no login or token to the control pipe. Any
-  process that can open it can send verbs.
+- **No authentication on the channel.** Moonpool adds no login or token to the control pipe or
+  socket. Any process that can open it can send verbs. On Linux and macOS the socket file is
+  created with mode `0600`, so only your own user can.
 - **Sandboxed hosts are detected.** If the MCP server finds it is running inside a packaged
-  (Store/MSIX) sandbox, where it would see a private copy of Moonpool's files, every tool
-  returns an error explaining why instead of stale data. See
+  (Store/MSIX) sandbox, where it would see a private copy of Moonpool's files, the tools that
+  read or write files (`moonpool_app_output`, `moonpool_read_config`,
+  `moonpool_write_config`, `moonpool_restore_config`) return an error explaining why instead
+  of stale data. Tools that only use the control channel are not blocked. See
   [MCP setup](/automation/mcp-setup/#sandboxed-hosts).
 
 ## Platform
 
-The pipe, screenshots, window state and the MCP-helper verbs are Windows only. On other
-platforms the command line verbs and the MCP server still work through the
-`moonpool.exe <verb>` path.
+The control channel exists on every platform: a named pipe on Windows, a Unix socket on Linux
+and macOS (location in [Control verbs](/automation/control-verbs/#where-it-listens)). Only
+`screenshot` (and so `moonpool_screenshot`) is Windows only; on Linux and macOS it returns
+"not supported on this platform". The command line verbs work on every platform.

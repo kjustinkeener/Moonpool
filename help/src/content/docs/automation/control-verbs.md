@@ -1,17 +1,32 @@
 ---
 title: Control verbs
-description: The named-pipe protocol and every verb the running Moonpool answers, with arguments, replies and which are for testing.
+description: The control channel (named pipe or Unix socket), its protocol, and every verb the running Moonpool answers, with arguments, replies and which are for testing.
 ---
 
-Moonpool listens on this named pipe (Windows only):
+## Where it listens
+
+On Windows, Moonpool listens on this named pipe:
 
 ```text
 \\.\pipe\moonpool
 ```
 
-It is the channel the
-[MCP server](/automation/mcp-setup/) uses. The same verbs are also reachable from the
-[command line](/automation/command-line/), except the diagnostic verbs below.
+On Linux and macOS it listens on a Unix domain socket instead, with mode `0600`:
+
+| Case | Socket path |
+| --- | --- |
+| Normal | `$XDG_RUNTIME_DIR/moonpool.sock` when that variable is set, else `moonpool.sock` in Moonpool's config folder |
+| Portable mode | `moonpool.sock` in the portable data folder, so a portable copy never collides with an installed one |
+| Path too long for a socket (about 100 characters) | `/tmp/moonpool-<uid>/moonpool.sock`, in a directory only you can open |
+
+A socket file left behind by a crash is detected and replaced on the next start. A socket that
+something still answers on is never taken over. The file is removed when Moonpool quits
+normally.
+
+The channel is also how the [MCP server](/automation/mcp-setup/) knows whether Moonpool is
+running: if a `ping` is answered it is, and if the pipe or socket is missing it is not. The
+same verbs are also reachable from the [command line](/automation/command-line/), except the
+diagnostic verbs below.
 
 ## Protocol
 
@@ -51,14 +66,16 @@ $r.ReadLine()
   `refresh-icons`, `help`) is answered when the action finishes, or with a timeout error
   after 45 s. If the hub window's UI has not loaded, it fails at once with `frontend not
   loaded`.
-- If Moonpool cannot bind the pipe it logs that and keeps running without it. The command
-  line still works.
+- A Moonpool that starts while a previous one is still exiting retries binding the channel
+  for about 8 seconds. If it still cannot, it logs that and keeps running without it. The
+  command line still works.
 
 ## Verbs
 
 | Verb | Args | Result |
 | --- | --- | --- |
-| `ping` | none | `pong`. Pipe only. |
+| `ping` | none | `pong`. Channel only. |
+| `list` | none | JSON string `{"apps": [...], "statuses": [...]}` read from the running hub's memory, the same `apps` and `statuses` shape as `state.json`. Adds `"statusNotReady": true` when apps are registered but the first status check has not run yet. Channel only. |
 | `show` | none | null. Brings the window to the front. |
 | `quit` | none | null. Exits Moonpool. |
 | `launch` | `<id>` | null on success. Errors: `unknown app id: <id>`, `did not reach running in time`. |
@@ -88,16 +105,18 @@ Example exchanges:
 
 ## Diagnostic verbs (testing)
 
-Pipe only, Windows only. The command line does not accept these.
+Channel only: the command line does not accept these. All work on Windows, Linux and macOS
+except `screenshot`, which is Windows only and answers `screenshot is not supported on this
+platform (Windows only)` elsewhere.
 
 | Verb | Args | Result |
 | --- | --- | --- |
-| `screenshot` | [`window`] [`max_dim`] | Base64 of a PNG of that Moonpool window (default `main`). Optional `max_dim` caps the longer side in pixels (clamped to 320-2400, default 320; the MCP tool always uses the default). A non-integer `max_dim` is an error. Windows allowed: `main`, `settings`, `about`, `installer`, `editor`, `help`. Errors: `unknown window '<name>'`, `window '<name>' is not open`. Not written to disk. |
+| `screenshot` | [`window`] [`max_dim`] | Windows only. Base64 of a PNG of that Moonpool window (default `main`). Optional `max_dim` caps the longer side in pixels (clamped to 320-2400, default 320; the MCP tool always uses the default). A non-integer `max_dim` is an error. Windows allowed: `main`, `settings`, `about`, `installer`, `editor`, `help`. Errors: `unknown window '<name>'`, `window '<name>' is not open`. Not written to disk. |
 | `open-window` | `<kind>` [`<id>`] | null. Opens a window the way its menu item does. `kind`: `settings`, `about`, `installer`, `help`, `editor` (optional `<id>` opens that app's Edit App dialog, none opens Add App), `terminal` (`<id>` required: selects that app's terminal tab and widens the hub so the CLI pane shows; does not launch it), `cli` (only widens the hub). Errors: `unknown window kind '<kind>'`, `terminal needs an app id`, `unknown app id: <id>`. Answered through the hub window like `launch`. |
 | `window-state` | [`window`] | JSON string: `{"open":false}`, or `open`, `visible`, `minimized`, `maximized`, `x`, `y`, `width`, `height`. |
 | `stop-mcp` | `<id>` | `stopped`. Kills the app's `<processName> mcp` helper, not the app. Errors: `missing app id`, `unknown app id: <id>`. |
 | `reset-mcp-seen` | [`<id>`] | `<id>: cleared` or `<id>: was not marked seen`; with no id, `cleared <n> entries`. Clears the remembered MCP-helper sightings. |
 
 The command line's `--ticket` and `state.json` outcome records belong to the other channel;
-see [Command line](/automation/command-line/#reading-the-outcome). Pipe requests get their
+see [Command line](/automation/command-line/#reading-the-outcome). Channel requests get their
 answer in the reply.
