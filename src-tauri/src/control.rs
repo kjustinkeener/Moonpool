@@ -787,8 +787,8 @@ async fn write_frame<W: AsyncWrite + Unpin>(w: &mut W, v: &Value) -> std::io::Re
 #[cfg(test)]
 mod tests {
     use super::{
-        flag_manifest_error, list_snapshot, open_window_arg, reply, socket_path_for, with_bind_retry, LogFn, Request,
-        CONTROL_VERBS, UI_OWNED_ACTIONS,
+        flag_manifest_error, list_snapshot, open_window_arg, reply, socket_path_for,
+        with_bind_retry, LogFn, Request, CONTROL_VERBS, UI_OWNED_ACTIONS,
     };
     use serde_json::json;
     use std::path::{Path, PathBuf};
