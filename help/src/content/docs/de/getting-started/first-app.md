@@ -50,7 +50,7 @@ Prompt in einen KI-Agenten ein, und er findet Ihre Apps und fügt sie hinzu. Sie
 ## Den Hub später wiederfinden
 
 - Klicken Sie mit links auf das Symbol im Infobereich, um den Hub anzuzeigen. Ein Rechtsklick
-  öffnet ein Menü mit **Show Moonpool** und **Quit**.
+  öffnet ein Menü mit **Moonpool anzeigen** und **Beenden**.
 - Standardmäßig beendet das Schließen des Fensters Moonpool. Aktivieren Sie in den Einstellungen
   **Beim Schließen in den Infobereich**, um es stattdessen in den Infobereich auszublenden und
   weiterlaufen zu lassen. Siehe [Infobereich, Schließen und Minimieren](/de/using/tray-and-closing/).

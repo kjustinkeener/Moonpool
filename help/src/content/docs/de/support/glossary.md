@@ -21,7 +21,7 @@ description: "Einfache Definitionen der Begriffe, die die Moonpool-Hilfe für Be
 | startet | Moonpool hat die App gestartet, sie aber noch nicht laufen sehen. Pulsierender Punkt. |
 | läuft | Ihr `port` antwortet, ihr `processName` existiert oder, wenn keines von beiden gesetzt ist, das von Moonpool gestartete Terminal lebt noch. Voller Punkt. Siehe [Wie „läuft“ bestimmt wird](/de/apps/types/#wie-läuft-festgestellt-wird). |
 | gestoppt | Nichts davon trifft zu. Grauer Punkt. |
-| verwaltet | Moonpool hat sie in dieser Sitzung gestartet. Eine laufende App, die nicht verwaltet ist, wurde anders gestartet, und Quit lässt sie in Ruhe. |
+| verwaltet | Moonpool hat sie in dieser Sitzung gestartet. Eine laufende App, die nicht verwaltet ist, wurde anders gestartet, und Beenden lässt sie in Ruhe. |
 
 Ein Terminal-Tab und eine laufende App sind getrennte Dinge. Ein Klick auf den Namen einer App öffnet nur ihren
 Terminal-Tab; er startet die App nie. Das Schließen eines Tabs stoppt die App nie.
@@ -32,7 +32,7 @@ Terminal-Tab; er startet die App nie. Das Schließen eines Tabs stoppt die App n
 | --- | --- |
 | Hub | Der residente Moonpool-Prozess und sein Hauptfenster. Die Tool-Namen nennen ihn „Launcher“. |
 | Hub-Fenster | Das Hauptfenster: links die Seitenleiste, rechts der CLI-Bereich. |
-| Tray | Das Symbol im Infobereich und sein Menü (**Show Moonpool**, **Quit**). |
+| Tray | Das Symbol im Infobereich und sein Menü (**Moonpool anzeigen**, **Beenden**). |
 | Seitenleiste | Die linke Seite des Hub-Fensters: Filterfeld, Menü **...** und App-Zeilen. |
 | CLI-Bereich | Die rechte Seite des Hub-Fensters, die die Terminal-Tabs enthält. |
 | Terminal-Tab | Das Terminal einer App im CLI-Bereich. |
