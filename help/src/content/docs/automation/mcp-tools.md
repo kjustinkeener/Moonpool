@@ -46,8 +46,10 @@ notes-app  [stopped]  [mcp: stopped]  Notes App
 
 ## Configuration
 
-These read and change `apps.json` through the hub, never the file on disk. The guards are
-described in [Configuration](/configuration/overview/#agents).
+These read and change `apps.json` through the hub, never the file on disk. A write must
+carry the token from the last read, a stale token is rejected, and the new file is validated
+before anything is written. Going through the hub matters because an agent in a sandboxed
+host can be shown a private copy of the config folder instead of the real one.
 
 | Tool | Parameters | Behavior |
 | --- | --- | --- |
@@ -57,7 +59,7 @@ described in [Configuration](/configuration/overview/#agents).
 | `moonpool_reload_config` | none | Re-reads `apps.json`. Returns "apps.json reloaded". If the file does not parse or validate, it fails with `apps.json has an error: ...` and Moonpool keeps the last list that loaded. |
 | `moonpool_launcher_paths` | none | Lists the hub's config folder, `apps.json`, `state.json`, log, dumps folder, icons folder, portable flag and exe path, then the MCP process's config folder, `apps.json`, `state.json`, dumps folder, portable flag and exe path (no log or icons). If the hub is not running, its half reads `hub paths unavailable: ...` and the MCP half is still shown. Use it when an edit does not take effect. |
 
-## Windows and testing
+## Advanced: testing tools
 
 `moonpool_screenshot` is Windows only; on Linux and macOS it fails with "screenshot is not
 supported on this platform". `moonpool_window_state` and `moonpool_reset_mcp_seen` work on
@@ -70,4 +72,9 @@ to `main`. An unknown name fails with `unknown window '<name>'`.
 | --- | --- | --- |
 | `moonpool_screenshot` | `window` (optional) | Captures that Moonpool window's own content as an inline PNG, at most 320 pixels on its longer side. The size cannot be raised from MCP. Fails with `window '<name>' is not open` if it is not showing. It cannot capture any other app. |
 | `moonpool_window_state` | `window` (optional) | JSON text: `{"open":false}` when the window is not open, otherwise `open`, `visible`, `minimized`, `maximized`, `x`, `y`, `width`, `height`. Intended for tests. |
-| `moonpool_reset_mcp_seen` | `app_id` (optional) | Test only. Clears the remembered "an MCP helper was seen" record for one app, or for every app when omitted, so the sidebar's MCP sub-item hides again until a helper is seen. |
+| `moonpool_reset_mcp_seen` | `app_id` (optional) | Test only. Clears the remembered "an MCP helper was seen" record for one app, or for every app when omitted, so the sidebar's MCP sub-row hides again until a helper is seen. |
+
+## See also
+
+- [MCP setup](/automation/mcp-setup/)
+- [Command line](/automation/command-line/)

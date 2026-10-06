@@ -54,7 +54,7 @@ Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_con
 
 - **Config writes are guarded.** A write must carry the version token from the last read, a
   stale token is rejected, and the new manifest is validated before anything is written. A
-  rejected write leaves `apps.json` untouched. See [Configuration](/configuration/overview/#agents).
+  rejected write leaves `apps.json` untouched. See [MCP tools](/automation/mcp-tools/#configuration).
 - **App ids are restricted.** The MCP server accepts only letters, digits, `.`, `_` and `-`,
   and never a leading `-`, so an id cannot be read as a command-line flag.
 - **Screenshots are Moonpool only.** `moonpool_screenshot` captures one of Moonpool's own six
@@ -77,3 +77,8 @@ The control channel exists on every platform: a named pipe on Windows, a Unix so
 and macOS (location in [Control verbs](/automation/control-verbs/#where-it-listens)). Only
 `screenshot` (and so `moonpool_screenshot`) is Windows only; on Linux and macOS it returns
 "not supported on this platform". The command line verbs work on every platform.
+
+## See also
+
+- [AI agents: quick start](/automation/quick-start/)
+- [MCP setup](/automation/mcp-setup/)

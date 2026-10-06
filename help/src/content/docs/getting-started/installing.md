@@ -54,11 +54,9 @@ Any running Moonpool is stopped as part of uninstalling.
 
 ## Portable mode
 
-Prefer to keep Moonpool on a USB stick or a movable folder? Click **Install portable** on
-the install card and pick a folder. Moonpool creates a single `.moonpool\` folder inside it holding
-the program and all of its data, so you can move or copy the whole folder to another PC
-and run it there. Nothing is written to Windows AppData.
+Prefer a USB stick or a movable folder? Click **Install portable** on the install card and
+pick a folder. See [Portable mode](/guides/portable-mode/).
 
 ## Next
 
-- [First launch](/getting-started/first-launch/)
+- [Your first app](/getting-started/first-launch/)

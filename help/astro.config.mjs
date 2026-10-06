@@ -29,13 +29,17 @@ export default defineConfig({
 			// No external social links in bundled app help.
 			social: [],
 			// Two-level navigation: category label -> pages.
+			// Pages are grouped by task, not by folder: slugs stay where they were so links
+			// from the app and between pages keep working.
 			sidebar: [
 				{
-					label: 'Getting Started',
+					label: 'Getting started',
 					items: [
 						{ label: 'What is Moonpool', slug: 'getting-started/overview' },
 						{ label: 'Installing', slug: 'getting-started/installing' },
-						{ label: 'First Launch', slug: 'getting-started/first-launch' },
+						{ label: 'Your first app', slug: 'getting-started/first-launch' },
+						{ label: 'Example dashboards', slug: 'using/example-dashboards' },
+						{ label: "What's new", slug: 'getting-started/whats-new' },
 					],
 				},
 				{
@@ -44,41 +48,57 @@ export default defineConfig({
 						{ label: 'The hub window', slug: 'using/hub-window' },
 						{ label: 'Sidebar and menus', slug: 'using/sidebar-and-menus' },
 						{ label: 'Terminal tabs', slug: 'using/terminal' },
+						{ label: 'Tray, close and minimize', slug: 'using/tray-and-closing' },
 						{ label: 'Shortcuts and zoom', slug: 'using/shortcuts-and-zoom' },
-						{ label: 'Adding Apps', slug: 'guides/adding-apps' },
 						{ label: 'Settings window', slug: 'using/settings-window' },
 						{ label: 'Themes, language and transparency', slug: 'using/appearance' },
-						{ label: 'Example dashboards', slug: 'using/example-dashboards' },
-						{ label: 'Portable Mode', slug: 'guides/portable-mode' },
+					],
+				},
+				{
+					label: 'Configuring apps',
+					items: [
+						{ label: 'Overview', slug: 'configuration/overview' },
+						{ label: 'Adding apps', slug: 'guides/adding-apps' },
+						{ label: 'Examples', slug: 'configuration/examples' },
+						{ label: 'App types', slug: 'configuration/app-types' },
+						{ label: 'App fields', slug: 'configuration/fields' },
+						{ label: 'Paths and environment', slug: 'configuration/paths-and-environment' },
+						{ label: 'Stop and restart', slug: 'configuration/stop-and-restart' },
+					],
+				},
+				{
+					label: 'Data, logs and recovery',
+					items: [
+						{ label: 'Logs', slug: 'configuration/logs' },
+						{ label: 'Backup and recovery', slug: 'configuration/backup-and-recovery' },
+						{ label: 'settings.json', slug: 'configuration/settings-and-logs' },
+						{ label: 'Portable mode', slug: 'guides/portable-mode' },
 						{ label: 'Updating', slug: 'guides/updating' },
 					],
 				},
 				{
-					label: 'Configuration',
+					label: 'Automation and AI agents',
 					items: [
-						{ label: 'Overview', slug: 'configuration/overview' },
-						{ label: 'App fields', slug: 'configuration/fields' },
-						{ label: 'App types', slug: 'configuration/app-types' },
-						{ label: 'Stop and restart', slug: 'configuration/stop-and-restart' },
-						{ label: 'Paths and environment', slug: 'configuration/paths-and-environment' },
-						{ label: 'Examples', slug: 'configuration/examples' },
-						{ label: 'Settings and logs', slug: 'configuration/settings-and-logs' },
-					],
-				},
-				{
-					label: 'Automation',
-					items: [
+						{ label: 'AI agents: quick start', slug: 'automation/quick-start' },
 						{ label: 'Overview', slug: 'automation/overview' },
 						{ label: 'MCP setup', slug: 'automation/mcp-setup' },
 						{ label: 'MCP tools', slug: 'automation/mcp-tools' },
 						{ label: 'Command line', slug: 'automation/command-line' },
-						{ label: 'Control verbs', slug: 'automation/control-verbs' },
+						{ label: 'Control verbs (advanced)', slug: 'automation/control-verbs' },
 					],
 				},
 				{
-					label: 'Platforms',
+					label: 'Platform notes',
 					items: [
+						{ label: 'Windows', slug: 'platforms/windows' },
 						{ label: 'Linux', slug: 'platforms/linux' },
+					],
+				},
+				{
+					label: 'Help',
+					items: [
+						{ label: 'Troubleshooting and FAQ', slug: 'reference/troubleshooting' },
+						{ label: 'Glossary', slug: 'reference/glossary' },
 					],
 				},
 			],

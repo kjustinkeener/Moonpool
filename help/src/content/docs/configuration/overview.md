@@ -18,23 +18,18 @@ dialog or by hand. Both write the same file.
 
 | Item | Purpose |
 | --- | --- |
-| `apps.json.history\` | Rollback ring of the last 10 valid manifests. |
-| `settings.json` | App settings. See [Settings and logs](/configuration/settings-and-logs/). |
-| `cli-output\<id>\` | Per-app terminal logs. |
+| `apps.json.history\` | Rollback ring of the last 10 valid `apps.json` files. |
+| `settings.json` | App settings. See [settings.json](/configuration/settings-and-logs/). |
+| `cli-output\<id>\` | Per-app session logs. See [Logs](/configuration/logs/). |
+| `moonpool.log` | Debug log, while **Log debug info to a file** is on. |
 | `icons\` | Optional `<id>.png` (also `.ico`, `.svg`, `.jpg`, `.jpeg`, `.webp`) icon overrides. |
 | `state.json` | Live status snapshot, refreshed every couple of seconds. |
+| `dumps\` | Files written by the `dump`, `read-config` and `restore-config` verbs. |
+| `mcp_seen.json` | Which apps have had an MCP helper. |
+| `window-state.json` | The hub window's size and position. |
+| `AI-README.md` | The guide for AI agents, rewritten at every launch. |
 
-A typical config folder:
-
-```text
-moonpool-config\
-  apps.json
-  apps.json.history\
-  settings.json
-  state.json
-  cli-output\<id>\
-  icons\<id>.png
-```
+Which of these to back up is in [Backup and recovery](/configuration/backup-and-recovery/#the-config-folder).
 
 On first run Moonpool seeds `apps.json` with example entries. A file that already exists is
 never overwritten.
@@ -126,26 +121,12 @@ habit-tracker
 - **From the dialog, an agent, or a restore**, an invalid change is rejected and the file
   on disk stays as it was.
 
-Every successful save, agent write and restore, and every reload that finds changed
-content, copies the validated manifest into `apps.json.history\`, keeping the newest 10. To
-roll back by hand, copy a snapshot over `apps.json` and Reload. Nothing is restored
-automatically.
-
-```powershell frame="terminal"
-Copy-Item "$env:USERPROFILE\.moonpool\moonpool-config\apps.json.history\<snapshot>" "$env:USERPROFILE\.moonpool\moonpool-config\apps.json"
-```
+Moonpool keeps the last 10 good versions of `apps.json` in `apps.json.history\`. How to roll
+back is in [Backup and recovery](/configuration/backup-and-recovery/#roll-back-appsjson).
+Symptoms and fixes are in [Troubleshooting](/reference/troubleshooting/#appsjson-has-an-error).
 
 ## Agents
 
-An AI agent can use Moonpool's MCP server (`moonpool.exe mcp`) instead of touching the file. Setup and the full tool list are in [MCP setup](/automation/mcp-setup/) and [MCP tools](/automation/mcp-tools/):
-
-| Tool | What it does |
-| --- | --- |
-| `moonpool_read_config` | Returns the manifest text, a version token, and whether it is currently valid. |
-| `moonpool_write_config` | Replaces the manifest. Needs the token from the last read, rejects a stale token, validates first, then applies the change without a separate reload. |
-| `moonpool_restore_config` | With no argument, lists the snapshots newest first. With a 1-based index or a filename, restores that snapshot if it is valid. |
-| `moonpool_reload_config` | Same as Reload. |
-| `moonpool_launcher_paths` | Reports the exact folders the running hub uses. |
-
-Going through these tools matters because an agent running in a sandboxed host can be shown
-a private copy of the config folder instead of the real one.
+An AI agent should change `apps.json` through Moonpool's MCP tools rather than the file, so a
+stale or invalid write is rejected and a sandboxed agent never edits a private copy. See
+[MCP tools](/automation/mcp-tools/#configuration).
