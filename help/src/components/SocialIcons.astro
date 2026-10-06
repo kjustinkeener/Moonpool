@@ -1,0 +1,22 @@
+---
+// Web build only (registered in astro.config.mjs when HELP_BASE is set): a "Download" link
+// to the Moonpool product page in the header. The in-app build keeps Starlight's default.
+---
+
+<a class="download" href="https://fasterdb.com/software/moonpool/">Download</a>
+
+<style>
+	.download {
+		color: var(--sl-color-text-accent);
+		font-weight: 600;
+		text-decoration: none;
+		padding: 0.35em 0.9em;
+		border: 1px solid var(--sl-color-text-accent);
+		border-radius: 0.4rem;
+	}
+	.download:hover {
+		color: var(--sl-color-white);
+		background: var(--sl-color-accent);
+		border-color: var(--sl-color-accent);
+	}
+</style>

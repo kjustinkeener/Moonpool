@@ -45,6 +45,13 @@ export default defineConfig({
 			lastUpdated: true,
 			// Breadcrumb/FAQ JSON-LD and og:image (web build only; see src/routeData.ts).
 			routeMiddleware: './src/routeData.ts',
+			// Web-only links out to the product site; the in-app build keeps Starlight's defaults.
+			...(webBase && {
+				components: {
+					SocialIcons: './src/components/SocialIcons.astro',
+					Footer: './src/components/Footer.astro',
+				},
+			}),
 			// No external social links in bundled app help.
 			social: [],
 			// Two-level navigation: category label -> pages.
