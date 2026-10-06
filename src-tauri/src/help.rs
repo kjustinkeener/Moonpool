@@ -39,7 +39,13 @@ pub fn seed(app: &AppHandle) {
         crate::log_line(app, "help: no MP_HOME; skipping seed");
         return;
     };
-    let dest = home.join("help");
+    let log = |m: &str| crate::log_line(app, m);
+    seed_into(&home.join("help"), baseline_version(), &log);
+}
+
+/// The seed itself, against any `dest` (tests use a temp folder). Returns how many files were
+/// written, or `None` when `dest` already holds this `version`'s help.
+fn seed_into(dest: &Path, version: &str, log: &dyn Fn(&str)) -> Option<usize> {
     let version_file = dest.join("version.txt");
     // Version-gated, but also guard against a stamped-but-empty tree: an earlier
     // build whose `help/dist` had not been built yet could write `version.txt` over
@@ -47,38 +53,36 @@ pub fn seed(app: &AppHandle) {
     // window blank. Any other stamp (older, or one left by the retired help-only
     // download) is replaced so the pages always match the running app.
     let index_file = dest.join("index.html");
+    let stamp = std::fs::read_to_string(&version_file).ok();
     if index_file.exists()
-        && std::fs::read_to_string(&version_file)
-            .map(|version| version.trim() == baseline_version())
-            .unwrap_or(false)
+        && stamp
+            .as_deref()
+            .is_some_and(|stamped| stamped.trim() == version)
     {
-        return; // this build's help is already in place
+        return None; // this build's help is already in place
     }
     // Clear the old tree first so pages removed from the help don't linger.
-    let _ = std::fs::remove_dir_all(&dest);
-    if version_file.exists() {
-        crate::log_line(
-            app,
-            "help: version.txt present but index.html missing; re-seeding baseline",
-        );
+    let _ = std::fs::remove_dir_all(dest);
+    if stamp.is_some() && !index_file.exists() {
+        log("help: version.txt present but index.html missing; re-seeding baseline");
     }
     let mut written = 0usize;
-    write_dir(app, &HELP, &dest, &mut written);
-    if let Err(e) = std::fs::write(&version_file, baseline_version()) {
-        crate::log_line(app, &format!("help: write version.txt failed: {e}"));
+    write_dir(log, &HELP, dest, &mut written);
+    if let Err(e) = std::fs::write(&version_file, version) {
+        log(&format!("help: write version.txt failed: {e}"));
     }
-    crate::log_line(
-        app,
-        &format!("help: seeded {written} file(s) to {}", dest.display()),
-    );
+    log(&format!(
+        "help: seeded {written} file(s) to {}",
+        dest.display()
+    ));
+    Some(written)
 }
 
-/// Recursively write one embedded directory to `dest`. Unlike `dashboards::write_dir`
-/// this overwrites: the help tree is app-owned, so a stale/partial copy left without a
-/// `version.txt` should be replaced by the current baseline, not preserved.
-fn write_dir(app: &AppHandle, dir: &Dir<'_>, dest: &Path, written: &mut usize) {
+/// Recursively write one embedded directory to `dest`. The help tree is app-owned, so a
+/// stale/partial copy left without a `version.txt` is replaced by the current baseline.
+fn write_dir(log: &dyn Fn(&str), dir: &Dir<'_>, dest: &Path, written: &mut usize) {
     if let Err(e) = std::fs::create_dir_all(dest) {
-        crate::log_line(app, &format!("help: mkdir {} failed: {e}", dest.display()));
+        log(&format!("help: mkdir {} failed: {e}", dest.display()));
         return;
     }
     for file in dir.files() {
@@ -88,14 +92,14 @@ fn write_dir(app: &AppHandle, dir: &Dir<'_>, dest: &Path, written: &mut usize) {
         let out = dest.join(name);
         match std::fs::write(&out, file.contents()) {
             Ok(_) => *written += 1,
-            Err(e) => crate::log_line(app, &format!("help: write {} failed: {e}", out.display())),
+            Err(e) => log(&format!("help: write {} failed: {e}", out.display())),
         }
     }
     for sub in dir.dirs() {
         let Some(name) = sub.path().file_name() else {
             continue;
         };
-        write_dir(app, sub, &dest.join(name), written);
+        write_dir(log, sub, &dest.join(name), written);
     }
 }
 
@@ -108,10 +112,18 @@ fn help_root() -> Option<PathBuf> {
 /// directory route (path ending in `/` or with no file extension - Starlight emits
 /// `<route>/index.html`). Returns `None` for a path that escapes the help dir.
 fn resolve(path: &str) -> Option<PathBuf> {
-    let root = help_root()?;
+    resolve_in(&help_root()?, path)
+}
+
+/// `resolve` against an explicit `root`, so tests need no `MP_HOME`.
+fn resolve_in(root: &Path, path: &str) -> Option<PathBuf> {
+    let root = root.to_path_buf();
     let decoded = percent_decode(path);
     let mut rel = PathBuf::new();
-    for seg in decoded.split('/') {
+    // Split on BOTH separators: Windows treats `\` as one, so a `..%5C` segment would otherwise
+    // pass the `..` check below as one opaque name and then climb out of the root on disk
+    // (`Path::starts_with` compares components lexically and does not catch it).
+    for seg in decoded.split(['/', '\\']) {
         if seg.is_empty() || seg == "." {
             continue;
         }
@@ -423,5 +435,150 @@ fn hex_val(b: u8) -> Option<u8> {
         b'a'..=b'f' => Some(b - b'a' + 10),
         b'A'..=b'F' => Some(b - b'A' + 10),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scratch(tag: &str) -> PathBuf {
+        let n = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let p =
+            std::env::temp_dir().join(format!("moonpool-help-{tag}-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&p).unwrap();
+        p
+    }
+
+    fn quiet(_: &str) {}
+
+    #[test]
+    fn seeds_the_embedded_site_and_stamps_it() {
+        let home = scratch("fresh");
+        let dest = home.join("help");
+        assert!(seed_into(&dest, "9.9.9", &quiet).unwrap() > 0);
+        assert!(dest.join("index.html").is_file());
+        assert_eq!(
+            std::fs::read_to_string(dest.join("version.txt")).unwrap(),
+            "9.9.9"
+        );
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn matching_stamp_skips_and_other_stamps_replace() {
+        let home = scratch("gate");
+        let dest = home.join("help");
+        seed_into(&dest, "1.0", &quiet).unwrap();
+        std::fs::write(dest.join("extra.html"), "x").unwrap();
+        assert_eq!(seed_into(&dest, "1.0", &quiet), None);
+        assert!(
+            dest.join("extra.html").exists(),
+            "same stamp must not rewrite"
+        );
+
+        // Any other stamp (newer, older, or the retired help-only download's) replaces it.
+        assert!(seed_into(&dest, "0.9", &quiet).is_some());
+        assert!(!dest.join("extra.html").exists(), "stale page survived");
+        assert_eq!(
+            std::fs::read_to_string(dest.join("version.txt")).unwrap(),
+            "0.9"
+        );
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn stamped_but_empty_tree_is_reseeded() {
+        let home = scratch("empty");
+        let dest = home.join("help");
+        std::fs::create_dir_all(&dest).unwrap();
+        std::fs::write(dest.join("version.txt"), "1.0").unwrap();
+        let logs = std::cell::RefCell::new(Vec::new());
+        let log = |m: &str| logs.borrow_mut().push(m.to_string());
+        assert!(seed_into(&dest, "1.0", &log).is_some());
+        assert!(dest.join("index.html").is_file());
+        assert!(logs
+            .borrow()
+            .iter()
+            .any(|l| l.contains("index.html missing")));
+        let _ = std::fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn baseline_version_is_the_repo_stamp() {
+        let v = baseline_version();
+        assert!(!v.is_empty() && v == v.trim());
+    }
+
+    #[test]
+    fn resolve_maps_routes_to_index_files() {
+        let root = PathBuf::from("help-root");
+        assert_eq!(resolve_in(&root, "/"), Some(root.join("index.html")));
+        assert_eq!(
+            resolve_in(&root, "/guide/"),
+            Some(root.join("guide").join("index.html"))
+        );
+        assert_eq!(
+            resolve_in(&root, "/guide"),
+            Some(root.join("guide").join("index.html"))
+        );
+        assert_eq!(
+            resolve_in(&root, "/_astro/app.css"),
+            Some(root.join("_astro").join("app.css"))
+        );
+        assert_eq!(
+            resolve_in(&root, "/a%20b/c.png"),
+            Some(root.join("a b").join("c.png"))
+        );
+    }
+
+    #[test]
+    fn resolve_rejects_traversal_in_every_spelling() {
+        let root = scratch("root").join("help");
+        for bad in [
+            "/../secret.txt",
+            "/a/../../secret.txt",
+            "/%2e%2e/secret.txt",
+            "/..%2fsecret.txt",
+            "/..%5csecret.txt",
+            "/..%5C..%5Cmoonpool-config%5Capps.json",
+            "/guide\\..\\..\\x.json",
+        ] {
+            assert_eq!(resolve_in(&root, bad), None, "{bad} must be rejected");
+        }
+    }
+
+    #[test]
+    fn percent_decode_handles_utf8_and_stray_percent() {
+        assert_eq!(percent_decode("a%20b"), "a b");
+        assert_eq!(percent_decode("%C3%A9"), "\u{e9}");
+        assert_eq!(percent_decode("100%"), "100%");
+        assert_eq!(percent_decode("%zz"), "%zz");
+        assert_eq!(percent_decode("%4"), "%4");
+    }
+
+    #[test]
+    fn content_types_cover_the_site_assets() {
+        assert_eq!(
+            content_type(Path::new("x/INDEX.HTML")),
+            "text/html; charset=utf-8"
+        );
+        assert_eq!(content_type(Path::new("a.woff2")), "font/woff2");
+        assert_eq!(content_type(Path::new("noext")), "application/octet-stream");
+    }
+
+    #[test]
+    fn titlebar_is_injected_inside_body_and_wraps_content() {
+        let html = b"<html><head></head><BODY class=x><p>hi</p></body></html>".to_vec();
+        let out = String::from_utf8(inject_titlebar(html)).unwrap();
+        let bar = out.find("id=\"mp-titlebar\"").unwrap();
+        assert!(out.find("<BODY class=x>").unwrap() < bar);
+        assert!(out.contains("<div id=\"mp-help-scroll\"><p>hi</p></div></body>"));
+        // No <body>: left untouched.
+        let plain = b"<p>fragment</p>".to_vec();
+        assert_eq!(inject_titlebar(plain.clone()), plain);
     }
 }
