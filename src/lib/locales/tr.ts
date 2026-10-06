@@ -133,7 +133,7 @@ export const tr: PartialDict = {
   "editor.hintDesktop":
     "Yerel bir uygulama başlatır; processName adında bir süreç bulunduğunda Çalışıyor olarak gösterir.",
   "editor.hintStatic": "Yalnızca url adresini tarayıcıda açar; terminal ya da komut yoktur.",
-  "editor.hintCli": "Bir komut çalıştırır ve cwd içinde etkileşimli bir kabuğu açık tutar.",
+  "editor.hintCli": "Bir komutu cwd içinde kendi terminalinde çalıştırır; komut bitene kadar çalışıyor görünür.",
   "editor.portableWarn":
     "Mutlak yol - bu klasörle birlikte taşınmaz. Taşınabilir kalması için {MP_HOME}\\... ya da ./ ile başlayan bir yol kullanın.",
   "editor.notPortable": "taşınabilir değil",

@@ -99,7 +99,7 @@ The close button quits Moonpool by default (`closeToTray` is `false`). Turn on *
 
 ## Size, position and maximized state
 
-Moonpool remembers the hub window's size, position and maximized state between runs. The first run opens at 1200x780, centered. If the saved position is no longer on any connected display (for example an unplugged monitor), the position is ignored and the saved size is used at the default location. The file is `window-state.json` in the config folder (see [Overview](/configuration/overview/#where-the-config-lives)).
+Moonpool remembers the hub window's size, position and maximized state between runs. The first run opens at 1200x780, at the position Windows picks. If the saved position is no longer on any connected display (for example an unplugged monitor), the position is ignored and the saved size is used at the default location. The file is `window-state.json` in the config folder (see [Overview](/configuration/overview/#where-the-config-lives)).
 
 The sidebar width and whether the CLI pane is collapsed are remembered too.
 

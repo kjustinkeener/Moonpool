@@ -132,7 +132,7 @@ export const it: PartialDict = {
   "editor.hintDesktop":
     "Avvia un'app nativa; la segnala in esecuzione quando trova un processo chiamato processName.",
   "editor.hintStatic": "Apre soltanto url nel browser, senza terminale né comando.",
-  "editor.hintCli": "Esegue un comando e mantiene aperta una shell interattiva in cwd.",
+  "editor.hintCli": "Esegue un comando nel proprio terminale in cwd; risulta in esecuzione finché il comando non termina.",
   "editor.portableWarn":
     "Percorso assoluto: non seguirà questa cartella se la sposti. Usa {MP_HOME}\\... o un percorso ./ per mantenerla portatile.",
   "editor.notPortable": "non portatile",

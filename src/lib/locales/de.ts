@@ -133,7 +133,7 @@ export const de: PartialDict = {
   "editor.hintDesktop":
     "Startet eine native App; meldet „läuft“, sobald ein Prozess namens processName gefunden wird.",
   "editor.hintStatic": "Öffnet nur url im Browser, ohne Terminal und ohne Befehl.",
-  "editor.hintCli": "Führt einen Befehl aus und hält eine interaktive Shell in cwd offen.",
+  "editor.hintCli": "Führt einen Befehl in einem eigenen Terminal in cwd aus; er gilt als laufend, bis der Befehl endet.",
   "editor.portableWarn":
     "Absoluter Pfad: zieht mit diesem Ordner nicht mit um. Nutzen Sie {MP_HOME}\\... oder einen ./-Pfad, damit es portabel bleibt.",
   "editor.notPortable": "nicht portabel",

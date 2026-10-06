@@ -205,7 +205,7 @@ export const en = {
   "editor.hintDesktop":
     "Launches a native app; shows Running when a process named processName is found.",
   "editor.hintStatic": "Just opens url in the browser, no terminal or command.",
-  "editor.hintCli": "Runs a command and keeps an interactive shell open in cwd.",
+  "editor.hintCli": "Runs a command in its own terminal in cwd; it shows as running until the command exits.",
   // {MP_HOME} below is literal text the user types, NOT a slot. Copy verbatim.
   "editor.portableWarn":
     "Absolute path - won't move with this folder. Use {MP_HOME}\\... or a ./ path to keep it portable.",

@@ -128,7 +128,7 @@ export const ko: PartialDict = {
   "editor.hintDesktop":
     "네이티브 앱을 실행합니다. processName과 이름이 같은 프로세스가 발견되면 실행 중으로 표시합니다.",
   "editor.hintStatic": "url을 브라우저에서 열기만 합니다. 터미널이나 명령은 사용하지 않습니다.",
-  "editor.hintCli": "명령을 실행하고 cwd에서 대화형 셸을 계속 열어 둡니다.",
+  "editor.hintCli": "cwd에서 전용 터미널로 명령을 실행합니다. 명령이 끝날 때까지 실행 중으로 표시됩니다.",
   "editor.portableWarn":
     "절대 경로입니다. 이 폴더를 옮겨도 함께 따라오지 않습니다. 이동이 가능하도록 {MP_HOME}\\... 또는 ./ 로 시작하는 경로를 사용하세요.",
   "editor.notPortable": "이동 불가",
