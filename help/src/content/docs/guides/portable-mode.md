@@ -17,6 +17,26 @@ it.
 <chosen location>\.moonpool\
 ```
 
+## What is different from installed
+
+| | Installed | Portable |
+| --- | --- | --- |
+| Program | `%USERPROFILE%\.moonpool\moonpool.exe` | `<chosen location>\.moonpool\moonpool.exe` |
+| Config folder | `%USERPROFILE%\.moonpool\moonpool-config\` | `<chosen location>\.moonpool\moonpool-config\` |
+| Window browser profile, window size and position | In the config folder | In the config folder, so they travel too |
+| Start Menu, desktop shortcut, Add/Remove entry | Yes | None |
+| Updates | Replaces its own exe | The same, inside the `.moonpool\` folder. See [Updating](/guides/updating/#portable-copies). |
+| Remove | Add/Remove Programs or `--uninstall` | Delete the folder |
+
+Neither mode writes to Windows AppData.
+
+### Synced folders
+
+You can keep a portable copy in a synced folder (OneDrive, Dropbox and the like), but run it
+on one PC at a time. Moonpool writes `state.json` every couple of seconds and logs as apps
+run, so two PCs running the same folder fight over the same files, and a sync conflict can
+leave a broken `apps.json`. Quit it on one PC before starting it on another.
+
 ## Several copies at once
 
 One Moonpool runs per folder. The installed Moonpool and any number of portable copies, each

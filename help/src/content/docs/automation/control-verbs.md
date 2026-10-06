@@ -135,3 +135,8 @@ platform (Windows only)` elsewhere.
 The command line's `--ticket` and `state.json` outcome records belong to the other channel;
 see [Command line](/automation/command-line/#reading-the-outcome). Channel requests get their
 answer in the reply.
+
+## See also
+
+- [Command line](/automation/command-line/)
+- [AI agents: quick start](/automation/quick-start/#the-same-action-three-ways)

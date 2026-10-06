@@ -81,3 +81,8 @@ use your package manager. See [Updating](/guides/updating/).
 - Reveal buttons open the containing folder rather than selecting the file.
 - Config files open in your default text editor (resolved from the `text/plain` association).
 - The Windows installer, shortcuts and Add/Remove entry do not apply.
+
+## See also
+
+- [Windows](/platforms/windows/#what-differs-by-platform): a table of what differs by platform.
+- [Updating](/guides/updating/#linux)

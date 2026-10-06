@@ -100,3 +100,8 @@ Finished tickets are dropped after 24 hours, and the list is trimmed toward 50 e
 finished tickets are at least 5 minutes old.
 
 An agent that supports MCP can skip the polling: see [MCP setup](/automation/mcp-setup/).
+
+## See also
+
+- [AI agents: quick start](/automation/quick-start/)
+- [Control verbs](/automation/control-verbs/)

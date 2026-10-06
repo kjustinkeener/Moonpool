@@ -72,5 +72,5 @@ Avoid nested double quotes in `command`: they are mangled by the `cmd /c` wrappe
 
 ## What clicking does
 
-Clicking an app's name opens or focuses its terminal tab and shows this session's output.
-It does not launch anything. Use the Launch, Stop and Restart controls for that.
+Clicking an app's name only opens its terminal tab. Use the Launch, Stop and Restart
+controls to run it. See [App states](/reference/glossary/#app-states).

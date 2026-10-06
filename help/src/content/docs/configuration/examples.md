@@ -148,3 +148,8 @@ Paths anchor to the portable folder, so the entry still works after the folder m
   "icon": "{MP_HOME}\\icons\\notes.png"
 }
 ```
+
+## See also
+
+- [Example dashboards](/using/example-dashboards/): the dashboards that ship with Moonpool.
+- [App fields](/configuration/fields/)

@@ -122,6 +122,22 @@ notes-app.exe mcp
   folder), so the sub-item stays visible as stopped, and `moonpool_list_apps` shows
   `[mcp: stopped]`, after the helper exits.
 - The sub-item is controlled by the `showMcpProcesses` setting
-  ([Settings and logs](/configuration/settings-and-logs/)).
+  ([Settings window](/using/settings-window/)).
 - `moonpool_stop_mcp_server` kills the helper and leaves the app alone. There is no start
   counterpart: the host that owns the helper starts it again on its next tool call.
+
+## If the tools do not work
+
+- **The host shows no `moonpool_*` tools.** Check that `command` is the full path to
+  `moonpool.exe` and `args` is `["mcp"]`, then restart the host.
+- **Every tool says Moonpool is not running.** Start Moonpool, or call
+  `moonpool_bootup_launcher`. Make sure the registered exe is the copy you are running.
+- **An edit does not show up.** Call `moonpool_launcher_paths` and compare the hub's folders
+  with the MCP process's. See [Sandboxed hosts](#sandboxed-hosts).
+
+More in [Troubleshooting](/reference/troubleshooting/#mcp-and-script-errors).
+
+## See also
+
+- [MCP tools](/automation/mcp-tools/)
+- [AI agents: quick start](/automation/quick-start/)

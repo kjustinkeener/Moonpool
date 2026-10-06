@@ -13,13 +13,22 @@ in its own terminal so you never hunt for a window or retype a command.
   row) to start it. Clicking its name only opens its terminal tab. Moonpool tracks whether
   it is running and shows its output.
 - **Its own terminal per app.** Each app runs in a managed terminal, so logs stay
-  separated and a crash in one does not take down the others.
+  separated.
 - **Travels with you.** Run Moonpool installed on a machine, or from a portable folder
   on a USB stick with all of its data beside it.
 
 ![Hub with the CLI Script tab active: apps grouped on the left, one terminal tab per app on the right](../../../assets/screenshots/hub-expanded.png)
 
-## Next
+## I want to...
 
-- [Installing](/getting-started/installing/)
-- [First launch](/getting-started/first-launch/)
+| I want to | Go to |
+| --- | --- |
+| Install Moonpool | [Installing](/getting-started/installing/) |
+| Get one app running, start to finish | [Your first app](/getting-started/first-launch/) |
+| Add or change an app | [Adding apps](/guides/adding-apps/) |
+| Fix a problem | [Troubleshooting and FAQ](/reference/troubleshooting/) |
+| Let an AI agent set up or drive my apps | [AI agents: quick start](/automation/quick-start/) |
+| Run Moonpool from a USB stick or folder | [Portable mode](/guides/portable-mode/) |
+| Back up or move my setup | [Backup and recovery](/configuration/backup-and-recovery/) |
+| See what changed | [What's new](/getting-started/whats-new/) |
+| Look up a word | [Glossary](/reference/glossary/) |

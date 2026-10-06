@@ -1,6 +1,6 @@
 ---
 title: The Hub Window
-description: A tour of the Moonpool hub window, its menu, tray icon, update banner, and how it remembers its size and position.
+description: A tour of the Moonpool hub window, its menu, the apps.json error banner, the empty screen, and how it remembers its size and position.
 ---
 
 ![The hub with three apps running: the outlined areas are numbered 1 to 4](../../../assets/screenshots/hub-window.png)
@@ -23,7 +23,7 @@ Drag the divider between the sidebar and the CLI pane to resize the sidebar.
 
 ## Status bar
 
-The status bar shows one thin bar per CPU core (hover for "Per-core CPU usage"), then a memory bar with a `used/total GB` label. Turn it off with **Show CPU/memory status bar** in Settings (`showStatusbar` in [Settings and logs](/configuration/settings-and-logs/)). The change applies immediately.
+The status bar shows one thin bar per CPU core (hover for "Per-core CPU usage"), then a memory bar with a `used/total GB` label. Turn it off with **Show CPU/memory status bar** in Settings (`showStatusbar`; see [Settings window](/using/settings-window/)). The change applies immediately.
 
 ## The ... menu
 
@@ -44,7 +44,17 @@ The **...** button left of the filter box opens the menu.
 | About | Opens the About window, with the version and update check. |
 | Install Moonpool... | Windows only. Opens the installer window, to install the app or make a portable copy. See [Installing](/getting-started/installing/) and [Portable mode](/guides/portable-mode/). |
 
-### When apps.json has an error
+### Port conflict warning
+
+If two apps in `apps.json` use the same `port`, a warning row appears at the bottom of the menu, for example:
+
+```text
+port 3000: App A / App B
+```
+
+Hover it for the full sentence. Fix the clash in the manifest or the editor; the row disappears once no port is shared.
+
+## When apps.json has an error
 
 If Reload (or F5) finds that `apps.json` no longer parses or validates, Moonpool keeps the
 list it already had. A banner at the top of the sidebar says "apps.json has an error,
@@ -60,65 +70,24 @@ If the file is already broken when Moonpool starts, there is no earlier list to 
 banner says no apps are loaded and the sidebar is empty. Fix the file and reload, or roll
 back to a recent good copy (see [If the file is bad](/configuration/overview/#if-the-file-is-bad)).
 
-### Port conflict warning
-
-If two apps in `apps.json` use the same `port`, a warning row appears at the bottom of the menu, for example:
-
-```text
-port 3000: App A / App B
-```
-
-Hover it for the full sentence. Fix the clash in the manifest or the editor; the row disappears once no port is shared.
-
 ## Empty screen
 
-With no tab open, the CLI pane shows "Pick an app on the left to launch it."
+With no tab open, the CLI pane shows "Pick an app on the left to launch it." It also holds
+two things that appear only while no tab is open:
 
-### Update banner
+- **The update banner**, when a newer version was found at startup. See
+  [Updating](/guides/updating/).
+- **Copy prompt**, a ready-made prompt that hands setting up your apps to an AI agent. See
+  [AI agents: quick start](/automation/quick-start/#copy-prompt).
 
-If **Check for updates on startup** is on and a newer version exists, a banner appears here:
-
-```text
-Moonpool {version} is available (you have {current}).
-```
-
-It has a **Download & install** button and a dismiss button. See [Updating](/guides/updating/).
-
-If the update fails, the banner shows:
-
-```text
-Update failed: <error>
-```
-
-The button becomes available again so you can retry.
-
-The banner shows only while no tab is open. If you collapsed the CLI pane, the banner is hidden with it, and the chevron that re-expands the pane pulses while an update waits.
-
-### Copy prompt for AI agents
-
-Below the banner is a ready-made prompt ("New here? Hand this to an AI agent to set up your apps"). **Copy prompt** puts it on the clipboard. The prompt points the agent at `AI-README.md` and `apps.json` in your config folder, and asks it to find your apps and register them. When it is done, choose **Reload**.
-
-Moonpool writes `AI-README.md` next to `apps.json` and refreshes it at each launch, so it matches the installed version. Do not keep your own edits in it. The empty screen also reminds you that you can use **Add app** or **Edit file** instead.
-
-## Tray icon
-
-| Action | Result |
-| --- | --- |
-| Left-click | Shows the hub window (restores it if minimized or hidden). |
-| Right-click | Menu with **Show Moonpool** and **Quit** only (in your language). |
-
-**Quit** exits Moonpool and, on Windows, stops every app Moonpool launched, including their child processes. Apps that were already running before Moonpool saw them (shown as running without "managed by Moonpool") are left alone. On Linux and macOS, quitting does not reliably stop launched apps. Whether the tray icon and taskbar button are visible is controlled by Settings (`showInTray`, `showInTaskbar`).
-
-## Closing and minimizing
-
-The close button quits Moonpool by default (`closeToTray` is `false`). Turn on **Close to tray** in Settings and closing hides the window to the tray instead; Moonpool keeps running and the tray icon or **Show Moonpool** brings it back. **Minimize to tray** (`minimizeToTray`, default on) hides the window to the tray when it is minimized.
+The tray icon, closing, minimizing, Quit and always on top are on
+[Tray, close and minimize](/using/tray-and-closing/).
 
 ## Size, position and maximized state
 
-Moonpool remembers the hub window's size, position and maximized state between runs. The first run opens at 1200x780, at the position Windows picks. If the saved position is no longer on any connected display (for example an unplugged monitor), the position is ignored and the saved size is used at the default location. The file is `window-state.json` in the config folder (see [Overview](/configuration/overview/#where-the-config-lives)).
+Moonpool remembers the hub window's size, position and maximized state between runs. The
+first run opens at 1200x780, at the position Windows picks.
+
+If the saved position is no longer on any connected display (for example an unplugged monitor), the position is ignored and the saved size is used at the default location. The file is `window-state.json` in the config folder (see [Overview](/configuration/overview/#where-the-config-lives)).
 
 The sidebar width and whether the CLI pane is collapsed are remembered too.
-
-## Always on top
-
-**Always on top** in Settings keeps every Moonpool window (the hub, Settings, About, the app editor, the theme browser, the installer and Help) above other windows. It is off by default.

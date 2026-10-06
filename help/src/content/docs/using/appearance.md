@@ -64,3 +64,8 @@ The picker applies instantly to the hub and the other windows. The choice is sav
 
 Zoom the whole interface with Ctrl + mouse wheel. There is no keyboard zoom. See
 [Shortcuts and zoom](/using/shortcuts-and-zoom/).
+
+## See also
+
+- [Settings window](/using/settings-window/)
+- [Shortcuts and zoom](/using/shortcuts-and-zoom/)

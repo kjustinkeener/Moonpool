@@ -36,7 +36,16 @@ The result is one entry in `apps.json`, for example:
 }
 ```
 
-Clicking an app's name only opens its terminal tab. It does not start the app.
+Clicking an app's name only opens its terminal tab; see [App states](/reference/glossary/#app-states).
+
+## The app editor
+
+- **Group.** Pick a group from the list, or choose **+ New group...** and type a name.
+  **back to list** returns to the list. A blank group is saved as `Apps`.
+- **Dimmed fields** are not used by the selected type. They are still saved.
+- **Save without a name** shows `name is required.`
+- **Esc** or closing the editor with unsaved changes asks "Discard your changes?".
+- To change an app later, use the pencil on its row, or right-click it and choose **Edit**.
 
 ## Edit by hand
 

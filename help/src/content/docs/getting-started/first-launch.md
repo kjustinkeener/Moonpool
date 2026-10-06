@@ -1,16 +1,58 @@
 ---
-title: First Launch
-description: What you see the first time Moonpool starts, and how to reach it later.
+title: Your first app
+description: From first launch to one running app of your own in a few minutes, and how to find the hub and this help later.
 ---
 
-The first time Moonpool runs it seeds a few example apps so the hub is not empty, and
-places its icon in the system tray.
+## 1. Start Moonpool
 
-## Finding the hub
+On Windows, run `moonpool.exe` and click **Install Moonpool** (see
+[Installing](/getting-started/installing/)). On Linux, start the AppImage or the installed
+package.
+
+The first time Moonpool runs it fills the sidebar with example apps (Notepad on Windows, a
+shell, a small web server and the bundled dashboards). They run as they are (the web server
+needs Python), so you can try them, then edit or delete them. It also puts an icon in the system tray. On Windows, if
+you do not see the icon, click the **^** arrow at the right of the taskbar.
+
+## 2. Add your app
+
+1. Open the **...** menu at the top of the sidebar and choose **Add app**.
+2. Enter a **name**. The group starts as `Web apps`; keep it or pick another.
+3. Keep **type** as `web` for a dev server.
+4. Set **cwd** to your project folder and **command** to what you type to start it, for
+   example `npm run dev`.
+5. Set **port** to the port it listens on, and **url** to the page to open.
+6. Save.
+
+The details of every field are in [Adding apps](/guides/adding-apps/).
+
+## 3. Start it
+
+Click the app's **Launch** button (the play icon on its row). Its terminal tab opens and
+shows the output. The status dot pulses while the app is starting, then turns solid once its
+port answers. If **openBrowser** is on, the page opens.
+
+Clicking the app's name only opens its terminal tab. It never starts the app.
+
+## 4. Stop it
+
+Click the **Stop** button (the square) on the row. The dot turns grey.
+
+If something stays running after Stop, see [Stop and restart](/configuration/stop-and-restart/).
+
+## Let an agent do it
+
+With no tab open, the CLI pane shows a **Copy prompt** button. Paste the prompt into an AI
+agent and it finds your apps and adds them. See
+[AI agents: quick start](/automation/quick-start/).
+
+## Finding the hub later
 
 - Left-click the tray icon to show the hub. Right-click it for a menu with **Show Moonpool**
   and **Quit**.
-- By default, closing the window quits Moonpool. Turn on **Close to tray** in Settings to hide it to the tray instead and keep it running. See [Settings window](/using/settings-window/).
+- By default, closing the window quits Moonpool. Turn on **Close to tray** in Settings to
+  hide it to the tray instead and keep it running. See
+  [Tray, close and minimize](/using/tray-and-closing/).
 
 ## Getting help
 
@@ -22,3 +64,4 @@ It works offline and always matches the version you run.
 ## Next
 
 - [Adding apps](/guides/adding-apps/)
+- [Troubleshooting](/reference/troubleshooting/)

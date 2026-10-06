@@ -85,4 +85,9 @@ already have an `apps.json`, add the dashboard entries yourself (**Edit apps.jso
 }
 ```
 
-Field meanings are in [Fields](/configuration/fields/).
+Field meanings are in [App fields](/configuration/fields/).
+
+## See also
+
+- [Examples](/configuration/examples/): more complete entries to copy.
+- [App types](/configuration/app-types/#static)
