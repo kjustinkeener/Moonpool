@@ -82,6 +82,26 @@ Hub-Fenster, port = Port, process = Prozess, background = Hintergrund, tab = Tab
 beenden, launch = starten. Windows SmartScreen: "Der Computer wurde durch Windows geschützt",
 "Weitere Informationen", "Trotzdem ausführen", "Unbekannter Herausgeber".
 
+## Terms (Dutch)
+
+Use the app's catalog first (`src/lib/locales/nl.ts`). The address form follows the app catalog: "je"/"jouw" throughout, never "u". Words the catalog does not settle: tray = systeemvak,
+sidebar = zijbalk, dev server = dev-server, hub window = hubvenster, process = proces, port = poort,
+tab = tabblad, log = log (a log file: logbestand), backup = back-up, portable mode = draagbare modus
+(the app badge stays "niet portable"), kill (a process) = beëindigen, launch = starten, running =
+actief, control channel = besturingskanaal, command line = opdrachtregel. Windows SmartScreen strings
+stay English with a Dutch gloss in parentheses, except the page name "Windows heeft uw pc beschermd".
+
+## Terms (Polish)
+
+Use the app's catalog first (`src/lib/locales/pl.ts`). The address form follows the app catalog:
+imperatives and impersonal constructions, informal "ty" where a pronoun is needed, never "Państwo".
+Words the catalog does not settle: tray = zasobnik systemowy (zasobnik), sidebar = pasek boczny, dev
+server = serwer deweloperski, hub window = okno huba, process = proces, port = port, tab = karta,
+log = dziennik, backup = kopia zapasowa, portable mode = tryb przenośny (the app badge stays
+"nieprzenośna"), kill (a process) = zakończyć, launch = uruchomić, running = działa, control channel =
+kanał sterowania, command line = wiersz poleceń, installer window = karta instalacji. Windows
+SmartScreen strings stay English with a Polish gloss in parentheses.
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
