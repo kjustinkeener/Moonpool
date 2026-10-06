@@ -162,6 +162,8 @@ export const nl: PartialDict = {
     "De lokale TCP-poort waarop de app luistert. Moonpool toont Actief zodra deze poort antwoordt en geeft de poort vrij bij Stoppen. Wordt gebruikt door web-apps.",
   "editor.processNameHint":
     "Voor desktop-apps: de proces- of programmanaam (zonder .exe) waarmee Actief wordt herkend en de app wordt gestopt. Op Linux maximaal 15 tekens.",
+  "editor.mcpProcessNameHint":
+    "Optioneel. Een jokerteken-patroon (* voor een willekeurige reeks tekens, ? voor één teken) voor de procesnaam van de MCP-server van deze app, als die niet processName is, bijv. mog of destiny-mcp-*. Hoofdletterongevoelig, geldt voor de hele naam; .exe is optioneel. Een overeenkomend proces verschijnt als de MCP-serverrij van de app en heeft het argument mcp niet nodig.",
   "editor.urlHint":
     "De URL die geopend wordt: http://localhost:<port> voor een web-app, of file:///path/to/index.html voor een statische pagina. Gebruik file:///{MP_HOME}/... om het portable te houden.",
   "editor.openBrowser": "browser openen",

@@ -915,7 +915,7 @@ fn tool_list() -> Value {
         },
         {
             "name": "moonpool_stop_mcp_server",
-            "description": "Kill the app's attached MCP shim process (a `<processName> mcp` subprocess an MCP host spawned to reach this app's own tools), leaving the app itself untouched. There is no matching 'start' - the shim isn't something Moonpool launches; the MCP host that owns it respawns it on its own next tool call.",
+            "description": "Kill the app's attached MCP shim process (a `<processName> mcp` subprocess, or a process matching the app's `mcpProcessName` wildcard, that an MCP host spawned to reach this app's own tools), leaving the app itself untouched. There is no matching 'start' - the shim isn't something Moonpool launches; the MCP host that owns it respawns it on its own next tool call.",
             "inputSchema": app_id_schema("stop the MCP shim for")
         },
         {

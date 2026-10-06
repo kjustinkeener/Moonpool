@@ -50,6 +50,9 @@ When an AI client has used an app's own MCP tools, a dimmed sub-row `MCP server`
 under the app. Its dot is lit and the tooltip reads "MCP client attached" while the client
 is connected. A stop button ends that process.
 
+The row finds the process by `processName` plus the `mcp` argument, or by the app's
+`mcpProcessName` pattern when one is set. See [fields](/configuration/fields/#mcpprocessname).
+
 Hide these rows with **Show MCP processes** in Settings. See
 [MCP setup](/automation/mcp-setup/#apps-that-have-their-own-mcp-server).
 

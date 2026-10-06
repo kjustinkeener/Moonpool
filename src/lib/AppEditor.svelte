@@ -44,6 +44,7 @@
     url: initial?.url ?? "",
     openBrowser: initial?.openBrowser ?? false,
     processName: initial?.processName ?? "",
+    mcpProcessName: initial?.mcpProcessName ?? "",
     killMode: initial?.killMode ?? "",
     stopCommand: initial?.stopCommand ?? "",
     env: initial?.env
@@ -188,6 +189,7 @@
       url: f.url.trim() || undefined,
       openBrowser: f.openBrowser,
       processName: f.processName.trim() || undefined,
+      mcpProcessName: f.mcpProcessName.trim() || undefined,
       killMode: (f.killMode || undefined) as AppEntry["killMode"],
       stopCommand: f.killMode === "command" ? f.stopCommand.trim() || undefined : undefined,
       env: Object.keys(env).length ? env : undefined,
@@ -235,6 +237,7 @@
       <label class="wide" class:dim={!ti.fields.includes("command")} title={t("editor.commandHint")}>command<input bind:value={f.command} placeholder={ti.ph.command ?? t("editor.phCommand")} /></label>
       <label class:dim={!ti.fields.includes("port")} title={t("editor.portHint")}>port<input type="number" inputmode="numeric" min="1" max="65535" step="1" bind:value={f.port} placeholder={ti.ph.port ?? "3000"} /></label>
       <label class:dim={!ti.fields.includes("processName")} title={t("editor.processNameHint")}>processName<input bind:value={f.processName} placeholder={ti.ph.processName ?? "my-app"} /></label>
+      <label class="wide" title={t("editor.mcpProcessNameHint")}>mcpProcessName<input bind:value={f.mcpProcessName} placeholder="my-app-mcp-*" /></label>
       <label title={t("editor.killModeHint")}>
         killMode
         <select bind:value={f.killMode}>

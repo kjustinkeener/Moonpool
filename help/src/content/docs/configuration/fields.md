@@ -21,6 +21,7 @@ the selected type are dimmed in the dialog but still saved, with one exception:
 | `cwd` | string | no | all with a `command` | Folder the command runs in. Defaults to Moonpool's own working folder. Supports tokens and `./`. See [Paths and environment](/configuration/paths-and-environment/). |
 | `port` | integer, 1 to 65535 | no | any | Running while something answers on this port on localhost (IPv4 or IPv6). Read by `killMode` `port`. |
 | `processName` | string | no | any, mainly `desktop` | Running while a process with this name exists. Case-insensitive, with or without `.exe`, so `my-app` matches `my-app.exe`. On Linux, 15 characters or fewer. Read by `killMode` `processName`. |
+| `mcpProcessName` | string | no | any with a `processName` | Wildcard pattern for the process name of this app's MCP server. `*` matches any run of characters, `?` one character. Case-insensitive, matched against the whole name, and `.exe` is optional. A matching process counts as the app's MCP server (the sidebar MCP sub-row) and does not need `mcp` as its first argument. See [mcpProcessName](#mcpprocessname). |
 | `url` | string | `static` only | `web`, `static` | Page to open. Only `http://`, `https://`, `mailto:` and `file://` URLs are opened. |
 | `openBrowser` | boolean, default `false` | no | any type with a `url` (the dialog dims it for `desktop` and `cli`) | Open `url` automatically once Moonpool detects the app is up (see below). |
 | `killMode` | string | no | all | Extra cleanup on Stop and Restart: `processName`, `port`, `command` or `none`. See [Stop and restart](/configuration/stop-and-restart/). |
@@ -43,6 +44,34 @@ An entry using `env` and `killMode`:
   "killMode": "port"
 }
 ```
+
+## mcpProcessName
+
+By default Moonpool treats a process as the app's MCP server when its name matches
+`processName` and its first argument is `mcp`, such as `notes-app.exe mcp`. Set
+`mcpProcessName` when the server runs under a different name: an app that watches one exe
+while its MCP server is another (`mog.exe mcp`), or a renamed copy of the server.
+
+The value is a wildcard pattern. `*` matches any run of characters (including none) and `?`
+matches exactly one. It is compared case-insensitively against the whole process name, and a
+pattern without `.exe` also matches the name with `.exe`. An empty value counts as unset.
+
+```json
+{
+  "id": "destiny",
+  "name": "Destiny",
+  "group": "Desktop apps",
+  "type": "desktop",
+  "processName": "destiny",
+  "mcpProcessName": "destiny-mcp-*"
+}
+```
+
+This matches a renamed copy such as `destiny-mcp-2706210170.exe`. A process that matches
+`mcpProcessName` is the server whether or not it was started with `mcp`, and it never counts
+as the app itself running. If the pattern also matches `processName` itself (for example
+`destiny*`), Moonpool still requires the `mcp` argument, so the real app is never mistaken
+for its MCP server. See [MCP setup](/automation/mcp-setup/#apps-that-have-their-own-mcp-server).
 
 ## openBrowser
 

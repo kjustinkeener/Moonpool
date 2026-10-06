@@ -68,6 +68,16 @@ struct AppEntry {
         skip_serializing_if = "Option::is_none"
     )]
     process_name: Option<String>,
+    /// Optional wildcard pattern (`*` any run, `?` one char; case-insensitive, whole name)
+    /// for the process name of this app's MCP server, for servers whose exe is not
+    /// `processName` (`mog.exe mcp` for an app watching another exe) or a renamed copy
+    /// (`destiny-mcp-2706210170.exe mcp`). See `mcp_pattern_matches`.
+    #[serde(
+        default,
+        rename = "mcpProcessName",
+        skip_serializing_if = "Option::is_none"
+    )]
+    mcp_process_name: Option<String>,
     /// How `stop`/`restart` finds and kills whatever this app left running, beyond the
     /// PTY subtree Moonpool itself spawned and already tree-kills unconditionally. One
     /// of: "processName" (kill by exe name, via `processName`), "port" (kill whatever
@@ -112,7 +122,7 @@ struct AppStatus {
     id: String,
     running: bool,
     managed: bool,
-    /// Whether a `<processName> mcp` shim (see moonpool-mcp-server.md) is
+    /// Whether an MCP server (`<processName> mcp`, or a process named by `mcpProcessName`) is
     /// currently attached for this app - a short-lived MCP client bridge, not
     /// the app itself. Shown as a sub-item, not folded into `running`.
     #[serde(rename = "mcpRunning")]
@@ -579,23 +589,109 @@ fn file_to_data_uri(path: &Path) -> Option<String> {
     ))
 }
 
-/// Whether process `p`'s name matches `name`, with or without a `.exe` suffix
-/// (case-insensitive). Shared by the exe lookup and the status poller.
-fn matches_process_name(p: &Process, name: &str) -> bool {
+/// Whether process name `n` matches `name`, with or without a `.exe` suffix
+/// (case-insensitive).
+fn name_matches(n: &str, name: &str) -> bool {
     let target = name.to_lowercase();
-    let n = p.name().to_lowercase();
+    let n = n.to_lowercase();
     n == target || n == format!("{target}.exe")
 }
 
-/// Whether process `p` looks like it's running as an `<exe> mcp` shim (see
-/// `moonpool-mcp-server.md`): a short-lived stdio client bridge an MCP session
-/// spawns, sharing the same exe as the real app but with `mcp` as its first
-/// argument. Counting it as "the app is running" is a false positive - it was
-/// mistaken for Destiny-AMP/FasterDB/TidyStax actually running on 2026-09-16.
-fn is_mcp_shim(p: &Process) -> bool {
-    p.cmd()
-        .get(1)
-        .is_some_and(|a| a.eq_ignore_ascii_case("mcp"))
+/// Whether process `p`'s name matches `name`, with or without a `.exe` suffix
+/// (case-insensitive). Shared by the exe lookup and the status poller.
+fn matches_process_name(p: &Process, name: &str) -> bool {
+    name_matches(p.name(), name)
+}
+
+/// Whole-string wildcard match: `*` is any run of characters (including none), `?` is
+/// exactly one. Both sides are expected pre-lowercased by the caller.
+fn wildcard_match(pattern: &[char], text: &[char]) -> bool {
+    let (mut p, mut t) = (0, 0);
+    // Most recent `*`: the pattern index after it, and the text index it has absorbed up to.
+    let mut star: Option<(usize, usize)> = None;
+    while t < text.len() {
+        if p < pattern.len() && pattern[p] == '*' {
+            star = Some((p + 1, t));
+            p += 1;
+        } else if p < pattern.len() && (pattern[p] == '?' || pattern[p] == text[t]) {
+            p += 1;
+            t += 1;
+        } else if let Some((sp, st)) = star {
+            p = sp;
+            t = st + 1;
+            star = Some((sp, st + 1));
+        } else {
+            return false;
+        }
+    }
+    pattern[p..].iter().all(|&c| c == '*')
+}
+
+/// Whether process name `name` matches the `mcpProcessName` wildcard `pattern`: anchored to
+/// the whole name, case-insensitive, and (like `matches_process_name`) a pattern with no
+/// `.exe` also matches `<pattern>.exe`. An empty pattern matches nothing (counts as unset).
+fn mcp_pattern_matches(pattern: &str, name: &str) -> bool {
+    if pattern.is_empty() {
+        return false;
+    }
+    let pat = pattern.to_lowercase();
+    let text: Vec<char> = name.to_lowercase().chars().collect();
+    let chars: Vec<char> = pat.chars().collect();
+    if wildcard_match(&chars, &text) {
+        return true;
+    }
+    if !pat.contains(".exe") {
+        let with_exe: Vec<char> = format!("{pat}.exe").chars().collect();
+        return wildcard_match(&with_exe, &text);
+    }
+    false
+}
+
+/// The `mcpProcessName` pattern when set to something non-empty.
+fn mcp_pattern(e: &AppEntry) -> Option<&str> {
+    e.mcp_process_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+}
+
+/// Whether a process named `name` with first argument `arg1` is the MCP server of an app
+/// with `process_name` / `mcp_pattern`. Pure so it can be unit-tested.
+///
+/// - Pattern set and matching: it is the MCP server, with no `mcp` argument required,
+///   unless the pattern also matches the app's own `processName` (then the real app would
+///   qualify, so the `mcp` argument is still required).
+/// - Otherwise (unset, or a name the pattern misses): the original rule, a process named
+///   `processName` with `mcp` as its first argument.
+fn is_mcp_server_of(
+    name: &str,
+    arg1: Option<&str>,
+    process_name: Option<&str>,
+    mcp_pattern: Option<&str>,
+) -> bool {
+    let has_mcp_arg = arg1.is_some_and(|a| a.eq_ignore_ascii_case("mcp"));
+    if let Some(pat) = mcp_pattern {
+        if mcp_pattern_matches(pat, name) {
+            let overlaps_app = process_name.is_some_and(|pn| mcp_pattern_matches(pat, pn));
+            if !overlaps_app || has_mcp_arg {
+                return true;
+            }
+        }
+    }
+    process_name.is_some_and(|pn| name_matches(name, pn)) && has_mcp_arg
+}
+
+/// `is_mcp_server_of` for a live process. An `<exe> mcp` shim (see `moonpool-mcp-server.md`)
+/// is a short-lived stdio bridge an MCP session spawns, sharing the app's exe with `mcp` as
+/// its first argument; counting it as "the app is running" was a false positive (mistaken
+/// for Destiny-AMP/FasterDB/TidyStax actually running on 2026-09-16).
+fn is_mcp_server(p: &Process, e: &AppEntry) -> bool {
+    is_mcp_server_of(
+        p.name(),
+        p.cmd().get(1).map(String::as_str),
+        e.process_name.as_deref(),
+        mcp_pattern(e),
+    )
 }
 
 /// Path of the running process whose name matches `pn` (with or without .exe).
@@ -1228,7 +1324,7 @@ fn set_log_retention_mb(value: u32, app: AppHandle, state: State<HubState>) -> R
     .map(|_| ())
 }
 
-/// Kill app `id`'s attached MCP shim process(es) (see `is_mcp_shim`), leaving the
+/// Kill app `id`'s attached MCP shim process(es) (see `is_mcp_server_of`), leaving the
 /// app itself untouched. Only the shim - not the whole exe by name - is signaled,
 /// so this can't take down a real running instance that shares the same image.
 #[tauri::command]
@@ -1272,15 +1368,15 @@ pub(crate) fn kill_mcp_shim(state: &HubState, id: &str) -> Result<(), String> {
     let Some(entry) = entry else {
         return Err(format!("unknown app id: {id}"));
     };
-    let Some(pn) = entry.process_name else {
+    if entry.process_name.is_none() && mcp_pattern(&entry).is_none() {
         return Ok(());
-    };
+    }
     let mut sys = System::new();
     // Bare refresh_processes() leaves cmd() empty on Windows (sysinfo 0.30 gotcha, see
-    // moonpool-conpty-process-testing memory) - is_mcp_shim needs cmd(), so ask for it.
+    // moonpool-conpty-process-testing memory) - is_mcp_server needs cmd(), so ask for it.
     sys.refresh_processes_specifics(sysinfo::ProcessRefreshKind::everything());
     for p in sys.processes().values() {
-        if matches_process_name(p, &pn) && is_mcp_shim(p) {
+        if is_mcp_server(p, &entry) {
             p.kill();
         }
     }
@@ -1932,17 +2028,18 @@ fn tcp_alive(port: u16) -> bool {
     false
 }
 
-fn process_running(sys: &System, target: &str) -> bool {
+fn process_running(sys: &System, e: &AppEntry) -> bool {
+    let Some(pn) = &e.process_name else {
+        return false;
+    };
     sys.processes()
         .values()
-        .any(|p| matches_process_name(p, target) && !is_mcp_shim(p))
+        .any(|p| matches_process_name(p, pn) && !is_mcp_server(p, e))
 }
 
-/// Whether an MCP shim for `target` is currently attached (see `is_mcp_shim`).
-fn mcp_shim_running(sys: &System, target: &str) -> bool {
-    sys.processes()
-        .values()
-        .any(|p| matches_process_name(p, target) && is_mcp_shim(p))
+/// Whether an MCP server for app `e` is currently attached (see `is_mcp_server_of`).
+fn mcp_shim_running(sys: &System, e: &AppEntry) -> bool {
+    sys.processes().values().any(|p| is_mcp_server(p, e))
 }
 
 /// Background poller: emits `status://update` every ~2s.
@@ -2009,9 +2106,11 @@ fn spawn_status_poller(app: AppHandle) {
                 let is_managed = managed.contains(&e.id);
                 let mut detected = false;
                 let mut mcp_running = false;
-                if let Some(pn) = &e.process_name {
-                    detected = process_running(&sys, pn);
-                    mcp_running = mcp_shim_running(&sys, pn);
+                if e.process_name.is_some() {
+                    detected = process_running(&sys, e);
+                }
+                if e.process_name.is_some() || mcp_pattern(e).is_some() {
+                    mcp_running = mcp_shim_running(&sys, e);
                 }
                 // A shim that has EVER been observed stays "seen" even after it exits -
                 // see `AppStatus::mcp_seen`. Only a newly-seen id triggers a disk write.
@@ -3970,5 +4069,108 @@ mod cli_log_tests {
         );
         assert!(active.exists());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod mcp_process_name_tests {
+    use super::*;
+
+    #[test]
+    fn star_at_start_middle_and_end() {
+        assert!(mcp_pattern_matches("*-mcp.exe", "destiny-mcp.exe"));
+        assert!(mcp_pattern_matches("destiny-*-mcp", "destiny-x-mcp.exe"));
+        assert!(mcp_pattern_matches(
+            "destiny-mcp-*",
+            "destiny-mcp-2706210170.exe"
+        ));
+        assert!(mcp_pattern_matches("destiny-mcp-*", "destiny-mcp-.exe"));
+        assert!(mcp_pattern_matches("*", "anything.exe"));
+        assert!(!mcp_pattern_matches("destiny-mcp-*", "other-mcp-1.exe"));
+        assert!(!mcp_pattern_matches("*-mcp", "mcp-tool.exe"));
+    }
+
+    #[test]
+    fn question_mark_is_exactly_one_char() {
+        assert!(mcp_pattern_matches("mog?", "mog1.exe"));
+        assert!(!mcp_pattern_matches("mog?", "mog.exe"));
+        assert!(!mcp_pattern_matches("mog?", "mog12.exe"));
+    }
+
+    #[test]
+    fn matching_is_case_insensitive_and_anchored() {
+        assert!(mcp_pattern_matches("MOG", "mog.exe"));
+        assert!(mcp_pattern_matches("mog", "MOG.EXE"));
+        assert!(!mcp_pattern_matches("mog", "mogul.exe"));
+        assert!(!mcp_pattern_matches("og", "mog.exe"));
+    }
+
+    #[test]
+    fn pattern_without_exe_also_matches_with_exe() {
+        assert!(mcp_pattern_matches("mog", "mog"));
+        assert!(mcp_pattern_matches("mog", "mog.exe"));
+        assert!(mcp_pattern_matches("mog.exe", "mog.exe"));
+        assert!(!mcp_pattern_matches("mog.exe", "mog"));
+    }
+
+    #[test]
+    fn empty_pattern_is_unset() {
+        assert!(!mcp_pattern_matches("", "mog.exe"));
+        assert!(!mcp_pattern_matches("", ""));
+    }
+
+    #[test]
+    fn server_with_other_name_needs_no_mcp_arg() {
+        let pat = Some("destiny-mcp-*");
+        assert!(is_mcp_server_of(
+            "destiny-mcp-27.exe",
+            None,
+            Some("destiny"),
+            pat
+        ));
+        assert!(!is_mcp_server_of("destiny.exe", None, Some("destiny"), pat));
+        assert!(is_mcp_server_of(
+            "mog.exe",
+            Some("x"),
+            Some("destiny"),
+            Some("mog")
+        ));
+    }
+
+    #[test]
+    fn pattern_overlapping_process_name_still_requires_mcp_arg() {
+        let pat = Some("destiny*");
+        assert!(!is_mcp_server_of("destiny.exe", None, Some("destiny"), pat));
+        assert!(is_mcp_server_of(
+            "destiny.exe",
+            Some("MCP"),
+            Some("destiny"),
+            pat
+        ));
+        assert!(!is_mcp_server_of(
+            "destiny-mcp-2.exe",
+            None,
+            Some("destiny"),
+            pat
+        ));
+        assert!(is_mcp_server_of(
+            "destiny-mcp-2.exe",
+            Some("mcp"),
+            Some("destiny"),
+            pat
+        ));
+    }
+
+    #[test]
+    fn unset_pattern_keeps_the_original_rule() {
+        assert!(is_mcp_server_of("app.exe", Some("mcp"), Some("app"), None));
+        assert!(!is_mcp_server_of("app.exe", Some("run"), Some("app"), None));
+        assert!(!is_mcp_server_of("app.exe", None, Some("app"), None));
+        assert!(!is_mcp_server_of(
+            "other.exe",
+            Some("mcp"),
+            Some("app"),
+            None
+        ));
     }
 }
