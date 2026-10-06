@@ -82,6 +82,18 @@ Hub-Fenster, port = Port, process = Prozess, background = Hintergrund, tab = Tab
 beenden, launch = starten. Windows SmartScreen: "Der Computer wurde durch Windows geschützt",
 "Weitere Informationen", "Trotzdem ausführen", "Unbekannter Herausgeber".
 
+## Terms (Simplified Chinese, zh-Hans)
+
+Mainland usage. Use the app's catalog first (`src/lib/locales/zh-Hans.ts`). Words the catalog does
+not settle: app = 应用, dev server = 开发服务器, tray = 托盘, hub window = 主窗口, hub (the resident
+process) = hub, port = 端口, process = 进程, kill a process = 结束进程, terminal = 终端, tab = 标签页,
+log = 日志, backup = 备份, portable mode = 便携模式, launch = 启动, folder = 文件夹, working
+directory = 工作目录, command line = 命令行, environment variable = 环境变量, session = 会话,
+sidebar = 侧边栏, group = 分组, URL = 网址, file = 文件, server = 服务器, window = 窗口. Address
+the reader as 你. Put a space between CJK and Latin letters or digits. The "Reveal" and "Copy" log
+buttons in Settings have no catalog key and stay English in the text. Windows SmartScreen: "Windows
+已保护你的电脑", "更多信息", "仍要运行", "未知发布者".
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
