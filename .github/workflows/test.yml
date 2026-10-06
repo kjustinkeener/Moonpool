@@ -1,0 +1,40 @@
+name: Tests
+
+# Unit tests and the frontend typecheck on every push and PR. The end-to-end harness
+# (tools/e2e) needs a release build and opens app windows, so it is run by hand, not here.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: unit tests (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build help/dist (include_dir! needs it to compile)
+        run: |
+          npm --prefix help ci
+          npm --prefix help run build
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Rust unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+
+      - name: Typecheck frontend (svelte-check)
+        run: npx svelte-check --threshold error
