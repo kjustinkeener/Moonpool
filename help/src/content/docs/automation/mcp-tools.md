@@ -60,7 +60,7 @@ described in [Configuration](/configuration/overview/#agents).
 supported on this platform". `moonpool_window_state` and `moonpool_reset_mcp_seen` work on
 every platform.
 
-`window` is one of `main`, `settings`, `about`, `installer`, `editor` or `help`, and defaults
+`window` is one of `main`, `settings`, `about`, `installer`, `editor`, `help` or `themes`, and defaults
 to `main`. An unknown name fails with `unknown window '<name>'`.
 
 | Tool | Parameters | Behavior |

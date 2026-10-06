@@ -100,6 +100,20 @@ export const ptBR: PartialDict = {
 
   "theme.dark": "Escuro",
   "theme.light": "Claro",
+  "theme.group.core": "Básicos",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Quentes",
+  "theme.group.cool": "Frios",
+  "theme.group.greens": "Verdes",
+  "theme.group.neutral": "Neutros",
+  "theme.group.light": "Claros",
+  "theme.group.blush": "Rosados",
+  "theme.group.bright": "Vibrantes",
+  "theme.group.lightPastel": "Pastel claro",
+  "theme.group.pastel": "Pastel",
+  "themes.title": "Temas",
+  "themes.hint": "Clique em um tema para aplicá-lo em todas as janelas. Esc fecha.",
+  "settings.themeBrowse": "Explorar temas",
 
   "installer.tagline":
     "Um inicializador na bandeja para seus apps locais e servidores de desenvolvimento.",

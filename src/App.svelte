@@ -24,6 +24,7 @@
     updateCheck,
     updateApply,
     openHelpWindow,
+    openThemesWindow,
     type UpdateInfo,
     type ManifestStatus,
   } from "./lib/api";
@@ -551,6 +552,9 @@
                 break;
               case "help":
                 await openHelpWindow();
+                break;
+              case "themes":
+                await openThemesWindow();
                 break;
               case "editor":
                 if (wid && !apps.some((a) => a.id === wid))
@@ -1160,8 +1164,8 @@
     justify-content: center;
     border-radius: 50%;
     background: var(--dot-run);
-    /* Dark ink, not --on-accent (white): the aqua is light in both themes. */
-    color: #052a30;
+    /* --on-run, not --on-accent: ink chosen to read on the --dot-run fill. */
+    color: var(--on-run);
     font-size: 12px;
     font-weight: 700;
   }
@@ -1173,7 +1177,7 @@
     flex: none;
     background: var(--dot-run);
     border: 1px solid var(--dot-run);
-    color: #052a30;
+    color: var(--on-run);
     font-weight: 600;
     padding: 6px 12px;
     border-radius: 6px;

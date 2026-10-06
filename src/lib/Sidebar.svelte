@@ -439,13 +439,13 @@
   /* Update waiting behind the collapsed pane: pulse the button so the user knows
      to open it and install. Uses the same aqua as the update banner. */
   .cli-expand.attention {
-    color: #052a30;
+    color: var(--on-run);
     background: var(--dot-run);
     border-color: var(--dot-run);
     animation: cli-pulse 1.6s ease-in-out infinite;
   }
   .cli-expand.attention:hover {
-    color: #052a30;
+    color: var(--on-run);
     border-color: var(--dot-run);
   }
   @keyframes cli-pulse {
@@ -719,8 +719,9 @@
   }
   /* "Just launched, rising to the top" glow (fades in/out over 1s, see App.svelte). */
   .row.glowing .name {
-    color: #fff;
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.26)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.26));
+    color: var(--text-strong);
+    filter: drop-shadow(0 0 1px color-mix(in srgb, var(--text-strong) 26%, transparent))
+      drop-shadow(0 0 2px color-mix(in srgb, var(--text-strong) 26%, transparent));
     /* Faster fade-in than fade-out: the base .name transition (0.5s) governs fade-out. */
     transition: filter 0.25s ease, color 0.25s ease;
   }

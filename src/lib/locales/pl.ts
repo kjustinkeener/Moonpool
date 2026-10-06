@@ -101,6 +101,20 @@ export const pl: PartialDict = {
 
   "theme.dark": "Ciemny",
   "theme.light": "Jasny",
+  "theme.group.core": "Podstawowe",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Ciepłe",
+  "theme.group.cool": "Chłodne",
+  "theme.group.greens": "Zielenie",
+  "theme.group.neutral": "Neutralne",
+  "theme.group.light": "Jasne",
+  "theme.group.blush": "Róże",
+  "theme.group.bright": "Żywe",
+  "theme.group.lightPastel": "Jasny pastel",
+  "theme.group.pastel": "Pastel",
+  "themes.title": "Motywy",
+  "themes.hint": "Kliknij motyw, aby zastosować go we wszystkich oknach. Esc zamyka.",
+  "settings.themeBrowse": "Przeglądaj motywy",
 
   "installer.tagline":
     "Program uruchamiający w zasobniku dla Twoich lokalnych aplikacji i serwerów deweloperskich.",

@@ -583,6 +583,7 @@ const OPEN_WINDOW_KINDS: &[&str] = &[
     "editor",
     "installer",
     "help",
+    "themes",
     "terminal",
     "cli",
 ];
@@ -801,6 +802,7 @@ mod tests {
     #[test]
     fn open_window_arg_validates_kind_and_id() {
         assert_eq!(open_window_arg(&v(&["settings"])).unwrap(), "settings");
+        assert_eq!(open_window_arg(&v(&["themes"])).unwrap(), "themes");
         assert_eq!(open_window_arg(&v(&["editor", "x"])).unwrap(), "editor:x");
         assert_eq!(
             open_window_arg(&v(&["terminal", "x"])).unwrap(),

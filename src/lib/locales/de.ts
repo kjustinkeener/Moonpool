@@ -101,6 +101,20 @@ export const de: PartialDict = {
 
   "theme.dark": "Dunkel",
   "theme.light": "Hell",
+  "theme.group.core": "Grundlegend",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Warm",
+  "theme.group.cool": "Kühl",
+  "theme.group.greens": "Grün",
+  "theme.group.neutral": "Neutral",
+  "theme.group.light": "Hell",
+  "theme.group.blush": "Rosé",
+  "theme.group.bright": "Leuchtend",
+  "theme.group.lightPastel": "Helle Pastelltöne",
+  "theme.group.pastel": "Pastell",
+  "themes.title": "Designs",
+  "themes.hint": "Klicke auf ein Design, um es in allen Fenstern anzuwenden. Esc schließt.",
+  "settings.themeBrowse": "Designs durchsuchen",
 
   "installer.tagline":
     "Ein Starter im Infobereich für Ihre lokalen Apps und Entwicklungsserver.",
