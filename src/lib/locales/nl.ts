@@ -98,6 +98,20 @@ export const nl: PartialDict = {
 
   "theme.dark": "Donker",
   "theme.light": "Licht",
+  "theme.group.core": "Basis",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Warm",
+  "theme.group.cool": "Koel",
+  "theme.group.greens": "Groen",
+  "theme.group.neutral": "Neutraal",
+  "theme.group.light": "Licht",
+  "theme.group.blush": "Blush",
+  "theme.group.bright": "Helder",
+  "theme.group.lightPastel": "Licht pastel",
+  "theme.group.pastel": "Pastel",
+  "themes.title": "Thema's",
+  "themes.hint": "Klik op een thema om het in alle vensters toe te passen. Esc sluit.",
+  "settings.themeBrowse": "Thema's bekijken",
 
   "installer.tagline":
     "Een starter in het systeemvak voor je lokale apps en dev-servers.",

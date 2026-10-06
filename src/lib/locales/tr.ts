@@ -98,6 +98,20 @@ export const tr: PartialDict = {
 
   "theme.dark": "Koyu",
   "theme.light": "Açık",
+  "theme.group.core": "Temel",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Sıcak",
+  "theme.group.cool": "Soğuk",
+  "theme.group.greens": "Yeşiller",
+  "theme.group.neutral": "Nötr",
+  "theme.group.light": "Açık",
+  "theme.group.blush": "Pembemsi",
+  "theme.group.bright": "Canlı",
+  "theme.group.lightPastel": "Açık pastel",
+  "theme.group.pastel": "Pastel",
+  "themes.title": "Temalar",
+  "themes.hint": "Bir temayı tüm pencerelere uygulamak için tıklayın. Esc kapatır.",
+  "settings.themeBrowse": "Temalara göz at",
 
   "installer.tagline":
     "Yerel uygulamalarınız ve geliştirme sunucularınız için bir tepsi başlatıcısı.",

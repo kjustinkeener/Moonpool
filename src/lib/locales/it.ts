@@ -97,6 +97,20 @@ export const it: PartialDict = {
 
   "theme.dark": "Scuro",
   "theme.light": "Chiaro",
+  "theme.group.core": "Base",
+  "theme.group.neon": "Neon",
+  "theme.group.warm": "Caldi",
+  "theme.group.cool": "Freddi",
+  "theme.group.greens": "Verdi",
+  "theme.group.neutral": "Neutri",
+  "theme.group.light": "Chiari",
+  "theme.group.blush": "Rosati",
+  "theme.group.bright": "Vivaci",
+  "theme.group.lightPastel": "Pastello chiaro",
+  "theme.group.pastel": "Pastello",
+  "themes.title": "Temi",
+  "themes.hint": "Fai clic su un tema per applicarlo a tutte le finestre. Esc chiude.",
+  "settings.themeBrowse": "Sfoglia i temi",
 
   "installer.tagline":
     "Un launcher nella barra delle applicazioni per le tue app locali e i tuoi server di sviluppo.",

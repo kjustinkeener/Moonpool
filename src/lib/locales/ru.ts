@@ -98,6 +98,20 @@ export const ru: PartialDict = {
 
   "theme.dark": "Тёмная",
   "theme.light": "Светлая",
+  "theme.group.core": "Основные",
+  "theme.group.neon": "Неон",
+  "theme.group.warm": "Тёплые",
+  "theme.group.cool": "Холодные",
+  "theme.group.greens": "Зелёные",
+  "theme.group.neutral": "Нейтральные",
+  "theme.group.light": "Светлые",
+  "theme.group.blush": "Румяные",
+  "theme.group.bright": "Яркие",
+  "theme.group.lightPastel": "Светлая пастель",
+  "theme.group.pastel": "Пастель",
+  "themes.title": "Темы",
+  "themes.hint": "Нажмите на тему, чтобы применить её во всех окнах. Esc закрывает.",
+  "settings.themeBrowse": "Выбрать тему",
 
   "installer.tagline":
     "Панель запуска в трее для ваших локальных приложений и серверов разработки.",

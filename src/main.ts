@@ -1,10 +1,12 @@
 import { mount } from "svelte";
 import "./app.css";
+import "./themes.generated.css";
 import { initTheme } from "./lib/theme";
 import { initI18n } from "./lib/i18n.svelte";
 import App from "./App.svelte";
 import SettingsWindow from "./SettingsWindow.svelte";
 import AboutWindow from "./AboutWindow.svelte";
+import ThemeWindow from "./ThemeWindow.svelte";
 import EditorWindow from "./EditorWindow.svelte";
 import Installer from "./Installer.svelte";
 import { setupState } from "./lib/api";
@@ -29,6 +31,11 @@ async function boot() {
   // The detached About window loads the same bundle at #about.
   if (window.location.hash === "#about") {
     return mount(AboutWindow, { target });
+  }
+
+  // The detached theme browser loads the same bundle at #themes.
+  if (window.location.hash === "#themes") {
+    return mount(ThemeWindow, { target });
   }
 
   // The detached app-editor window: #editor to add, #editor:<id> to edit.
