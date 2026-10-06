@@ -187,6 +187,27 @@ and Latin letters or digits. The "Reveal" and "Copy" log buttons in Settings hav
 stay English in the text. Windows SmartScreen: "Windows 已保護您的電腦", "其他資訊", "仍要執行",
 "不明的發行者" (Microsoft's own wording uses 您).
 
+## Terms (Spanish)
+
+Use the app's catalog first (`src/lib/locales/es.ts`). The address form follows the catalog: informal
+"tú" (not "usted"). Words the catalog does not settle: app = app, dev server = servidor de desarrollo,
+tray = bandeja (del sistema), hub window = ventana del hub, port = puerto, process = proceso,
+background = segundo plano, tab = pestaña, terminal = terminal (feminine), log = registro (a log file:
+archivo de registro), backup = copia de seguridad, portable mode = modo portable, kill (a process) =
+terminar, launch = iniciar, stop = detener, running = en ejecución, command line = línea de comandos,
+manifest = manifiesto, AI agent = agente de IA. Windows SmartScreen text stays in English with a Spanish
+translation in parentheses.
+
+## Terms (Brazilian Portuguese)
+
+Use the app's catalog first (`src/lib/locales/pt-BR.ts`). The address form follows the catalog: "você".
+Words the catalog does not settle: app = app, dev server = servidor de desenvolvimento, tray = bandeja
+(do sistema), hub window = janela do hub, port = porta, process = processo, background = segundo plano,
+tab = aba, terminal = terminal, log = log, backup = backup, portable mode = modo portátil, kill (a
+process) = encerrar, launch = iniciar, stop = parar, running = em execução, command line = linha de
+comando, manifest = manifesto, AI agent = agente de IA. Windows SmartScreen text stays in English with a
+Portuguese translation in parentheses.
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
