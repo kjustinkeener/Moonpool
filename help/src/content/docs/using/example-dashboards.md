@@ -19,7 +19,7 @@ On startup Moonpool writes the dashboards to `{MP_HOME}\dashboards\examples`:
 
 ```text
 Installed (Windows)  %USERPROFILE%\.moonpool\dashboards\examples
-Portable             <folder with moonpool.exe>\.moonpool\dashboards\examples
+Portable             <your .moonpool folder, the one holding moonpool.exe>\dashboards\examples
 Linux                ~/.config/Moonpool/dashboards/examples   (or $XDG_CONFIG_HOME/Moonpool/dashboards/examples)
 ```
 

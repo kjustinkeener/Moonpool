@@ -9,8 +9,9 @@ in its own terminal so you never hunt for a window or retype a command.
 
 ## What it gives you
 
-- **One place to start everything.** Click an app tile to launch it; Moonpool tracks
-  whether it is running and shows its output.
+- **One place to start everything.** Click an app's Launch button (the play icon on its
+  row) to start it. Clicking its name only opens its terminal tab. Moonpool tracks whether
+  it is running and shows its output.
 - **Its own terminal per app.** Each app runs in a managed terminal, so logs stay
   separated and a crash in one does not take down the others.
 - **Travels with you.** Run Moonpool installed on a machine, or from a portable folder

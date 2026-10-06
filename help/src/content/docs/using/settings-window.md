@@ -23,7 +23,7 @@ reset.
 | Theme | Auto (system) | Colour theme. The button opens a theme browser with a preview of every theme; clicking one applies it instantly. See [Appearance](/using/appearance/). |
 | Close to tray | off | On: closing the window hides Moonpool to the tray. Off: closing quits. |
 | Minimize to tray | on | On: minimizing hides Moonpool to the tray and it leaves the taskbar. Off: minimizes to the taskbar. |
-| Always on top | off | Keeps the hub, Settings and About windows above other windows. |
+| Always on top | off | Keeps every Moonpool window above other windows. |
 | Show in tray | on | Keeps the tray icon visible. |
 | Show in taskbar | on | Keeps the taskbar button visible. |
 | Show CPU/memory status bar | on | Live CPU and memory bar at the bottom of the hub. |
@@ -53,8 +53,8 @@ Under each log group a path field shows the location, with two buttons:
 Log file formats, the restart divider and retention rules are in
 [Settings and logs](/configuration/settings-and-logs/).
 
-If a setting cannot be written, a red message at the top of the window says so and the
-control reverts.
+If a checkbox cannot be saved, a red message at the top of the window says so and the
+checkbox reverts.
 
 ## About window
 

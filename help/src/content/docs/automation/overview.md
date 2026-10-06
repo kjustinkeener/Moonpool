@@ -19,8 +19,11 @@ independently, each with its own control channel. A surface always reaches the c
 ## How they relate
 
 - The hub owns everything: launching apps, the terminal logs, `apps.json`.
-- The MCP server is a client of the hub, not a second copy of it. Each tool call is
-  forwarded to the hub over the control channel, and the reply comes back as the tool result.
+- The MCP server is a client of the hub, not a second copy of it. Most tool calls are
+  forwarded to the hub over the control channel, and the reply comes back as the tool
+  result. The exceptions: `moonpool_bootup_launcher` starts `moonpool.exe` itself;
+  `moonpool_app_output` and the config tools ask the hub to write a file and then read it;
+  `moonpool_launcher_paths` adds the MCP process's own paths to the hub's.
 - Whether a hub is running is decided by pinging that channel, not by looking for a
   process. A hub that answers is running; a missing pipe or socket means it is not.
 - Every surface runs the same handlers as the window, so a verb does what the matching click
@@ -40,6 +43,9 @@ independently, each with its own control channel. A surface always reaches the c
 | Rewrite `apps.json` | MCP (`moonpool_write_config`, `moonpool_restore_config`), command line, pipe |
 | Quit Moonpool | MCP (`moonpool_shutdown_launcher`), command line (`quit`), pipe |
 | Kill an app's MCP helper process | MCP (`moonpool_stop_mcp_server`), pipe (`stop-mcp`) |
+| Reload `apps.json`, re-fetch icons, show the window | MCP (`moonpool_reload_config`, `moonpool_refresh_app_icons`, `moonpool_raise_launcher`), command line (`reload`, `refresh-icons`, `show`), pipe |
+| Open a window or a terminal tab | pipe (`open-window`) |
+| Clear remembered MCP helper sightings | MCP (`moonpool_reset_mcp_seen`), pipe (`reset-mcp-seen`) |
 
 Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_config`,
 `moonpool_launcher_paths`, `moonpool_window_state`, `moonpool_screenshot`.

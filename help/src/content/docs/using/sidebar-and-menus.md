@@ -59,6 +59,8 @@ Type in **Filter apps...** to narrow the list. It matches app name and group nam
 No apps match "<text>".
 ```
 
+The app shows curly quotes around the text, here and in the Delete prompt below.
+
 ## Right-click menu
 
 Right-click a row for:

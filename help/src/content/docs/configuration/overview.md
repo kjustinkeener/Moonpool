@@ -102,8 +102,10 @@ apps.json entry 2 (site) requires a command
 
 The `id` is the entry's permanent key. It names the log folder and icon file, and it is what
 you pass to `moonpool.exe launch <id>` and to agents. The dialog derives it from the name
-when you add an app (lowercase, with runs of other characters turned into `-`) and never
-changes it afterward, so renaming an app keeps its id. The name `Habit Tracker` gets this id:
+when you add an app. It lowercases the name, turns every run
+of characters other than `a` to `z` and `0` to `9` into one `-`, and trims `-` from both
+ends. An empty result becomes `app`. If the id is taken, it adds `-2`, `-3` and so on. It
+never changes the id afterward, so renaming an app keeps its id. The name `Habit Tracker` gets this id:
 
 ```text
 habit-tracker

@@ -78,7 +78,7 @@ $r.ReadLine()
 - A line that is not valid JSON gets `{"ok": false, "error": "bad request: ..."}`.
 - An unknown `cmd` gets `unknown cmd: <name>`.
 - A verb that goes through the window (`launch`, `stop`, `restart`, `reload`,
-  `refresh-icons`, `help`) is answered when the action finishes, or with a timeout error
+  `refresh-icons`, `help`, `open-window`) is answered when the action finishes, or with a timeout error
   after 45 s. If the hub window's UI has not loaded, it fails at once with `frontend not
   loaded`.
 - A Moonpool that starts while a previous one is still exiting retries binding the channel
@@ -92,9 +92,9 @@ $r.ReadLine()
 | `list` | none | JSON string `{"apps": [...], "statuses": [...]}` read from the running hub's memory, the same `apps` and `statuses` shape as `state.json`. Adds `"statusNotReady": true` when apps are registered but the first status check has not run yet. While `apps.json` fails to load, adds `"manifestError": "<message>"` (the apps are then the last list that loaded) and, when no list has loaded since startup, `"manifestLoaded": false`. Channel only. |
 | `show` | none | null. Brings the window to the front. |
 | `quit` | none | null. Exits Moonpool. |
-| `launch` | `<id>` | null on success. Errors: `unknown app id: <id>`, `did not reach running in time`. |
-| `stop` | `<id>` | null on success. Error: `still running after stop`. |
-| `restart` | `<id>` | null on success. Same errors as `launch`. |
+| `launch` | `<id>` | null on success, or `opened` for a `static` entry with only a `url`. Errors: `unknown app id: <id>`, `did not reach running in time`. |
+| `stop` | `<id>` | null on success, or `stopped` for a `static` entry with only a `url`. Error: `still running after stop`. |
+| `restart` | `<id>` | Same results and errors as `launch`. |
 | `reload` | none | null on success. |
 | `refresh-icons` | none | null on success. |
 | `help` | none | null. Opens the Help window. |

@@ -78,7 +78,10 @@ instructions name the folder, so the agent can see which copy it is talking to.
 - `moonpool.exe mcp` never opens a window and never starts the installer. It exits when the
   host closes its input.
 - It uses the config folder and control channel of the exe it was started from, so a
-  portable exe reads the portable folder's data and drives that portable copy.
+  portable exe reads the portable folder's data and drives that portable copy. An exe
+  counts as portable only while `moonpool.portable` sits beside it. Any other
+  `moonpool.exe`, wherever it is, uses the installed Moonpool's folder
+  (`%USERPROFILE%\.moonpool\moonpool-config\`) and drives the installed Moonpool.
 - Most tools need a running Moonpool. If it is not running, the agent can call
   `moonpool_bootup_launcher` first.
 - `moonpool_launcher_paths` shows the folders the hub uses next to the ones the MCP process

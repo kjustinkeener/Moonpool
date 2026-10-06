@@ -4,7 +4,8 @@ description: Installing Moonpool on Linux, the GNOME tray caveat, updates and pl
 ---
 
 Moonpool runs on Linux through WebKitGTK. It is developed mainly on Windows, so Linux is
-supported but less battle-tested.
+supported but less battle-tested. There is no install card or portable-mode chooser on
+Linux, and the "..." menu has no **Install Moonpool...** item.
 
 ## Install
 
@@ -73,7 +74,7 @@ use your package manager. See [Updating](/guides/updating/).
 
 ## Differences from Windows
 
-- Launch commands run through `sh -c <command>`, so use syntax your shell understands.
+- Launch commands run through `$SHELL -c <command>` (`/bin/sh` if `SHELL` is unset), so use syntax your shell understands.
 - Stop kills the process group, then does the extra cleanup chosen by `killMode`. Freeing a port under `killMode: "port"` uses `lsof`, falling back to `fuser`; install `lsof` if your distribution does not ship it. See [Stop and restart](/configuration/stop-and-restart/).
 - A `desktop` app's `processName` must be 15 characters or fewer. Linux truncates a process name to 15 characters, so a longer name is never detected as running and cannot be stopped by name. `web` apps match on their port and are unaffected.
 - Icons are found from an app's `src-tauri/icons/`, `public/favicon.*`, `icon.png` or its live favicon. Extracting an icon from a binary is Windows-only.
