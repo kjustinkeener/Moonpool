@@ -1,6 +1,6 @@
 ---
-title: Portable mode
-description: Run Moonpool from a movable folder with all of its data beside it.
+title: "Run Moonpool from a USB stick or synced folder"
+description: "Keep Moonpool and all of its data in one movable folder so you can carry it on a USB stick or sync it, and run several copies side by side."
 ---
 
 Portable mode keeps Moonpool and everything it writes inside one `.moonpool\` folder, so

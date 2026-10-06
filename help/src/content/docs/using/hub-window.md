@@ -1,6 +1,6 @@
 ---
-title: The hub window
-description: A tour of the Moonpool hub window, its menu, the apps.json error banner, the empty screen, and how it remembers its size and position.
+title: "Find your way around the Moonpool hub window"
+description: "A tour of the Moonpool hub: sidebar, terminal tabs, status bar, the menu, the apps.json error banner, and how it remembers its size and position."
 ---
 
 ![The hub with three apps running: two running web app rows (1), the tab strip (2), the active app's live output (3) and the status bar (4)](../../../assets/screenshots/hub-window.png)

@@ -1,6 +1,6 @@
 ---
-title: What is Moonpool
-description: A one-tray-icon hub that launches and manages your local apps and dev servers.
+title: "Launch and manage local apps and dev servers from the tray"
+description: "Moonpool is a free tray launcher that starts, stops and watches your local apps and dev servers, each in its own terminal tab. Start here."
 ---
 
 Moonpool is a tray launcher hub. It keeps the launch command, working directory, and

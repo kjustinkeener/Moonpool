@@ -1,6 +1,6 @@
 ---
-title: "AI agents: quick start"
-description: Three ways to let an AI agent or a script set up and drive Moonpool, which to pick, and the same action in each.
+title: "Let an AI agent set up and drive Moonpool: quick start"
+description: "Three ways to let an AI agent or a script set up and drive Moonpool, which one to pick for your agent, and the same action shown in each."
 ---
 
 There are three ways in. Pick by what your agent can do.

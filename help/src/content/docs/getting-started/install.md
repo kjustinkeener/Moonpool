@@ -1,6 +1,6 @@
 ---
-title: Installing
-description: How to install Moonpool, and how portable mode differs.
+title: "Install Moonpool on Windows or Linux"
+description: "Install Moonpool in a few clicks, choose installed or portable mode, use the Install Moonpool menu item later, and uninstall cleanly when you are done."
 ---
 
 This page is for Windows. On Windows, Moonpool is its own installer: the download is a

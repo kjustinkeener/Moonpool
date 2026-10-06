@@ -1,6 +1,6 @@
 ---
-title: Paths and environment
-description: The {MP_HOME} and {MP_DATA} tokens, ./ paths, which fields expand them, and how env and the working folder behave.
+title: "Use paths, MP_HOME tokens and environment variables in apps"
+description: "Use the {MP_HOME} and {MP_DATA} tokens and relative ./ paths in app entries, see which fields expand them, and set env and the working folder."
 ---
 
 ## Tokens

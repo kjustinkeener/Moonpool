@@ -1,6 +1,6 @@
 ---
-title: Configuration overview
-description: Where apps.json lives, how to edit and reload it, how it is validated, and how to recover from a bad edit.
+title: "Edit apps.json: where it lives, how to reload and recover it"
+description: "Find the apps.json file Moonpool reads for every managed app, edit it in the app editor or by hand, reload it, and recover from a bad edit."
 ---
 
 Every app Moonpool manages is one entry in `apps.json`. You can edit it from the app editor

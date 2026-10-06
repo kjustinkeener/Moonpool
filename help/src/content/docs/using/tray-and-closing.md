@@ -1,6 +1,6 @@
 ---
-title: Tray, close and minimize
-description: The tray icon and its menu, what closing, minimizing and Quit do, always on top, and why one of tray or taskbar must stay on.
+title: "Keep Moonpool in the tray: close, minimize and quit behavior"
+description: "Control what the tray icon, the close button, minimize and Quit do, keep the window always on top, and avoid hiding both the tray and taskbar."
 ---
 
 ## Tray icon

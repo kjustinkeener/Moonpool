@@ -1,6 +1,6 @@
 ---
-title: settings.json
-description: The shape of settings.json, the keys Moonpool writes for you, and what happens when the file is broken.
+title: "Understand settings.json and repair a broken one"
+description: "See the shape of Moonpool's settings.json, which keys Moonpool writes for you, and how to read it and repair it when the file is broken."
 ---
 
 App-wide settings live in `settings.json` in the config folder (see

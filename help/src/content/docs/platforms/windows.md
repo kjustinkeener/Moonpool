@@ -1,6 +1,6 @@
 ---
-title: Windows
-description: Windows notes for Moonpool, and a table of what differs between Windows and Linux.
+title: "Use Moonpool on Windows"
+description: "Windows is the main Moonpool platform: how to install it, and a table of what differs between Windows and Linux so you know what to expect."
 ---
 
 Windows is Moonpool's main platform. Install it as described in

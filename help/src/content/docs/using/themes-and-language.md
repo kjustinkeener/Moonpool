@@ -1,6 +1,6 @@
 ---
-title: Themes, language and transparency
-description: Themes, languages, background transparency and UI scale.
+title: "Change the Moonpool theme, language and transparency"
+description: "Pick a color theme and interface language, set background transparency and UI scale, and see them apply instantly to every open Moonpool window."
 ---
 
 Theme, language and transparency are set in the [Settings window](/using/settings/).

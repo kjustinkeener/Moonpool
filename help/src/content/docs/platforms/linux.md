@@ -1,6 +1,6 @@
 ---
-title: Linux
-description: Installing Moonpool on Linux, the GNOME tray caveat, updates and platform differences.
+title: "Install and use Moonpool on Linux"
+description: "Install Moonpool on Linux, work around the GNOME tray caveat, learn how updates work, and see which features differ from the Windows version."
 ---
 
 Moonpool runs on Linux through WebKitGTK. It is developed mainly on Windows, so Linux is

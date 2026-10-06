@@ -1,6 +1,6 @@
 ---
-title: Logs
-description: The session logs of each app, Moonpool's own debug log, dumps and scrollback, where they live and how long they are kept.
+title: "Find and manage Moonpool session logs and the debug log"
+description: "Locate each app's session log, Moonpool's own debug log, dumps and scrollback, and see how long each is kept and how to reveal or copy it."
 ---
 
 Moonpool keeps four kinds of output:

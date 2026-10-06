@@ -1,6 +1,6 @@
 ---
-title: Control verbs
-description: The control channel (named pipe or Unix socket), its protocol, and every verb the running Moonpool answers, with arguments, replies and which are for testing.
+title: "Moonpool control channel and verbs reference"
+description: "How the Moonpool control channel (named pipe or Unix socket) works, its protocol, and every verb the running app answers, with arguments and replies."
 ---
 
 ## Where it listens

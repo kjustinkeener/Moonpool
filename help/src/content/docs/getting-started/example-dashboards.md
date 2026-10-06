@@ -1,6 +1,6 @@
 ---
-title: Example dashboards
-description: The bundled offline dashboards, where they live, and how to add the example apps to an existing config.
+title: "Try the example dashboards that ship with Moonpool"
+description: "Open the bundled offline example dashboards, see where they live and how example apps reference them, and add them to an existing config."
 ---
 
 Moonpool ships a set of self-contained dashboards inside the program. They run entirely
