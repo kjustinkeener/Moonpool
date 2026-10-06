@@ -306,11 +306,16 @@ const FORWARD_FOR: Duration = Duration::from_secs(20);
 /// passes on the command line except `--ticket` bookkeeping.
 pub fn forward(args: &[String]) -> bool {
     allow_hub_to_take_focus();
-    let endpoint = crate::control::default_endpoint();
+    forward_at(&crate::control::default_endpoint(), args, FORWARD_FOR)
+}
+
+/// `forward` against an explicit channel, retrying for `patience` while nothing answers.
+/// Split out so tests can point it at a fake hub.
+fn forward_at(endpoint: &Path, args: &[String], patience: Duration) -> bool {
     let argv: Vec<&str> = args.iter().map(String::as_str).collect();
-    let deadline = Instant::now() + FORWARD_FOR;
+    let deadline = Instant::now() + patience;
     loop {
-        match crate::mcp::call_at(&endpoint, "argv", &argv, Duration::from_secs(5)) {
+        match crate::mcp::call_at(endpoint, "argv", &argv, Duration::from_secs(5)) {
             Ok(reply) if reply.get("ok").and_then(|v| v.as_bool()) == Some(true) => return true,
             Ok(reply) => {
                 let unknown = reply
@@ -329,7 +334,7 @@ pub fn forward(args: &[String]) -> bool {
                     Some((c, r)) => (*c, r),
                     None => ("show", &[][..]),
                 };
-                return crate::mcp::call_at(&endpoint, cmd, rest, Duration::from_secs(55)).is_ok();
+                return crate::mcp::call_at(endpoint, cmd, rest, Duration::from_secs(55)).is_ok();
             }
             // Sent, then the stream broke: the hub got it (a forwarded `quit` exits before it
             // can reply). Retrying would only wait out the deadline against a gone hub.
@@ -462,6 +467,132 @@ mod tests {
         drop(la);
         assert!(try_lock_named(&a).unwrap().is_some(), "a is free again");
         drop(lb);
+    }
+
+    /// A unique, test-only channel: never the real `\\.\pipe\moonpool` / hub socket.
+    fn test_endpoint(tag: &str) -> PathBuf {
+        let n = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let name = format!("moonpool-test-fwd-{tag}-{}-{n}", std::process::id());
+        #[cfg(windows)]
+        {
+            PathBuf::from(format!(r"\\.\pipe\{name}"))
+        }
+        #[cfg(not(windows))]
+        {
+            std::env::temp_dir().join(format!("{name}.sock"))
+        }
+    }
+
+    type Seen = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<String>)>>>;
+
+    /// Serve a fake hub on `endpoint` that records every request and answers with `answer`.
+    /// The runtime is returned so the server lives as long as the test holds it.
+    fn fake_hub(
+        endpoint: &Path,
+        answer: fn(&str) -> serde_json::Value,
+    ) -> (tokio::runtime::Runtime, Seen) {
+        use crate::control::{serve_at, Handler, LogFn};
+        let seen: Seen = Default::default();
+        let handler: Handler = {
+            let seen = seen.clone();
+            std::sync::Arc::new(move |req| {
+                seen.lock()
+                    .unwrap()
+                    .push((req.cmd.clone(), req.args.clone()));
+                let reply = answer(&req.cmd);
+                Box::pin(async move { reply })
+            })
+        };
+        let log: LogFn = std::sync::Arc::new(|_| {});
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap();
+        let ep = endpoint.to_path_buf();
+        rt.spawn(async move {
+            let _ = serve_at(&ep, handler, log).await;
+        });
+        // Wait for the bind.
+        for _ in 0..100 {
+            if crate::mcp::call_at(endpoint, "ping", &[], Duration::from_secs(1)).is_ok() {
+                seen.lock().unwrap().clear();
+                return (rt, seen);
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        panic!("fake hub never came up");
+    }
+
+    fn owned(a: &[&str]) -> Vec<String> {
+        a.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn forward_hands_argv_to_a_current_hub() {
+        let ep = test_endpoint("new");
+        let (rt, seen) = fake_hub(&ep, |_| serde_json::json!({ "ok": true, "result": null }));
+        let args = owned(&["launch", "web", "--ticket", "k"]);
+        assert!(forward_at(&ep, &args, Duration::from_secs(2)));
+        assert_eq!(*seen.lock().unwrap(), vec![("argv".to_string(), args)]);
+        drop(rt);
+        #[cfg(unix)]
+        let _ = std::fs::remove_file(&ep);
+    }
+
+    /// A hub from before the `argv` verb: the action goes as a plain verb, `--ticket` and
+    /// everything after it dropped, and a bare launch becomes `show`.
+    #[test]
+    fn forward_falls_back_to_plain_verbs_for_an_older_hub() {
+        let ep = test_endpoint("old");
+        let (rt, seen) = fake_hub(&ep, |cmd| {
+            if cmd == "argv" {
+                serde_json::json!({ "ok": false, "error": "unknown cmd: argv" })
+            } else {
+                serde_json::json!({ "ok": true, "result": null })
+            }
+        });
+        assert!(forward_at(
+            &ep,
+            &owned(&["launch", "web", "--ticket", "k"]),
+            Duration::from_secs(2)
+        ));
+        assert!(forward_at(&ep, &[], Duration::from_secs(2)));
+        let got = seen.lock().unwrap().clone();
+        assert_eq!(
+            got,
+            vec![
+                ("argv".into(), owned(&["launch", "web", "--ticket", "k"])),
+                ("launch".into(), owned(&["web"])),
+                ("argv".into(), vec![]),
+                ("show".into(), vec![]),
+            ]
+        );
+        drop(rt);
+        #[cfg(unix)]
+        let _ = std::fs::remove_file(&ep);
+    }
+
+    #[test]
+    fn forward_reports_a_refusal_and_a_missing_hub() {
+        let ep = test_endpoint("refuse");
+        let (rt, _seen) = fake_hub(&ep, |_| serde_json::json!({ "ok": false, "error": "busy" }));
+        assert!(!forward_at(&ep, &owned(&["show"]), Duration::from_secs(2)));
+        drop(rt);
+        #[cfg(unix)]
+        let _ = std::fs::remove_file(&ep);
+
+        // Nothing listening: gives up once the patience runs out, without hanging.
+        let start = Instant::now();
+        assert!(!forward_at(
+            &test_endpoint("absent"),
+            &[],
+            Duration::from_millis(600)
+        ));
+        assert!(start.elapsed() < Duration::from_secs(5));
     }
 
     #[cfg(unix)]

@@ -179,19 +179,40 @@ pub fn run_uninstall() {
         // Compatibility Assistant claim the uninstall failed). Then retry for ~30s.
         // Only processes whose exe lives in the install dir: a portable Moonpool copy
         // elsewhere is a separate launcher and must keep running.
-        let dir_s = dir.display().to_string().replace('\'', "''"); // ' -> '' for PS
-        let script = format!(
-            "$d='{dir_s}'.TrimEnd('\\')+'\\';\
-             Get-Process moonpool -ErrorAction SilentlyContinue|Where-Object {{$_.Path -and $_.Path.StartsWith($d,[System.StringComparison]::OrdinalIgnoreCase)}}|Stop-Process -Force -ErrorAction SilentlyContinue;\
-             Start-Sleep -Milliseconds 400;\
-             for($i=0;$i -lt 60;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 500}}}}"
-        );
+        let script = uninstall_script(&dir);
         let mut c = Command::new("powershell");
         c.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
         platform::hidden(&mut c);
         let _ = c.spawn();
     }
     std::process::exit(0);
+}
+
+/// `dir` as a single-quoted PowerShell literal body (`'` doubled).
+fn ps_quote(dir: &Path) -> String {
+    dir.display().to_string().replace('\'', "''")
+}
+
+/// PowerShell pipeline that yields every running `moonpool` process whose exe lives inside
+/// `dir` (and nothing else: a portable copy elsewhere, or a folder that merely shares `dir`'s
+/// name as a prefix, is excluded by the trailing separator).
+fn copy_processes_ps(dir: &Path) -> String {
+    let dir_s = ps_quote(dir);
+    format!(
+        "$d='{dir_s}'.TrimEnd('\\')+'\\';\
+         Get-Process moonpool -ErrorAction SilentlyContinue|Where-Object {{$_.Path -and $_.Path.StartsWith($d,[System.StringComparison]::OrdinalIgnoreCase)}}"
+    )
+}
+
+/// The detached uninstall cleanup: stop this install's other processes, then remove `dir`.
+fn uninstall_script(dir: &Path) -> String {
+    let dir_s = ps_quote(dir);
+    format!(
+        "{}|Stop-Process -Force -ErrorAction SilentlyContinue;\
+         Start-Sleep -Milliseconds 400;\
+         for($i=0;$i -lt 60;$i++){{try{{Remove-Item -LiteralPath '{dir_s}' -Recurse -Force -ErrorAction Stop;break}}catch{{Start-Sleep -Milliseconds 500}}}}",
+        copy_processes_ps(dir)
+    )
 }
 
 fn remove_shortcuts() {
@@ -351,4 +372,73 @@ fn remove_uninstall_key() {
     c.args(["delete", UNINSTALL_KEY, "/f"]);
     platform::hidden(&mut c);
     let _ = c.status();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn uninstall_script_stops_only_this_folder_then_deletes_it() {
+        let dir = Path::new(r"C:\Users\o'brien\.moonpool");
+        let s = uninstall_script(dir);
+        // The quote is doubled for the single-quoted literal, in both places it appears.
+        assert!(s.starts_with(r"$d='C:\Users\o''brien\.moonpool'.TrimEnd('\')+'\';"));
+        assert!(s.contains(r"Remove-Item -LiteralPath 'C:\Users\o''brien\.moonpool'"));
+        // Stop-Process only ever sees the path-filtered set, never a bare name match.
+        let stop = s.find("|Stop-Process").unwrap();
+        assert!(s[..stop].contains("Where-Object {$_.Path -and $_.Path.StartsWith($d,"));
+        assert!(!s.contains("Stop-Process -Name"));
+        assert_eq!(s.matches("Stop-Process").count(), 1);
+    }
+
+    /// Run the real filter against a real process: a renamed copy of `ping.exe` called
+    /// `moonpool.exe`, started (and killed) by this test, inside a temp folder. The filter must
+    /// select exactly that PID for its own folder, and nothing for a folder whose name is only a
+    /// prefix of it (`Mine's` vs `Mine's-other`). Read-only otherwise: nothing is stopped.
+    #[cfg(windows)]
+    #[test]
+    fn process_filter_selects_only_processes_inside_the_folder() {
+        let n = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let base = std::env::temp_dir().join(format!("moonpool-uninst-{}-{n}", std::process::id()));
+        let inside = base.join("Mine's");
+        let sibling = base.join("Mine's-other");
+        std::fs::create_dir_all(&inside).unwrap();
+        std::fs::create_dir_all(&sibling).unwrap();
+        let sysroot = std::env::var_os("SystemRoot").unwrap_or_else(|| "C:\\Windows".into());
+        let fake = sibling.join("moonpool.exe");
+        std::fs::copy(Path::new(&sysroot).join(r"System32\PING.EXE"), &fake).unwrap();
+        let mut child = Command::new(&fake)
+            .args(["-n", "30", "127.0.0.1"])
+            .stdout(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let select = |dir: &Path| -> String {
+            let out = Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    &format!("{}|ForEach-Object {{$_.Id}}", copy_processes_ps(dir)),
+                ])
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        };
+        let got_own = select(&sibling);
+        let got_prefix = select(&inside);
+        let _ = child.kill();
+        let _ = child.wait();
+        let _ = std::fs::remove_dir_all(&base);
+        assert_eq!(got_own, child.id().to_string());
+        assert_eq!(got_prefix, "", "a name-prefix folder must not match");
+    }
 }

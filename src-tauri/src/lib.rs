@@ -2096,12 +2096,8 @@ pub(crate) const ARGV_VERBS: &[&str] = &[
     "restore-config",
 ];
 
-/// Handle a second launch of this copy, forwarded over the control channel's `argv` verb
-/// (see `instance::forward`). `argv[0]` is the exe path (a placeholder when forwarded); the
-/// rest is the command, e.g. `moonpool.exe launch my-app`.
-pub(crate) fn dispatch_control(app: &AppHandle, argv: &[String]) {
-    // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
-    // are positional (action + app id) exactly as before.
+/// Split `argv` (exe path first) into its positional words and the optional `--ticket <key>`.
+fn split_ticket(argv: &[String]) -> (Vec<&str>, Option<String>) {
     let raw: Vec<&str> = argv.iter().skip(1).map(String::as_str).collect();
     let mut positional: Vec<&str> = Vec::new();
     let mut ticket: Option<String> = None;
@@ -2115,6 +2111,16 @@ pub(crate) fn dispatch_control(app: &AppHandle, argv: &[String]) {
             i += 1;
         }
     }
+    (positional, ticket)
+}
+
+/// Handle a second launch of this copy, forwarded over the control channel's `argv` verb
+/// (see `instance::forward`). `argv[0]` is the exe path (a placeholder when forwarded); the
+/// rest is the command, e.g. `moonpool.exe launch my-app`.
+pub(crate) fn dispatch_control(app: &AppHandle, argv: &[String]) {
+    // Pull an optional `--ticket <key>` correlation flag out of the args; the rest
+    // are positional (action + app id) exactly as before.
+    let (positional, ticket) = split_ticket(argv);
 
     let action = match positional.first() {
         Some(a) => a.to_lowercase(),
@@ -3724,7 +3730,10 @@ mod example_manifest_tests {
 
     #[test]
     fn seeded_manifests_parse_with_unique_ids_and_no_machine_paths() {
-        for (name, src) in [("windows", EXAMPLE_MANIFEST_WINDOWS), ("linux", EXAMPLE_MANIFEST_LINUX)] {
+        for (name, src) in [
+            ("windows", EXAMPLE_MANIFEST_WINDOWS),
+            ("linux", EXAMPLE_MANIFEST_LINUX),
+        ] {
             let v: serde_json::Value = serde_json::from_str(src).expect(name);
             let ids: Vec<&str> = v
                 .as_array()
@@ -3736,7 +3745,10 @@ mod example_manifest_tests {
             sorted.sort();
             sorted.dedup();
             assert_eq!(sorted.len(), ids.len(), "{name}: duplicate ids");
-            assert!(!src.contains("C:\\\\projects") && !src.contains("C:/projects"), "{name}: placeholder path");
+            assert!(
+                !src.contains("C:\\\\projects") && !src.contains("C:/projects"),
+                "{name}: placeholder path"
+            );
         }
     }
 }
