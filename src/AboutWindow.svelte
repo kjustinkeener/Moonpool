@@ -6,6 +6,8 @@
   import { listen } from "@tauri-apps/api/event";
   import type { UnlistenFn } from "@tauri-apps/api/event";
   import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
+  import { setTheme } from "./lib/theme";
+  import type { Theme } from "./lib/theme";
   import appIcon from "./assets/app-icon.png";
 
   // Same formula as App.svelte / SettingsControls.svelte: each detached window
@@ -43,6 +45,7 @@
   let status = $state("");
   let checking = $state(false);
   let unlistenLocale: (() => void) | null = null;
+  let unlistenTheme: UnlistenFn | null = null;
 
   function close() {
     getCurrentWindow()
@@ -79,9 +82,11 @@
     // Assigned rather than returned: an async onMount callback cannot return a
     // cleanup function in Svelte 5 (the return value is a promise, not the fn).
     unlistenLocale = await watchLocale();
+    unlistenTheme = await listen<Theme>("settings:theme", (e) => setTheme(e.payload));
   });
   onDestroy(() => {
     unlistenLocale?.();
+    unlistenTheme?.();
     unlistenTransparency?.();
   });
 

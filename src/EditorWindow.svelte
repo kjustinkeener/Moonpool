@@ -4,7 +4,9 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { ask } from "@tauri-apps/plugin-dialog";
   import { emit, listen } from "@tauri-apps/api/event";
-  import { t } from "./lib/i18n.svelte";
+  import { t, watchLocale } from "./lib/i18n.svelte";
+  import { setTheme } from "./lib/theme";
+  import type { Theme } from "./lib/theme";
   import { onMount, onDestroy } from "svelte";
   import type { AppEntry } from "./lib/types";
   import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -17,6 +19,8 @@
     document.documentElement.style.setProperty("--app-alpha", String(alpha));
   }
   let unlistenTransparency: UnlistenFn | null = null;
+  let unlistenTheme: UnlistenFn | null = null;
+  let unlistenLocale: UnlistenFn | null = null;
 
   // The app id to edit is carried in the hash after a colon (#editor:<id>);
   // a bare #editor means "add a new app".
@@ -40,6 +44,8 @@
     unlistenTransparency = await listen<number>("settings:transparency", (e) =>
       applyTransparency(e.payload),
     );
+    unlistenTheme = await listen<Theme>("settings:theme", (e) => setTheme(e.payload));
+    unlistenLocale = await watchLocale();
 
     // Native close button (X) respects unsaved-change confirmation. The webview's
     // blocking window.confirm() is suppressed in a Tauri child window, so use the
@@ -56,7 +62,11 @@
     });
   });
 
-  onDestroy(() => unlistenTransparency?.());
+  onDestroy(() => {
+    unlistenTransparency?.();
+    unlistenTheme?.();
+    unlistenLocale?.();
+  });
 
   function close() {
     // Clear dirty first so the onCloseRequested guard passes without re-prompting;
