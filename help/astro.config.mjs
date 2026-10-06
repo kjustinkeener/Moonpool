@@ -68,6 +68,16 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'How-to guides',
+					items: [
+						{ label: 'Run an npm dev server in the background', slug: 'guides/run-npm-dev-server-in-background-windows' },
+						{ label: 'Start an app at Windows login', slug: 'guides/start-app-at-windows-login' },
+						{ label: 'Find and kill the process using a port', slug: 'guides/find-and-kill-process-using-port-windows' },
+						{ label: 'Give an AI agent an MCP server for your apps', slug: 'guides/mcp-server-for-ai-agent-to-start-stop-local-apps' },
+						{ label: 'Keep a Python script running', slug: 'guides/keep-python-script-running-background-windows' },
+					],
+				},
+				{
 					label: 'Using Moonpool',
 					items: [
 						{ label: 'The hub window', slug: 'using/hub-window' },
@@ -123,6 +133,10 @@ export default defineConfig({
 					label: 'Support',
 					items: [
 						{ label: 'Troubleshooting and FAQ', slug: 'support/troubleshooting' },
+						{ label: 'Error messages explained', slug: 'support/error-messages' },
+						{ label: 'Port already in use (EADDRINUSE)', slug: 'support/port-already-in-use' },
+						{ label: 'Windows protected your PC', slug: 'support/windows-protected-your-pc' },
+						{ label: 'WebView2 runtime missing', slug: 'support/webview2-runtime-missing' },
 						{ label: 'Glossary', slug: 'support/glossary' },
 					],
 				},
