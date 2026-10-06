@@ -106,12 +106,14 @@ are flagged so a user prepping a handoff can spot them:
 ## Bundle layout
 
 ```
-USB root  (or unzipped folder)
-├─ Moonpool.exe
-├─ moonpool.portable          flag file + note
-├─ moonpool-config\           {MP_DATA}: apps.json, state.json, AI-README.md, logs
-├─ dashboards\                user content, referenced via {MP_HOME}\dashboards\...
-└─ apps\
+<chosen folder>  (USB root, unzipped folder, ...)
++- .moonpool\                 {MP_HOME}: the folder holding the exe
+   +- moonpool.exe
+   +- moonpool.portable       flag file + note
+   +- moonpool-config\        {MP_DATA}: apps.json, settings.json, state.json, AI-README.md, logs
+   +- dashboards\             user content, referenced via {MP_HOME}\dashboards\...
+   |  +- examples\            app-owned example dashboards, replaced on update
+   +- apps\                   optional: your own apps, via ./apps/... or {MP_HOME}\apps\...
 ```
 
 ## `moonpool.portable` file contents (draft)
@@ -121,16 +123,18 @@ This file switches MoonPool into PORTABLE mode.
 
 While it sits next to Moonpool.exe, MoonPool keeps all of its data
 (apps.json, state.json, AI-README.md, logs) in the "moonpool-config"
-folder beside the exe instead of in your Windows AppData. Nothing is
-written outside this folder, so you can move or copy the whole folder
-to another PC or a USB stick and run it there.
+folder beside the exe instead of in the installed Moonpool's folder
+(%USERPROFILE%\.moonpool). Everything lives inside this ".moonpool"
+folder, so you can move or copy the whole ".moonpool" folder to another
+PC or a USB stick and run it there.
 
 Paths in apps.json can use {MP_HOME} (this folder) so your apps and
 dashboards travel with it. Absolute paths still work but won't move
 with the folder.
 
-Delete this file to return to normal installed mode (data goes back
-to AppData).
+Delete this file to stop this copy being portable. It then uses the
+installed Moonpool's data in %USERPROFILE%\.moonpool\moonpool-config
+instead of this folder's.
 ```
 
 ## Implementation checklist

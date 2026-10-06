@@ -142,7 +142,7 @@ export const en = {
   "settings.copyLogPath": "Copy log file path",
   "settings.cliLogging": "Keep app output logs between sessions",
   "settings.cliLoggingHint":
-    "The running session's CLI output is always kept for its own tabs. This controls whether older sessions' logs stay on disk under cli-output/, capped by the retention setting below - off discards them as soon as a session ends.",
+    "The running session's CLI output is always kept for its own tabs. This controls whether older sessions' logs stay on disk under cli-output/, capped by the retention setting below. Off deletes older sessions' logs the next time that app launches.",
   "settings.revealCliOutputDir": "Reveal CLI log folder",
   "settings.copyCliOutputPath": "Copy CLI log folder path",
   "settings.logRetentionMb": "Log retention per app",

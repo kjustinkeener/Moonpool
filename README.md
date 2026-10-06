@@ -23,7 +23,8 @@ process/tree kill, port freeing, exe-icon extraction) live behind a small `platf
 Windows and Unix implementations. Windows is the primary/tested target; Linux and macOS are
 supported but need testing on those platforms. Notes: desktop-app **icon extraction from the
 binary is Windows-only** (elsewhere it falls back to project-folder icons + favicons), and the
-Linux system tray needs `libayatana-appindicator` installed.
+Linux system tray needs `libayatana-appindicator` installed (stock GNOME also needs the
+AppIndicator shell extension; see [docs/linux-setup.md](docs/linux-setup.md)).
 
 ## Contents
 
@@ -45,8 +46,9 @@ Linux system tray needs `libayatana-appindicator` installed.
   outside Moonpool.
 - **Start / stop / restart** with a busy indicator; stopping tree-kills the process and frees
   the port. Recently-used apps sort to the top of their group.
-- **Stays in the tray.** Closing the window hides to the tray; left-click the tray icon to
-  reopen, tray menu -> Quit to exit.
+- **Stays in the tray.** Minimizing hides to the tray (default); turn on **Close to tray** to
+  make closing hide it too (by default closing quits). Left-click the tray icon to reopen,
+  tray menu -> Quit to exit.
 - **Linux-style terminal clipboard**: select to copy (then deselect), middle-click to paste.
 - **Command-line remote control.** With Moonpool running, `Moonpool.exe launch|stop|restart|reload|refresh-icons|show|dump <app-id>` drives the resident window (a script or AI agent can start/stop your apps), and a live `state.json` in the config folder reports what's running. Tag a command with `--ticket <key>` to read its success/failure back from `state.json`, and `dump <app-id>` writes that app's console output to a file. Moonpool is also its own MCP server (`moonpool.exe mcp`), so an agent can list, launch, restart and read the console output of your apps as tool calls. See [`AI-README.md`](AI-README.md).
 
@@ -57,12 +59,13 @@ Prebuilt installers are published on the
 
 | OS | Download | Notes |
 | --- | --- | --- |
-| **Windows** | `.msi` or `.exe` (NSIS) | Recommended for end users. |
-| **Linux** | `.deb` or `.AppImage` | See [docs/linux-setup.md](docs/linux-setup.md) for GNOME tray setup and runtime deps. |
+| **Windows** | `moonpool.exe` | Recommended. A single self-installing exe: run it and click Install (or Install portable). The `.msi` and NSIS `.exe` bundles are legacy and are not the update path. |
+| **Linux** | `.AppImage`, `.deb` or `.rpm` | See [docs/linux-setup.md](docs/linux-setup.md) for GNOME tray setup and runtime deps. |
 | **macOS** | build from source | Not yet distributed or tested; see [Build from source](#build-from-source). |
 
 Moonpool ships an auto-updater: once installed, it checks the Releases feed and can update
-itself in place.
+itself in place. On Linux only the AppImage updates itself; `.deb` and `.rpm` installs update
+through your package manager.
 
 ## Configuring your apps
 
@@ -70,12 +73,12 @@ Moonpool reads a user-editable manifest from your config directory:
 
 ```text
 %USERPROFILE%\.moonpool\moonpool-config\apps.json      (Windows, installed)
-<folder>\moonpool-config\apps.json                       (Windows, portable)
-~/.config/Moonpool/apps.json                         (Linux)
+<folder>\.moonpool\moonpool-config\apps.json             (Windows, portable)
+~/.config/Moonpool/apps.json                         (Linux; $XDG_CONFIG_HOME/Moonpool if set)
 ```
 
 On first run it's seeded from [`apps.example.json`](src-tauri/resources/apps.example.json).
-Use the **⋯ menu** (top-left of the sidebar): **Add app** (a form), **Edit apps.json** (opens the
+Use the **... menu** (top-left of the sidebar): **Add app** (a form), **Edit apps.json** (opens the
 file), then **Reload** - no rebuild needed. Or hand the copyable prompt on the empty pane to an AI
 agent and let it configure your apps (see [`AI-README.md`](AI-README.md)).
 
@@ -88,7 +91,7 @@ Each entry:
   "group": "Web apps",           // any label; groups render in first-seen order
   "type": "web",                 // desktop | web | static | cli
   "cwd": "C:\\path\\to\\app",
-  "command": "npm run dev",      // run through cmd /c (sh -c on Linux/macOS)
+  "command": "npm run dev",      // run through cmd /c ($SHELL -c on Linux/macOS)
   "port": 3000,                  // web: status + browser-open
   "url": "http://localhost:3000",
   "openBrowser": true,
@@ -102,10 +105,11 @@ Each entry:
 ```
 
 `type` semantics:
-- **desktop** - status detected by `processName` (its `.exe`, without extension).
+- **desktop** - status detected by `processName` (its `.exe`, without extension; on Linux
+  15 characters or fewer, since Linux truncates longer process names).
 - **web** - status by `port` (TCP health-check); the browser opens when it goes live.
 - **static** - opens `url` (or runs `command` in a terminal).
-- **cli** - opens an interactive shell in `cwd`.
+- **cli** - runs `command` in a terminal in `cwd`; it shows as running until the command exits.
 
 `killMode`: Stop always ends the terminal Moonpool started. `killMode` adds one cleanup step for apps
 that outlive it: `processName` kills by exe name, `port` kills whatever listens on `port`, `command`
@@ -138,7 +142,7 @@ npm run tauri dev
 ```
 
 `npm run tauri build` produces the bundled release artifacts under
-`src-tauri/target/release/bundle/` (`.msi`/`.exe` on Windows, `.deb`/`.AppImage` on Linux).
+`src-tauri/target/release/bundle/` (`.msi`/`.exe` on Windows, `.deb`/`.rpm`/`.AppImage` on Linux).
 
 ## Security / trust model
 
