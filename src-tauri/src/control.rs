@@ -1,12 +1,14 @@
 //! Agent control surface: a local request/reply channel that exposes the same actions
-//! `dispatch_control` (the argv/single-instance path, see `lib.rs`) already answers, so the
+//! `dispatch_control` (the argv path, see `lib.rs`) already answers, so the
 //! MCP shim (`mcp.rs`) can reach the resident hub without spawning a throwaway process and
 //! polling `state.json`. Ported from FasterDB's `control.rs` (`C:\claude-local\FasterDBApp`),
 //! the first shipped implementation of the App-Patterns "Agent control surface" pattern.
 //!
 //! Transports (one shared handler, see `serve_conn`):
 //!
-//! - Windows: the named pipe `\\.\pipe\moonpool`.
+//! - Windows: the named pipe `\\.\pipe\moonpool` for the installed copy, and
+//!   `\\.\pipe\moonpool-<id>` for a portable copy (`instance::copy_id`), so every copy has its
+//!   own channel and they never answer for each other.
 //! - Linux/macOS: a Unix domain socket, `$XDG_RUNTIME_DIR/moonpool.sock` (see
 //!   `socket_path_for` for the portable-mode and `sun_path`-length rules), mode 0600.
 //!
@@ -34,9 +36,10 @@
 //! `{"ok": false, "error": "..."}`. Streaming (`watch`-style live `app_output`) is a follow-on
 //! phase, not implemented here yet - see `private\PLAN-pipe-control-migration.md`.
 //!
-//! The argv+`state.json` control channel (`dispatch_control`, `tauri-plugin-single-instance`)
-//! is untouched: this channel is an ADDITIVE second path, kept so an older hub build (or a
-//! script) still works.
+//! The argv+`state.json` control channel (`moonpool.exe launch <id> --ticket <key>`) still
+//! works: a second launch of the same copy takes no lock (see `instance`), so it sends its
+//! argv here as the `argv` verb and the hub runs it through `dispatch_control`, exactly as the
+//! old single-instance plugin callback did.
 
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -58,15 +61,10 @@ use windows::Win32::Foundation::RECT;
 use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, IsIconic, IsWindowVisible, IsZoomed};
 
 use crate::{
-    dump_term_log, hub_paths_report, kill_mcp_shim, lock, read_config_cmd, reset_mcp_seen,
-    restore_config_cmd, show_main, write_config_cmd, ControlCommand, HubState, ALL_WINDOWS,
+    dispatch_control, dump_term_log, hub_paths_report, kill_mcp_shim, lock, read_config_cmd,
+    reset_mcp_seen, restore_config_cmd, show_main, write_config_cmd, ControlCommand, HubState,
+    ALL_WINDOWS,
 };
-
-/// Fixed pipe name (Windows). A pipe is a kernel NAMESPACE object, not a file under AppData, so
-/// the MSIX file/registry virtualization does not shadow it: reachable regardless of where the
-/// MCP client process's view of the filesystem is redirected to.
-#[cfg(windows)]
-pub const PIPE_NAME: &str = r"\\.\pipe\moonpool";
 
 /// How long the handler waits for `report_outcome` to resolve a UI-owned action. Mirrors
 /// the old argv shim's `TICKET_TIMEOUT`: launch/restart are the slow ones (a managed restart
@@ -74,8 +72,8 @@ pub const PIPE_NAME: &str = r"\\.\pipe\moonpool";
 pub(crate) const ACTION_TIMEOUT: Duration = Duration::from_secs(45);
 
 /// How long a starting hub keeps retrying to bind the channel before giving up. The only way to
-/// lose the bind on a healthy start is a previous hub still tearing down (the single-instance
-/// lock is released a moment before the pipe/socket is), so a few seconds covers it.
+/// lose the bind on a healthy start is a previous hub of this copy still tearing down (the
+/// per-copy lock is released a moment before the pipe/socket is), so a few seconds covers it.
 const BIND_RETRY_FOR: Duration = Duration::from_secs(8);
 const BIND_RETRY_EVERY: Duration = Duration::from_millis(250);
 
@@ -113,6 +111,7 @@ pub(crate) const CONTROL_VERBS: &[&str] = &[
     "refresh-icons",
     "help",
     "open-window",
+    "argv",
 ];
 
 #[derive(Deserialize)]
@@ -130,11 +129,15 @@ pub(crate) type ReplyFuture = Pin<Box<dyn Future<Output = Value> + Send>>;
 pub(crate) type Handler = Arc<dyn Fn(Request) -> ReplyFuture + Send + Sync>;
 pub(crate) type LogFn = Arc<dyn Fn(&str) + Send + Sync>;
 
-/// Where the channel lives: the named pipe on Windows, the Unix socket elsewhere.
+/// Where THIS copy's channel lives: its named pipe on Windows, its Unix socket elsewhere. The
+/// hub, the `moonpool.exe mcp` client and a forwarding second launch all call this, so they
+/// agree for the same folder. A pipe is a kernel NAMESPACE object, not a file under AppData, so
+/// the MSIX file/registry virtualization does not shadow it: reachable regardless of where the
+/// MCP client process's view of the filesystem is redirected to.
 pub(crate) fn default_endpoint() -> PathBuf {
     #[cfg(windows)]
     {
-        PathBuf::from(PIPE_NAME)
+        PathBuf::from(crate::instance::pipe_name_for(crate::instance::copy_id()))
     }
     #[cfg(not(windows))]
     {
@@ -147,6 +150,7 @@ pub(crate) fn default_endpoint() -> PathBuf {
                 .as_deref(),
             crate::portable::data_dir().as_deref(),
             uid,
+            &crate::instance::suffix(),
         )
     }
 }
@@ -164,9 +168,16 @@ fn tmp_fallback_dir(uid: u32) -> PathBuf {
 /// Pick the Unix socket path. A portable bundle keeps its own socket in its own data dir so it
 /// never collides with an installed hub; otherwise `$XDG_RUNTIME_DIR/moonpool.sock` (already
 /// per-user and 0700), else the data dir. A path over the `sun_path` limit falls back to a short
-/// per-user directory under /tmp (created 0700 by the server).
+/// per-user directory under /tmp (created 0700 by the server); that directory is shared by every
+/// copy, so the file name there carries the copy's `suffix` (`""` installed, `-<id>` portable).
 #[cfg_attr(windows, allow(dead_code))]
-fn socket_path_for(portable: bool, xdg: Option<&Path>, data: Option<&Path>, uid: u32) -> PathBuf {
+fn socket_path_for(
+    portable: bool,
+    xdg: Option<&Path>,
+    data: Option<&Path>,
+    uid: u32,
+    suffix: &str,
+) -> PathBuf {
     let base = if portable { data } else { xdg.or(data) };
     if let Some(base) = base {
         let candidate = base.join("moonpool.sock");
@@ -174,7 +185,7 @@ fn socket_path_for(portable: bool, xdg: Option<&Path>, data: Option<&Path>, uid:
             return candidate;
         }
     }
-    tmp_fallback_dir(uid).join("moonpool.sock")
+    tmp_fallback_dir(uid).join(format!("moonpool{suffix}.sock"))
 }
 
 /// Start the control server on Tauri's async runtime. Called from `.setup()` with the app
@@ -246,14 +257,8 @@ where
 #[cfg(windows)]
 pub(crate) async fn serve_at(endpoint: &Path, handler: Handler, log: LogFn) -> std::io::Result<()> {
     use tokio::net::windows::named_pipe::ServerOptions;
-    // `first_pipe_instance` guards against a second app instance also binding the name; the app
-    // is already single-instance for the tray, so exactly one process owns the pipe.
-    let mut server = with_bind_retry("the control pipe", &log, || {
-        ServerOptions::new()
-            .first_pipe_instance(true)
-            .create(endpoint)
-    })
-    .await?;
+    let mut server =
+        with_bind_retry("the control pipe", &log, || bind_first_pipe(endpoint)).await?;
     log(&format!(
         "control-pipe: listening on {}",
         endpoint.display()
@@ -270,6 +275,18 @@ pub(crate) async fn serve_at(endpoint: &Path, handler: Handler, log: LogFn) -> s
             let _ = serve_conn(connected, handler).await;
         });
     }
+}
+
+/// Create the first instance of the pipe `endpoint`, failing if any process already has one.
+/// `first_pipe_instance` is what keeps a second hub (of this copy, since each copy has its own
+/// name) from also listening on it; the per-copy lock (`instance`) normally stops that earlier.
+#[cfg(windows)]
+pub(crate) fn bind_first_pipe(
+    endpoint: &Path,
+) -> std::io::Result<tokio::net::windows::named_pipe::NamedPipeServer> {
+    tokio::net::windows::named_pipe::ServerOptions::new()
+        .first_pipe_instance(true)
+        .create(endpoint)
 }
 
 #[cfg(unix)]
@@ -406,6 +423,15 @@ async fn dispatch(app: &AppHandle, req: Request) -> Value {
 
     match req.cmd.as_str() {
         "ping" => json!({ "ok": true, "result": "pong" }),
+        // A second launch of this copy handing over its argv (`instance::forward`). Run on
+        // the same path the old single-instance plugin callback used.
+        "argv" => {
+            let argv: Vec<String> = std::iter::once(String::from("moonpool"))
+                .chain(req.args.iter().cloned())
+                .collect();
+            dispatch_control(app, &argv);
+            json!({ "ok": true, "result": Value::Null })
+        }
         "list" => list_verb(app),
         "show" => {
             show_main(app);
@@ -845,11 +871,11 @@ mod tests {
         let xdg = Path::new("/run/user/1000");
         let data = Path::new("/home/u/.config/Moonpool");
         assert_eq!(
-            socket_path_for(false, Some(xdg), Some(data), 1000),
+            socket_path_for(false, Some(xdg), Some(data), 1000, ""),
             xdg.join("moonpool.sock")
         );
         assert_eq!(
-            socket_path_for(false, None, Some(data), 1000),
+            socket_path_for(false, None, Some(data), 1000, ""),
             data.join("moonpool.sock")
         );
     }
@@ -859,7 +885,7 @@ mod tests {
         let xdg = Path::new("/run/user/1000");
         let data = Path::new("/media/usb/moonpool/.moonpool");
         assert_eq!(
-            socket_path_for(true, Some(xdg), Some(data), 1000),
+            socket_path_for(true, Some(xdg), Some(data), 1000, "-0badf00d"),
             data.join("moonpool.sock")
         );
     }
@@ -867,13 +893,48 @@ mod tests {
     #[test]
     fn socket_path_too_long_falls_back_to_short_tmp_dir() {
         let long = PathBuf::from(format!("/home/u/{}", "deep/".repeat(30)));
-        let p = socket_path_for(false, None, Some(&long), 1234);
+        let p = socket_path_for(false, None, Some(&long), 1234, "");
         assert_eq!(p, PathBuf::from("/tmp/moonpool-1234").join("moonpool.sock"));
         // And with nothing to base it on at all.
         assert_eq!(
-            socket_path_for(false, None, None, 7),
+            socket_path_for(false, None, None, 7, ""),
             PathBuf::from("/tmp/moonpool-7").join("moonpool.sock")
         );
+        // A portable copy's fallback socket carries its id, so it cannot collide with the
+        // installed copy's (or another portable copy's) in the shared /tmp directory.
+        assert_eq!(
+            socket_path_for(true, None, Some(&long), 1234, "-0badf00d"),
+            PathBuf::from("/tmp/moonpool-1234").join("moonpool-0badf00d.sock")
+        );
+    }
+
+    /// Two hubs with different (per-copy) pipe names can both bind; a second bind of the SAME
+    /// name fails. Unique test-only names: never the real `\\.\pipe\moonpool`.
+    #[cfg(windows)]
+    #[test]
+    fn pipe_bind_is_exclusive_per_name() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let nanos = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0);
+            let base = format!(
+                r"\\.\pipe\moonpool-test-bind-{}-{nanos}",
+                std::process::id()
+            );
+            let a = PathBuf::from(format!("{base}-a"));
+            let b = PathBuf::from(format!("{base}-b"));
+            let _sa = super::bind_first_pipe(&a).expect("copy A binds its name");
+            let _sb = super::bind_first_pipe(&b).expect("copy B binds its own name too");
+            assert!(
+                super::bind_first_pipe(&a).is_err(),
+                "a second hub of copy A must not bind A's name"
+            );
+        });
     }
 
     #[test]
