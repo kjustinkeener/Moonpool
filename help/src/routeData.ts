@@ -60,16 +60,31 @@ export const onRequest = defineRouteMiddleware((context) => {
 	const ld = (data: unknown) =>
 		route.head.push({ tag: 'script', attrs: { type: 'application/ld+json' }, content: JSON.stringify(data) });
 
+	// A page not yet translated is served as the English entry under the locale URL. Point its canonical
+	// (and og:url) at the English page so search engines index one copy, not a duplicate per language.
+	if (route.locale && !route.entry.id.startsWith(`${route.locale}/`)) {
+		const english = (u: string) => u.replace(`${base}${route.locale}/`, base);
+		for (const h of route.head) {
+			if (h.tag === 'link' && h.attrs?.rel === 'canonical' && typeof h.attrs.href === 'string') h.attrs.href = english(h.attrs.href);
+			if (h.tag === 'meta' && h.attrs?.property === 'og:url' && typeof h.attrs.content === 'string') h.attrs.content = english(h.attrs.content);
+		}
+	}
+
 	// Breadcrumbs: Home > sidebar group (linked to its first page) > this page.
-	const items: { name: string; href?: string }[] = [{ name: route.siteTitle, href: base }];
+	// Locale pages live under <base><dir>/ (route.locale is undefined for the English root); route ids
+	// carry that prefix too ('de/support/troubleshooting'), so strip it to compare against FAQ_ID.
+	const locale = route.locale;
+	const homeHref = locale ? `${base}${locale}/` : base;
+	const id = locale ? route.id.replace(new RegExp(`^${locale}(/|$)`), '') : route.id;
+	const items: { name: string; href?: string }[] = [{ name: route.siteTitle, href: homeHref }];
 	const trail = findTrail(route.sidebar as SidebarNode[]);
-	if (trail && route.id !== '') {
+	if (trail && id !== '') {
 		for (const n of trail) {
 			items.push({ name: n.type === 'group' ? n.label : route.entry.data.title, href: firstHref(n) });
 		}
 	}
 	// The home page is its own sidebar entry; do not list it twice.
-	const crumbs = route.id === '' || route.id === 'index' ? items.slice(0, 1) : items;
+	const crumbs = id === '' || id === 'index' ? items.slice(0, 1) : items;
 	ld({
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
@@ -81,7 +96,7 @@ export const onRequest = defineRouteMiddleware((context) => {
 		})),
 	});
 
-	if (route.id === FAQ_ID && route.entry.body) {
+	if (id === FAQ_ID && route.entry.body) {
 		ld({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq(route.entry.body) });
 	}
 

@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { satteri } from '@astrojs/markdown-satteri';
 import baseLinksPlugin from './base-links-plugin.mjs';
+import { starlightLocales, group, page } from './locales.mjs';
 
 // Moonpool help site.
 //
@@ -40,6 +41,11 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Moonpool Help',
+			// English is the root locale (no URL prefix); the others live under /<dir>/. Locale map and
+			// the app-locale -> directory rule: ./locales.mjs. Pages missing from a locale fall back to
+			// the English page (with a notice), so a partial translation still builds.
+			defaultLocale: 'root',
+			locales: starlightLocales,
 			customCss: ['./src/styles/screenshots.css'],
 			// "Last updated" from git history (the web build is made from a full checkout).
 			lastUpdated: true,
@@ -57,89 +63,65 @@ export default defineConfig({
 			// Two-level navigation: category label -> pages.
 			// Folders match these groups. The overview is the site root (index).
 			sidebar: [
-				{
-					label: 'Getting started',
-					items: [
-						{ label: 'What is Moonpool', slug: 'index' },
-						{ label: 'Installing', slug: 'getting-started/install' },
-						{ label: 'Your first app', slug: 'getting-started/first-app' },
-						{ label: 'Example dashboards', slug: 'getting-started/example-dashboards' },
-						{ label: "What's new", slug: 'getting-started/whats-new' },
-					],
-				},
-				{
-					label: 'How-to guides',
-					items: [
-						{ label: 'Run an npm dev server in the background', slug: 'guides/run-npm-dev-server-in-background-windows' },
-						{ label: 'Start an app at Windows login', slug: 'guides/start-app-at-windows-login' },
-						{ label: 'Find and kill the process using a port', slug: 'guides/find-and-kill-process-using-port-windows' },
-						{ label: 'Give an AI agent an MCP server for your apps', slug: 'guides/mcp-server-for-ai-agent-to-start-stop-local-apps' },
-						{ label: 'Keep a Python script running', slug: 'guides/keep-python-script-running-background-windows' },
-					],
-				},
-				{
-					label: 'Using Moonpool',
-					items: [
-						{ label: 'The hub window', slug: 'using/hub-window' },
-						{ label: 'Sidebar and menus', slug: 'using/sidebar-and-menus' },
-						{ label: 'Terminal tabs', slug: 'using/terminal-tabs' },
-						{ label: 'Tray, close and minimize', slug: 'using/tray-and-closing' },
-						{ label: 'Shortcuts and zoom', slug: 'using/keyboard-shortcuts' },
-						{ label: 'Settings window', slug: 'using/settings' },
-						{ label: 'Themes, language and transparency', slug: 'using/themes-and-language' },
-					],
-				},
-				{
-					label: 'Configuring apps',
-					items: [
-						{ label: 'Overview', slug: 'apps/apps-json' },
-						{ label: 'Adding apps', slug: 'apps/add-an-app' },
-						{ label: 'Examples', slug: 'apps/examples' },
-						{ label: 'App types', slug: 'apps/types' },
-						{ label: 'App fields', slug: 'apps/fields' },
-						{ label: 'Paths and environment', slug: 'apps/paths-and-environment' },
-						{ label: 'Stop and restart', slug: 'apps/stop-and-restart' },
-					],
-				},
-				{
-					label: 'Data, updates and recovery',
-					items: [
-						{ label: 'Logs', slug: 'data/logs' },
-						{ label: 'Backup and recovery', slug: 'data/backup-and-recovery' },
-						{ label: 'settings.json', slug: 'data/settings-json' },
-						{ label: 'Portable mode', slug: 'data/portable-mode' },
-						{ label: 'Updating', slug: 'data/updating' },
-					],
-				},
-				{
-					label: 'Automation and AI agents',
-					items: [
-						{ label: 'AI agents: quick start', slug: 'automation/quick-start' },
-						{ label: 'Overview', slug: 'automation/overview' },
-						{ label: 'MCP setup', slug: 'automation/mcp-setup' },
-						{ label: 'MCP tools', slug: 'automation/mcp-tools' },
-						{ label: 'Command line', slug: 'automation/command-line' },
-						{ label: 'Control verbs (advanced)', slug: 'automation/control-verbs' },
-					],
-				},
-				{
-					label: 'Platform notes',
-					items: [
-						{ label: 'Windows', slug: 'platforms/windows' },
-						{ label: 'Linux', slug: 'platforms/linux' },
-					],
-				},
-				{
-					label: 'Support',
-					items: [
-						{ label: 'Troubleshooting and FAQ', slug: 'support/troubleshooting' },
-						{ label: 'Error messages explained', slug: 'support/error-messages' },
-						{ label: 'Port already in use (EADDRINUSE)', slug: 'support/port-already-in-use' },
-						{ label: 'Windows protected your PC', slug: 'support/windows-protected-your-pc' },
-						{ label: 'WebView2 runtime missing', slug: 'support/webview2-runtime-missing' },
-						{ label: 'Glossary', slug: 'support/glossary' },
-					],
-				},
+				group('Getting started', [
+					page('index', 'What is Moonpool', 'Was ist Moonpool'),
+					page('getting-started/install', 'Installing', 'Installation'),
+					page('getting-started/first-app', 'Your first app', 'Ihre erste App'),
+					page('getting-started/example-dashboards', 'Example dashboards', 'Beispiel-Dashboards'),
+					page('getting-started/whats-new', "What's new", 'Neuigkeiten'),
+				]),
+				group('How-to guides', [
+					page('guides/run-npm-dev-server-in-background-windows', 'Run an npm dev server in the background', 'npm-Entwicklungsserver im Hintergrund ausführen'),
+					page('guides/start-app-at-windows-login', 'Start an app at Windows login', 'App bei der Windows-Anmeldung starten'),
+					page('guides/find-and-kill-process-using-port-windows', 'Find and kill the process using a port', 'Prozess finden und beenden, der einen Port belegt'),
+					page('guides/mcp-server-for-ai-agent-to-start-stop-local-apps', 'Give an AI agent an MCP server for your apps', 'KI-Agenten einen MCP-Server für Ihre Apps geben'),
+					page('guides/keep-python-script-running-background-windows', 'Keep a Python script running', 'Python-Skript dauerhaft laufen lassen'),
+				]),
+				group('Using Moonpool', [
+					page('using/hub-window', 'The hub window', 'Das Hub-Fenster'),
+					page('using/sidebar-and-menus', 'Sidebar and menus', 'Seitenleiste und Menüs'),
+					page('using/terminal-tabs', 'Terminal tabs', 'Terminal-Tabs'),
+					page('using/tray-and-closing', 'Tray, close and minimize', 'Tray, Schließen und Minimieren'),
+					page('using/keyboard-shortcuts', 'Shortcuts and zoom', 'Tastenkürzel und Zoom'),
+					page('using/settings', 'Settings window', 'Einstellungsfenster'),
+					page('using/themes-and-language', 'Themes, language and transparency', 'Designs, Sprache und Transparenz'),
+				]),
+				group('Configuring apps', [
+					page('apps/apps-json', 'Overview', 'Überblick'),
+					page('apps/add-an-app', 'Adding apps', 'Apps hinzufügen'),
+					page('apps/examples', 'Examples', 'Beispiele'),
+					page('apps/types', 'App types', 'App-Typen'),
+					page('apps/fields', 'App fields', 'App-Felder'),
+					page('apps/paths-and-environment', 'Paths and environment', 'Pfade und Umgebung'),
+					page('apps/stop-and-restart', 'Stop and restart', 'Stoppen und Neustarten'),
+				]),
+				group('Data, updates and recovery', [
+					page('data/logs', 'Logs', 'Protokolle'),
+					page('data/backup-and-recovery', 'Backup and recovery', 'Sicherung und Wiederherstellung'),
+					page('data/settings-json', 'settings.json', 'settings.json'),
+					page('data/portable-mode', 'Portable mode', 'Portabler Modus'),
+					page('data/updating', 'Updating', 'Aktualisieren'),
+				]),
+				group('Automation and AI agents', [
+					page('automation/quick-start', 'AI agents: quick start', 'KI-Agenten: Schnellstart'),
+					page('automation/overview', 'Overview', 'Überblick'),
+					page('automation/mcp-setup', 'MCP setup', 'MCP-Einrichtung'),
+					page('automation/mcp-tools', 'MCP tools', 'MCP-Tools'),
+					page('automation/command-line', 'Command line', 'Befehlszeile'),
+					page('automation/control-verbs', 'Control verbs (advanced)', 'Steuerbefehle (erweitert)'),
+				]),
+				group('Platform notes', [
+					page('platforms/windows', 'Windows', 'Windows'),
+					page('platforms/linux', 'Linux', 'Linux'),
+				]),
+				group('Support', [
+					page('support/troubleshooting', 'Troubleshooting and FAQ', 'Fehlerbehebung und FAQ'),
+					page('support/error-messages', 'Error messages explained', 'Fehlermeldungen erklärt'),
+					page('support/port-already-in-use', 'Port already in use (EADDRINUSE)', 'Port bereits belegt (EADDRINUSE)'),
+					page('support/windows-protected-your-pc', 'Windows protected your PC', 'Der Computer wurde durch Windows geschützt'),
+					page('support/webview2-runtime-missing', 'WebView2 runtime missing', 'WebView2-Runtime fehlt'),
+					page('support/glossary', 'Glossary', 'Glossar'),
+				]),
 			],
 		}),
 	],
