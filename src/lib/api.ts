@@ -283,25 +283,13 @@ export interface UpdateInfo {
   url: string;
   signature: string;
 }
-export interface HelpComponent {
-  version: string;
-  url: string;
-  signature: string;
-}
 export interface CheckResult {
   current: string;
   available: UpdateInfo | null;
-  /** Installed help content version (null if unknown). */
-  help_current: string | null;
-  /** Newer help bundle offered by the manifest, or null when help is up to date. */
-  help_available: HelpComponent | null;
 }
 export const updateCheck = () => invoke<CheckResult>("update_check");
 export const updateApply = (info: UpdateInfo) =>
   invoke<void>("update_apply", { info });
-/** Download, verify, and swap in a newer help content bundle. */
-export const helpApply = (help: HelpComponent) =>
-  invoke<void>("help_apply", { help });
 /** Open (or focus) the offline help window. */
 // Open (or focus) the offline help window. It loads the embedded docs directly
 // (not wrapped in our own index.html shell - an iframe/custom-chrome wrapper

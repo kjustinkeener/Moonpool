@@ -40,8 +40,6 @@ minisign-verify = "0.2"
 semver = "1"
 # Local wall-clock time for the "restarted" divider in an app's session log.
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-# Extract the downloaded help-docs bundle (a ZIP) in update::help_apply.
-zip = "2"
 # Agent control surface (control_pipe.rs): tokio is otherwise only transitive through Tauri;
 # the Windows named-pipe async API needs it named explicitly. Mirrors FasterDB's control.rs.
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros", "time"] }

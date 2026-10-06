@@ -31,8 +31,5 @@ On Linux only the AppImage updates itself; see [Linux](/platforms/linux/).
 
 ## Help updates too
 
-This help content updates through the same mechanism. When the help is revised between
-program releases, the next update quietly refreshes it. A help-only update appears in the
-same startup banner and applies without restarting Moonpool. The About button checks the
-program only, so help-only updates arrive through the banner. The offline copy in the app
-stays current.
+This help ships inside Moonpool, so each program update brings the matching help with it.
+The offline copy always matches the version you run.
