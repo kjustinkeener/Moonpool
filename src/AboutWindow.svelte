@@ -295,7 +295,9 @@
   .btn.primary {
     background: #007eb9;
     border-color: #007eb9;
-    color: var(--on-accent);
+    /* Fixed brand fill, so fixed ink: --on-accent tracks the theme's accent and is
+       dark ink in many palettes, which reads poorly on this blue. */
+    color: #ffffff;
   }
   .btn:disabled {
     opacity: 0.6;
