@@ -82,6 +82,14 @@ Hub-Fenster, port = Port, process = Prozess, background = Hintergrund, tab = Tab
 beenden, launch = starten. Windows SmartScreen: "Der Computer wurde durch Windows geschützt",
 "Weitere Informationen", "Trotzdem ausführen", "Unbekannter Herausgeber".
 
+## Terms (French)
+
+Address form follows the app catalog (`src/lib/locales/fr.ts`): vous. Use the catalog first. Words it does not settle: app = app, dev server = serveur de développement, tray = zone de notification, hub window = fenêtre du hub, sidebar = barre latérale, CLI pane = panneau CLI, log = journal (log file: fichier journal), backup = sauvegarde, portable mode = mode portable, process = processus, background = arrière-plan, tab = onglet, launch = lancer, stop = arrêter, restart = redémarrer, kill (a process) = arrêter or terminer. Windows SmartScreen: « Windows a protégé votre ordinateur », « Informations complémentaires », « Exécuter quand même » (English in parentheses on first mention).
+
+## Terms (Italian)
+
+Address form follows the app catalog (`src/lib/locales/it.ts`): tu. Use the catalog first. Words it does not settle: app = app, dev server = server di sviluppo, tray = area di notifica (the catalog also says barra delle applicazioni in the close/minimize labels, copied verbatim), hub window = finestra hub, sidebar = barra laterale, log = registro (log file: file di registro), backup = backup, portable mode = modalità portatile, process = processo, background = in background, tab = scheda, launch = avviare, stop = arrestare, restart = riavviare, kill (a process) = terminare. Windows SmartScreen strings are kept in English with an Italian translation in parentheses.
+
 ## Sidebar and site strings
 
 - Sidebar group labels: `GROUPS` in `help/locales.mjs` (all 13 languages done).
