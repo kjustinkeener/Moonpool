@@ -133,7 +133,7 @@ export const nl: PartialDict = {
   "editor.hintDesktop":
     "Start een native app; toont Actief zodra een proces met de naam processName wordt gevonden.",
   "editor.hintStatic": "Opent alleen url in de browser, zonder terminal of commando.",
-  "editor.hintCli": "Voert een commando uit en houdt een interactieve shell open in cwd.",
+  "editor.hintCli": "Voert een commando uit in een eigen terminal in cwd; het staat als actief tot het commando eindigt.",
   "editor.portableWarn":
     "Absoluut pad - verhuist niet mee met deze map. Gebruik {MP_HOME}\\... of een ./-pad om het portable te houden.",
   "editor.notPortable": "niet portable",

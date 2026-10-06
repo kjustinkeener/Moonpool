@@ -126,7 +126,7 @@ export const zhHans: PartialDict = {
     "在终端里启动开发服务器；端口有响应后标记为“运行中”，并自动打开浏览器。",
   "editor.hintDesktop": "启动一个原生应用；找到名为 processName 的进程后标记为“运行中”。",
   "editor.hintStatic": "只在浏览器中打开 url，不用终端也不执行命令。",
-  "editor.hintCli": "执行一条命令，并在 cwd 中保持一个交互式 shell。",
+  "editor.hintCli": "在 cwd 中用独立终端执行一条命令；命令结束前显示为运行中。",
   "editor.portableWarn":
     "这是绝对路径，不会随这个文件夹一起移动。请改用 {MP_HOME}\\... 或以 ./ 开头的路径以保持便携。",
   "editor.notPortable": "不便携",

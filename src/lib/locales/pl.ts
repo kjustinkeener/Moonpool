@@ -133,7 +133,7 @@ export const pl: PartialDict = {
   "editor.hintDesktop":
     "Uruchamia aplikację natywną; pokazuje stan „działa”, gdy znajdzie proces o nazwie processName.",
   "editor.hintStatic": "Tylko otwiera url w przeglądarce, bez terminala i bez polecenia.",
-  "editor.hintCli": "Uruchamia polecenie i utrzymuje otwartą interaktywną powłokę w cwd.",
+  "editor.hintCli": "Uruchamia polecenie we własnym terminalu w cwd; jest widoczne jako uruchomione, dopóki polecenie się nie zakończy.",
   "editor.portableWarn":
     "Ścieżka bezwzględna - nie przeniesie się razem z tym folderem. Użyj {MP_HOME}\\... lub ścieżki ./, aby zachować przenośność.",
   "editor.notPortable": "nieprzenośna",

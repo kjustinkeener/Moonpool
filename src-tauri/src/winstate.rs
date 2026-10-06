@@ -10,7 +10,7 @@
 //!
 //! Scope is deliberately small: physical size + position + a maximized flag for the
 //! `main` window. A missing or corrupt file falls back to the config default size/pos
-//! (1200x780, OS-centered) by simply doing nothing on restore.
+//! (1200x780, at the OS default position) by simply doing nothing on restore.
 
 use std::path::PathBuf;
 

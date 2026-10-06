@@ -126,7 +126,7 @@ export const zhHant: PartialDict = {
     "在終端機中啟動開發伺服器；連接埠有回應後標示為「執行中」，並在服務就緒後自動開啟瀏覽器。",
   "editor.hintDesktop": "啟動一個原生應用程式；找到名為 processName 的處理程序後標示為「執行中」。",
   "editor.hintStatic": "只在瀏覽器中開啟 url，不需終端機也不執行命令。",
-  "editor.hintCli": "執行一條命令，並在 cwd 中保持一個互動式 shell。",
+  "editor.hintCli": "在 cwd 中以獨立終端機執行一條命令；命令結束前顯示為執行中。",
   "editor.portableWarn":
     "這是絕對路徑，不會隨這個資料夾一起移動。請改用 {MP_HOME}\\... 或以 ./ 開頭的路徑以保持可攜。",
   "editor.notPortable": "不可攜",

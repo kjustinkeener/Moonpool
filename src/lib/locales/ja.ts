@@ -128,7 +128,7 @@ export const ja: PartialDict = {
   "editor.hintDesktop":
     "ネイティブアプリを起動します。processName という名前のプロセスが見つかると「実行中」になります。",
   "editor.hintStatic": "url をブラウザーで開くだけです。ターミナルもコマンドも使いません。",
-  "editor.hintCli": "コマンドを実行し、cwd で対話シェルを開いたままにします。",
+  "editor.hintCli": "cwd で専用のターミナルを使ってコマンドを実行します。コマンドが終了するまで実行中と表示されます。",
   "editor.portableWarn":
     "絶対パスです。このフォルダーを移動しても付いてきません。持ち運べるようにするには {MP_HOME}\\... か ./ で始まるパスを使ってください。",
   "editor.notPortable": "持ち運び不可",
