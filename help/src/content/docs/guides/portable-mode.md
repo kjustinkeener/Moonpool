@@ -17,6 +17,26 @@ it.
 <chosen location>\.moonpool\
 ```
 
+## Several copies at once
+
+One Moonpool runs per folder. The installed Moonpool and any number of portable copies, each
+in its own folder, can run at the same time, and each is fully separate: its own apps, tray
+icon, window, settings, logs and [control channel](/automation/control-verbs/).
+
+- The tray tooltip and the taskbar name say which copy is which: `Moonpool` for the
+  installed one, `Moonpool (<folder>)` for a portable one, where `<folder>` is the folder you
+  chose (the one that holds `.moonpool\`).
+- Starting the same copy a second time brings its window back instead of opening another
+  one. Starting a different copy opens that copy.
+- To give an AI agent more than one copy, register each under its own name; see
+  [MCP setup](/automation/mcp-setup/#more-than-one-moonpool).
+- Moving or renaming a portable folder gives it a new identity (a new control-channel name).
+  Quit it before you move it.
+- Copies do not know about each other's apps. Two copies that both start the same server on
+  the same port will still clash, and a Stop that works by process name or port can end
+  something another copy started; see
+  [Stop and restart](/configuration/stop-and-restart/#several-moonpools-or-your-own-processes).
+
 ## Making your apps travel too
 
 Use the `{MP_HOME}` token in an app's path so it points inside the portable folder rather

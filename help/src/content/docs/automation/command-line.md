@@ -3,16 +3,23 @@ title: Command line
 description: Drive a running Moonpool with moonpool.exe verbs, tag a command with a ticket, and read the outcome from state.json.
 ---
 
-Running `moonpool.exe` again while Moonpool is already running does not open a second
-window. The second process passes its arguments to the running one and exits. Moonpool must
-already be running: with nothing resident, the same command starts a new Moonpool and the
-verb is not run.
+Running a `moonpool.exe` again while that same Moonpool is already running does not open a
+second window. The second process passes its arguments to the running one over its
+[control channel](/automation/control-verbs/) and exits. Moonpool must already be running:
+with nothing resident, the same command starts a new Moonpool and the verb is not run.
 
-Find the running program rather than assuming a path:
+"Same Moonpool" means the same folder. The installed Moonpool and every portable copy each
+run on their own, so a command reaches the copy whose `moonpool.exe` you ran, never another
+one. See [Portable mode](/guides/portable-mode/#several-copies-at-once).
+
+Use the path of the copy you mean. For the installed one:
 
 ```powershell frame="terminal"
-$mp = (Get-Process moonpool -ErrorAction SilentlyContinue | Select-Object -First 1).Path
+$mp = "$env:USERPROFILE\.moonpool\moonpool.exe"
 ```
+
+With several copies running, `Get-Process moonpool` lists all of them, so pick by `Path`
+rather than taking the first.
 
 ## Verbs
 

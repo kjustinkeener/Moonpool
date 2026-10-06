@@ -37,6 +37,16 @@ For a desktop app, `processName` mode runs the equivalent of:
 taskkill /IM notes-app.exe /T /F
 ```
 
+## Several Moonpools, or your own processes
+
+`processName` and `port` do not know who started a process. `processName` kills every
+process with that name, and `port` kills whatever is listening on the port, including one
+another Moonpool copy started (the installed one and portable copies run independently; see
+[Portable mode](/guides/portable-mode/#several-copies-at-once)) and one you started yourself.
+Use these modes only for apps that will not clash that way: a name or port nothing else on
+the machine uses. If two copies register the same app, or you also run it by hand, give it
+`killMode` `none` or a `command` that stops only its own instance.
+
 ## stopCommand
 
 Used only when `killMode` is `command`. It runs through `cmd /c` on Windows and `sh -c`
