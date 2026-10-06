@@ -41,6 +41,8 @@ export default defineConfig({
 		starlight({
 			title: 'Moonpool Help',
 			customCss: ['./src/styles/screenshots.css'],
+			// "Last updated" from git history (the web build is made from a full checkout).
+			lastUpdated: true,
 			// Breadcrumb/FAQ JSON-LD and og:image (web build only; see src/routeData.ts).
 			routeMiddleware: './src/routeData.ts',
 			// No external social links in bundled app help.
