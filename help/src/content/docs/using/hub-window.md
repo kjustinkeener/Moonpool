@@ -91,7 +91,7 @@ Moonpool writes `AI-README.md` next to `apps.json` and refreshes it at each laun
 | Left-click | Shows the hub window (restores it if minimized or hidden). |
 | Right-click | Menu with **Show** and **Quit** only. |
 
-**Quit** exits Moonpool. Whether the tray icon and taskbar button are visible is controlled by Settings (`showInTray`, `showInTaskbar`).
+**Quit** exits Moonpool and, on Windows, stops every app Moonpool launched, including their child processes. Apps that were already running before Moonpool saw them (shown as running without "managed by Moonpool") are left alone. On Linux and macOS, quitting does not reliably stop launched apps. Whether the tray icon and taskbar button are visible is controlled by Settings (`showInTray`, `showInTaskbar`).
 
 ## Closing and minimizing
 
