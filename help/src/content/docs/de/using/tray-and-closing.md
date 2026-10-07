@@ -17,7 +17,7 @@ es sich handelt. Siehe [Portabler Modus](/de/data/portable-mode/#mehrere-kopien-
 
 **Beenden** schließt Moonpool und stoppt unter Windows jede App, die Moonpool gestartet hat, einschließlich ihrer
 Kindprozesse. Apps, die bereits liefen, bevor Moonpool sie sah (als laufend angezeigt, aber
-ohne „managed by Moonpool“), bleiben unberührt. Unter Linux und macOS stoppt das Beenden gestartete Apps nicht zuverlässig.
+ohne „managed by Moonpool“), bleiben unberührt. Unter Linux stoppt das Beenden gestartete Apps nicht zuverlässig.
 
 ## Schließen und Minimieren
 

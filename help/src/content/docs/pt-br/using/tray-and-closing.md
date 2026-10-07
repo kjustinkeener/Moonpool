@@ -17,7 +17,7 @@ cópia se trata. Veja [Modo portátil](/pt-br/data/portable-mode/#várias-cópia
 
 **Sair** encerra o Moonpool e, no Windows, para todos os apps que o Moonpool iniciou, incluindo os
 processos filhos deles. Apps que já estavam em execução antes de o Moonpool os ver (mostrados como em
-execução sem "gerenciado pelo Moonpool") são deixados em paz. No Linux e no macOS, sair não para os apps
+execução sem "gerenciado pelo Moonpool") são deixados em paz. No Linux, sair não para os apps
 iniciados de forma confiável.
 
 ## Fechar e minimizar

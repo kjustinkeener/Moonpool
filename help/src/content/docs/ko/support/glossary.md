@@ -65,7 +65,7 @@ description: "Moonpool 도움말에서 구성 요소, 앱 상태, 파일, 설정
 | `killMode` | 앱의 터미널을 끝낸 뒤 중지가 수행하는 추가 단계입니다. [중지와 다시 시작](/ko/apps/stop-and-restart/)을 참고하세요. |
 | `stopCommand` | `killMode`가 `command`일 때 중지가 실행하는 명령입니다. |
 | `processName` | Moonpool이 감시하고, `processName` 모드에서 종료하는 프로세스 이름입니다. |
-| 제어 채널 | 허브가 응답하는 이름 있는 파이프(Windows) 또는 Unix 소켓(Linux, macOS)입니다. [제어 동사](/ko/automation/control-verbs/)를 참고하세요. |
+| 제어 채널 | 허브가 응답하는 이름 있는 파이프(Windows) 또는 Unix 소켓(Linux)입니다. [제어 동사](/ko/automation/control-verbs/)를 참고하세요. |
 | 동사(verb) | `launch`나 `reload` 같은 명령어로, 명령줄이나 제어 채널로 전달합니다. |
 | 티켓 | `--ticket`으로 붙여서 `state.json`에서 명령의 결과를 읽는 데 쓰는 키입니다. |
 | 토큰 | 설정 쓰기에 반드시 포함해야 하는 `apps.json`의 버전 표식입니다. |

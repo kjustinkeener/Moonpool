@@ -65,7 +65,7 @@ description: "Moonpool 帮助中用来称呼各个部分、应用状态、文件
 | `killMode` | “停止”在结束应用终端之后所做的额外步骤。参见[停止与重启](/zh-hans/apps/stop-and-restart/)。 |
 | `stopCommand` | `killMode` 为 `command` 时“停止”所运行的命令。 |
 | `processName` | Moonpool 监视的进程名，也是 `processName` 模式下要结束的进程。 |
-| 控制通道（control channel） | hub 应答所用的命名管道（Windows）或 Unix 套接字（Linux、macOS）。参见[控制动词](/zh-hans/automation/control-verbs/)。 |
+| 控制通道（control channel） | hub 应答所用的命名管道（Windows）或 Unix 套接字（Linux）。参见[控制动词](/zh-hans/automation/control-verbs/)。 |
 | 动词（verb） | 在命令行或控制通道上给出的命令词，例如 `launch` 或 `reload`。 |
 | ticket | 用 `--ticket` 附加的键，用来从 `state.json` 读取某条命令的结果。 |
 | 令牌（token） | `apps.json` 的版本标记，配置写入必须带上它。 |

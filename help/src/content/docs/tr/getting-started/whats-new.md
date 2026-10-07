@@ -22,7 +22,7 @@ kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 - **apps.json hataları gösterilir.** Kenar çubuğunun üstündeki bir şerit hatayı gösterir ve
   başarısız bir Yeniden yükle, son yüklenen listeyi korur. Bkz.
   [apps.json hata içerdiğinde](/tr/using/hub-window/#appsjson-hata-içerdiğinde).
-- **Linux ve macOS'ta denetim kanalı**, bir Unix soketi üzerinden, ayrıca `list` fiili. Bkz.
+- **Linux'ta denetim kanalı**, bir Unix soketi üzerinden, ayrıca `list` fiili. Bkz.
   [Denetim fiilleri](/tr/automation/control-verbs/).
 - Hakkında penceresi ve uygulama düzenleyicisi tema ve dil değişikliklerini canlı olarak
   izler. **Moonpool'u kur...** menü öğesi Windows dışında gizlenir.
@@ -48,4 +48,3 @@ kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
 - WebView2 bulunan Windows 10 veya 11 (bkz. [Windows](/tr/platforms/windows/)).
 - WebKitGTK 4.1 ve bir AppIndicator kitaplığı bulunan Linux (bkz. [Linux](/tr/platforms/linux/)).
-- macOS: kaynaktan derleyin; henüz dağıtılmıyor ve sınanmadı.

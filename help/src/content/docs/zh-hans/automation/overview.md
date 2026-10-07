@@ -11,7 +11,7 @@ description: "从脚本和 AI 代理驱动运行中的 Moonpool 的三种方式�
 | --- | --- | --- |
 | MCP 服务器 | `moonpool.exe mcp`，由 AI 宿主启动的 stdio [MCP](https://modelcontextprotocol.io) 服务器。 | [MCP 设置](/zh-hans/automation/mcp-setup/)、[MCP 工具](/zh-hans/automation/mcp-tools/) |
 | 命令行 | `moonpool.exe <verb> [args]`。同一副本的第二次运行会通过控制通道把动词交给它的 hub，然后退出。 | [命令行](/zh-hans/automation/command-line/) |
-| 控制通道 | Windows 上是命名管道 `\\.\pipe\moonpool`（便携副本为 `\\.\pipe\moonpool-<id>`），Linux 和 macOS 上是 Unix 套接字，每行一个 JSON 请求。 | [控制动词](/zh-hans/automation/control-verbs/) |
+| 控制通道 | Windows 上是命名管道 `\\.\pipe\moonpool`（便携副本为 `\\.\pipe\moonpool-<id>`），Linux 上是 Unix 套接字，每行一个 JSON 请求。 | [控制动词](/zh-hans/automation/control-verbs/) |
 
 ## 它们之间的关系
 
@@ -41,12 +41,12 @@ description: "从脚本和 AI 代理驱动运行中的 Moonpool 的三种方式�
 - **配置写入受保护。** 写入必须带上上次读取得到的版本令牌，过期的令牌会被拒绝，并且在写入任何内容之前会先校验新的 `apps.json`。被拒绝的写入不会改动 `apps.json`。参见 [MCP 工具](/zh-hans/automation/mcp-tools/#配置)。
 - **应用 id 受到限制。** MCP 服务器只接受字母、数字、`.`、`_` 和 `-`，且绝不能以 `-` 开头，这样 id 就不会被当作命令行标志。
 - **截图只限 Moonpool。** `moonpool_screenshot` 只会截取 Moonpool 自己的某个窗口（`main`、`settings`、`about`、`installer`、`editor`、`help`、`themes`），绝不会截取屏幕或其他应用。PNG 在内存中生成并以内联方式返回；Moonpool 不会把它保存为文件。
-- **通道没有身份验证。** Moonpool 不会给控制管道或套接字添加登录或令牌。任何能打开它的进程都可以发送动词。在 Linux 和 macOS 上，套接字文件以 `0600` 权限创建，所以只有你自己的用户可以打开。
+- **通道没有身份验证。** Moonpool 不会给控制管道或套接字添加登录或令牌。任何能打开它的进程都可以发送动词。在 Linux 上，套接字文件以 `0600` 权限创建，所以只有你自己的用户可以打开。
 - **会检测沙盒宿主。** 如果 MCP 服务器发现自己运行在打包（Store/MSIX）沙盒中，在那里它看到的是 Moonpool 文件的一份私有副本，那么读写文件的工具（`moonpool_app_output`、`moonpool_read_config`、`moonpool_write_config`、`moonpool_restore_config`）会返回一条说明原因的错误，而不是过期的数据。只使用控制通道的工具不会被拦截。参见 [MCP 设置](/zh-hans/automation/mcp-setup/#沙盒宿主)。
 
 ## 平台
 
-控制通道在每个平台上都存在：Windows 上是命名管道，Linux 和 macOS 上是 Unix 套接字（位置见[控制动词](/zh-hans/automation/control-verbs/#它在哪里监听)）。只有 `screenshot`（因此还有 `moonpool_screenshot`）仅限 Windows；在 Linux 和 macOS 上它会返回“not supported on this platform”（此平台不支持）。命令行动词在每个平台上都能用。
+控制通道在每个平台上都存在：Windows 上是命名管道，Linux 上是 Unix 套接字（位置见[控制动词](/zh-hans/automation/control-verbs/#它在哪里监听)）。只有 `screenshot`（因此还有 `moonpool_screenshot`）仅限 Windows；在 Linux 上它会返回“not supported on this platform”（此平台不支持）。命令行动词在每个平台上都能用。
 
 ## 另请参阅
 

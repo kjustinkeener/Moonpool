@@ -140,10 +140,10 @@ apps.json entry 4 (api) has invalid port 0
 只用於檢查更新：它會在啟動時（如果 **啟動時檢查更新** 開啟）以及你按下 **檢查更新** 時，從 GitHub 取得發行檔案（`update.json`）。每個下載在使用前都會用 Moonpool 的簽署金鑰驗證。
 
 **我的命令由哪個 shell 執行？**
-Windows 上是 `cmd /c`，Linux 與 macOS 上是 `$SHELL -c`。
+Windows 上是 `cmd /c`，Linux 上是 `$SHELL -c`。
 
 **機密資料該放在哪裡？**
 `env` 的值會以純文字儲存在 `apps.json` 中。請優先使用應用程式自己會讀取的檔案，或是你的使用者環境中已經設定好的變數，被啟動的應用程式會繼承它們。
 
 **控制通道受到保護嗎？**
-它沒有登入或權杖。任何以你的身分執行的處理程序都可以對它傳送命令。在 Linux 與 macOS 上，通訊端只有你的使用者可以讀取。請參閱[安全特性](/zh-hant/automation/overview/#安全特性)。
+它沒有登入或權杖。任何以你的身分執行的處理程序都可以對它傳送命令。在 Linux 上，通訊端只有你的使用者可以讀取。請參閱[安全特性](/zh-hant/automation/overview/#安全特性)。

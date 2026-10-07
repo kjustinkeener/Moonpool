@@ -61,7 +61,7 @@ host can be shown a private copy of the config folder instead of the real one.
 
 ## Advanced: testing tools
 
-`moonpool_screenshot` is Windows only; on Linux and macOS it fails with "screenshot is not
+`moonpool_screenshot` is Windows only; on Linux it fails with "screenshot is not
 supported on this platform". `moonpool_window_state` and `moonpool_reset_mcp_seen` work on
 every platform.
 

@@ -198,7 +198,7 @@ vous cliquez sur **Rechercher des mises à jour**. Chaque téléchargement est v
 signature de Moonpool avant d'être utilisé.
 
 **Quel shell exécute mes commandes ?**
-`cmd /c` sous Windows, `$SHELL -c` sous Linux et macOS.
+`cmd /c` sous Windows, `$SHELL -c` sous Linux.
 
 **Où mettre les secrets ?**
 Les valeurs de `env` sont stockées en clair dans `apps.json`. Préférez un fichier que votre app lit
@@ -207,5 +207,5 @@ lancées.
 
 **Le canal de contrôle est-il protégé ?**
 Il n'a ni connexion ni jeton. Tout processus qui s'exécute sous votre compte peut lui envoyer des
-commandes. Sous Linux et macOS, le socket n'est lisible que par votre utilisateur. Voir
+commandes. Sous Linux, le socket n'est lisible que par votre utilisateur. Voir
 [Propriétés de sécurité](/fr/automation/overview/#propriétés-de-sécurité).

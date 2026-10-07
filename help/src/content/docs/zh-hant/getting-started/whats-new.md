@@ -11,7 +11,7 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 - **佈景主題瀏覽器。** 共 68 個佈景主題，每個都以自己的配色預覽。請參閱[佈景主題、語言與透明度](/zh-hant/using/themes-and-language/)。
 - **可直接執行的範例。** 全新的 `apps.json` 中所含的範例應用程式都能直接執行。範例儀表板現在位於由程式管理的 `dashboards/examples` 資料夾中，會隨 Moonpool 一起更新。請參閱[範例儀表板](/zh-hant/getting-started/example-dashboards/)。
 - **會顯示 apps.json 的錯誤。** 側邊欄上方的橫幅會顯示錯誤，重新載入失敗時會保留上次成功載入的清單。請參閱[當 apps.json 有錯誤時](/zh-hant/using/hub-window/#當-appsjson-有錯誤時)。
-- **Linux 與 macOS 上的控制通道**，透過 Unix 通訊端實作，另外新增了 `list` 動詞。請參閱[控制動詞](/zh-hant/automation/control-verbs/)。
+- **Linux 上的控制通道**，透過 Unix 通訊端實作，另外新增了 `list` 動詞。請參閱[控制動詞](/zh-hant/automation/control-verbs/)。
 - 「關於」視窗與應用程式編輯器會即時跟隨佈景主題與語言的變更。**安裝 Moonpool...** 選單項目在非 Windows 系統上會隱藏。
 
 ## 0.3.15
@@ -31,4 +31,3 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 - 具備 WebView2 的 Windows 10 或 11（請參閱 [Windows](/zh-hant/platforms/windows/)）。
 - 具備 WebKitGTK 4.1 與 AppIndicator 函式庫的 Linux（請參閱 [Linux](/zh-hant/platforms/linux/)）。
-- macOS：需要從原始碼建置；尚未發行，也未經測試。

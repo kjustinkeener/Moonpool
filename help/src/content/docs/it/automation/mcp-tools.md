@@ -64,7 +64,7 @@ configurazione anziché quella reale.
 
 ## Avanzato: strumenti di test
 
-`moonpool_screenshot` è solo per Windows; su Linux e macOS fallisce con "screenshot is not
+`moonpool_screenshot` è solo per Windows; su Linux fallisce con "screenshot is not
 supported on this platform". `moonpool_window_state` e `moonpool_reset_mcp_seen` funzionano su
 ogni piattaforma.
 

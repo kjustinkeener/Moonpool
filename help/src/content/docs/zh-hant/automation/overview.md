@@ -11,7 +11,7 @@ description: "從指令碼與 AI 代理驅動執行中的 Moonpool 的三種方�
 | --- | --- | --- |
 | MCP 伺服器 | `moonpool.exe mcp`，由 AI 主機程式啟動的 stdio [MCP](https://modelcontextprotocol.io) 伺服器。 | [MCP 設定](/zh-hant/automation/mcp-setup/)、[MCP 工具](/zh-hant/automation/mcp-tools/) |
 | 命令列 | `moonpool.exe <verb> [args]`。同一副本的第二次執行會透過控制通道把動詞交給它的 hub，然後結束。 | [命令列](/zh-hant/automation/command-line/) |
-| 控制通道 | Windows 上是具名管道 `\\.\pipe\moonpool`（可攜副本為 `\\.\pipe\moonpool-<id>`），Linux 與 macOS 上是 Unix 通訊端，每行一個 JSON 要求。 | [控制動詞](/zh-hant/automation/control-verbs/) |
+| 控制通道 | Windows 上是具名管道 `\\.\pipe\moonpool`（可攜副本為 `\\.\pipe\moonpool-<id>`），Linux 上是 Unix 通訊端，每行一個 JSON 要求。 | [控制動詞](/zh-hant/automation/control-verbs/) |
 
 ## 它們之間的關係
 
@@ -41,12 +41,12 @@ description: "從指令碼與 AI 代理驅動執行中的 Moonpool 的三種方�
 - **設定寫入受到保護。** 寫入必須帶上上次讀取得到的版本權杖，過期的權杖會被拒絕，而且在寫入任何內容之前會先驗證新的 `apps.json`。被拒絕的寫入不會更動 `apps.json`。請參閱 [MCP 工具](/zh-hant/automation/mcp-tools/#設定)。
 - **應用程式 id 受到限制。** MCP 伺服器只接受字母、數字、`.`、`_` 與 `-`，且絕不能以 `-` 開頭，這樣 id 就不會被當成命令列旗標。
 - **螢幕擷取只限 Moonpool。** `moonpool_screenshot` 只會擷取 Moonpool 自己的某個視窗（`main`、`settings`、`about`、`installer`、`editor`、`help`、`themes`），絕不會擷取整個螢幕或其他應用程式。PNG 在記憶體中產生並以內嵌方式傳回；Moonpool 不會把它儲存為檔案。
-- **通道沒有身分驗證。** Moonpool 不會替控制管道或通訊端加上登入或權杖。任何能開啟它的處理程序都可以傳送動詞。在 Linux 與 macOS 上，通訊端檔案以 `0600` 權限建立，所以只有你自己的使用者可以開啟。
+- **通道沒有身分驗證。** Moonpool 不會替控制管道或通訊端加上登入或權杖。任何能開啟它的處理程序都可以傳送動詞。在 Linux 上，通訊端檔案以 `0600` 權限建立，所以只有你自己的使用者可以開啟。
 - **會偵測沙箱主機。** 如果 MCP 伺服器發現自己執行在封裝（Store/MSIX）沙箱中，在那裡它看到的是 Moonpool 檔案的一份私有副本，那麼讀寫檔案的工具（`moonpool_app_output`、`moonpool_read_config`、`moonpool_write_config`、`moonpool_restore_config`）會傳回一則說明原因的錯誤，而不是過期的資料。只使用控制通道的工具不會被攔截。請參閱 [MCP 設定](/zh-hant/automation/mcp-setup/#沙箱主機)。
 
 ## 平台
 
-控制通道在每個平台上都存在：Windows 上是具名管道，Linux 與 macOS 上是 Unix 通訊端（位置請見[控制動詞](/zh-hant/automation/control-verbs/#它在哪裡監聽)）。只有 `screenshot`（因此還有 `moonpool_screenshot`）僅限 Windows；在 Linux 與 macOS 上它會傳回「not supported on this platform」（此平台不支援）。命令列動詞在每個平台上都能用。
+控制通道在每個平台上都存在：Windows 上是具名管道，Linux 上是 Unix 通訊端（位置請見[控制動詞](/zh-hant/automation/control-verbs/#它在哪裡監聽)）。只有 `screenshot`（因此還有 `moonpool_screenshot`）僅限 Windows；在 Linux 上它會傳回「not supported on this platform」（此平台不支援）。命令列動詞在每個平台上都能用。
 
 ## 另請參閱
 

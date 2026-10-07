@@ -185,7 +185,7 @@ Solo para buscar actualizaciones: obtiene el archivo de versión (`update.json`)
 descarga se verifica con la clave de firma de Moonpool antes de usarse.
 
 **¿Qué shell ejecuta mis comandos?**
-`cmd /c` en Windows, `$SHELL -c` en Linux y macOS.
+`cmd /c` en Windows, `$SHELL -c` en Linux.
 
 **¿Dónde pongo los secretos?**
 Los valores de `env` se guardan en texto plano en `apps.json`. Es preferible un archivo que lea la propia
@@ -193,5 +193,5 @@ app, o una variable ya definida en tu entorno de usuario, que las apps iniciadas
 
 **¿Está protegido el canal de control?**
 No tiene inicio de sesión ni token. Cualquier proceso que se ejecute como tú puede enviarle comandos. En
-Linux y macOS, el socket solo puede leerlo tu usuario. Consulta
+Linux, el socket solo puede leerlo tu usuario. Consulta
 [Propiedades de seguridad](/es/automation/overview/#propiedades-de-seguridad).

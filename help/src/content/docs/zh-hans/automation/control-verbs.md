@@ -9,7 +9,7 @@ description: "Moonpool 控制通道（命名管道或 Unix 套接字）如何工
 
 `<id>` 是由该副本的 `moonpool-config` 文件夹路径派生出的 8 位十六进制数，所以对同一个文件夹，它在重启和更新之间保持不变，而如果你移动了文件夹，它就会改变。副本的 `moonpool.exe`（包括 `moonpool.exe mcp`）总是能找到它自己副本的通道。
 
-在 Linux 和 macOS 上，它改为监听 Unix 域套接字，权限为 `0600`：
+在 Linux 上，它改为监听 Unix 域套接字，权限为 `0600`：
 
 | 情形 | 套接字路径 |
 | --- | --- |
@@ -93,7 +93,7 @@ $r.ReadLine()
 
 ## 诊断动词（测试用）
 
-仅限通道：命令行不接受这些动词。除 `screenshot` 外，在 Windows、Linux 和 macOS 上都能用；`screenshot` 仅限 Windows，在其他系统上会回答 `screenshot is not supported on this platform (Windows only)`。
+仅限通道：命令行不接受这些动词。除 `screenshot` 外，在 Windows 和 Linux 上都能用；`screenshot` 仅限 Windows，在其他系统上会回答 `screenshot is not supported on this platform (Windows only)`。
 
 | 动词 | 参数 | 结果 |
 | --- | --- | --- |

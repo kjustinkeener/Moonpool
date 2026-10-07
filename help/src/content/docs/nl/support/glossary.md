@@ -66,7 +66,7 @@ alleen het terminaltabblad; de app wordt er nooit mee gestart. Een tabblad sluit
 | `killMode` | De extra stap die Stoppen uitvoert nadat de terminal van de app is beëindigd. Zie [Stoppen en herstarten](/nl/apps/stop-and-restart/). |
 | `stopCommand` | Het commando dat Stoppen uitvoert als `killMode` gelijk is aan `command`. |
 | `processName` | De procesnaam waarop Moonpool let, en die in de modus `processName` wordt beëindigd. |
-| besturingskanaal | De named pipe (Windows) of Unix-socket (Linux, macOS) waarop de hub antwoordt. Zie [Besturingswerkwoorden](/nl/automation/control-verbs/). |
+| besturingskanaal | De named pipe (Windows) of Unix-socket (Linux) waarop de hub antwoordt. Zie [Besturingswerkwoorden](/nl/automation/control-verbs/). |
 | werkwoord (verb) | Een commandowoord zoals `launch` of `reload`, opgegeven op de opdrachtregel of via het besturingskanaal. |
 | ticket | Een sleutel die je met `--ticket` meegeeft om het resultaat van een commando uit `state.json` te lezen. |
 | token | De versiestempel van `apps.json` die een configuratieschrijfactie moet meedragen. |

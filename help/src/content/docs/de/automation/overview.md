@@ -14,7 +14,7 @@ unabhängig voneinander, jede mit eigenem Steuerkanal. Ein Zugang erreicht immer
 | --- | --- | --- |
 | MCP-Server | `moonpool.exe mcp`, ein stdio-[MCP](https://modelcontextprotocol.io)-Server, den ein KI-Host startet. | [MCP-Einrichtung](/de/automation/mcp-setup/), [MCP-Tools](/de/automation/mcp-tools/) |
 | Befehlszeile | `moonpool.exe <verb> [args]`. Ein zweiter Start derselben Kopie übergibt das Verb über den Steuerkanal an ihren Hub und beendet sich. | [Befehlszeile](/de/automation/command-line/) |
-| Steuerkanal | Eine Named Pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` für eine portable Kopie), unter Windows und ein Unix-Socket unter Linux und macOS, mit einer JSON-Anfrage pro Zeile. | [Steuerverben](/de/automation/control-verbs/) |
+| Steuerkanal | Eine Named Pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` für eine portable Kopie), unter Windows und ein Unix-Socket unter Linux, mit einer JSON-Anfrage pro Zeile. | [Steuerverben](/de/automation/control-verbs/) |
 
 ## Wie sie zusammenhängen
 
@@ -62,7 +62,7 @@ Nur lesende Tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_c
   eine andere App. Das PNG wird im Arbeitsspeicher erzeugt und inline zurückgegeben; Moonpool speichert es nicht in einer
   Datei.
 - **Keine Authentifizierung auf dem Kanal.** Moonpool fügt der Control-Pipe oder dem Socket keine Anmeldung und kein Token hinzu.
-  Jeder Prozess, der sie öffnen kann, kann Verben senden. Unter Linux und macOS wird die Socket-Datei
+  Jeder Prozess, der sie öffnen kann, kann Verben senden. Unter Linux wird die Socket-Datei
   mit Modus `0600` angelegt, sodass nur Ihr eigener Benutzer sie öffnen kann.
 - **Sandbox-Hosts werden erkannt.** Stellt der MCP-Server fest, dass er in einer verpackten
   (Store/MSIX-)Sandbox läuft, in der er eine private Kopie der Dateien von Moonpool sehen würde, geben die Tools, die
@@ -73,9 +73,8 @@ Nur lesende Tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_c
 
 ## Plattform
 
-Den Steuerkanal gibt es auf jeder Plattform: eine Named Pipe unter Windows, einen Unix-Socket unter Linux
-und macOS (Speicherort unter [Steuerverben](/de/automation/control-verbs/#wo-er-lauscht)). Nur
-`screenshot` (und damit `moonpool_screenshot`) gibt es ausschließlich unter Windows; unter Linux und macOS liefert es
+Den Steuerkanal gibt es auf jeder Plattform: eine Named Pipe unter Windows, einen Unix-Socket unter Linux (Speicherort unter [Steuerverben](/de/automation/control-verbs/#wo-er-lauscht)). Nur
+`screenshot` (und damit `moonpool_screenshot`) gibt es ausschließlich unter Windows; unter Linux liefert es
 „not supported on this platform“. Die Verben der Befehlszeile funktionieren auf jeder Plattform.
 
 ## Siehe auch

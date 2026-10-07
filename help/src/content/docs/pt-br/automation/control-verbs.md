@@ -14,7 +14,7 @@ rodar lado a lado sem responder um pelo outro. No Windows, o Moonpool instalado 
 permanece o mesmo para essa pasta entre reinicializações e atualizações, e muda se você mover a pasta. O
 `moonpool.exe` de uma cópia, incluindo `moonpool.exe mcp`, sempre encontra o canal da própria cópia.
 
-No Linux e no macOS, ele escuta em um socket de domínio Unix, com modo `0600`:
+No Linux, ele escuta em um socket de domínio Unix, com modo `0600`:
 
 | Caso | Caminho do socket |
 | --- | --- |
@@ -109,7 +109,7 @@ Exemplos de trocas:
 
 ## Verbos de diagnóstico (testes)
 
-Somente canal: a linha de comando não os aceita. Todos funcionam no Windows, Linux e macOS exceto
+Somente canal: a linha de comando não os aceita. Todos funcionam no Windows e no Linux exceto
 `screenshot`, que é exclusivo do Windows e responde `screenshot is not supported on this
 platform (Windows only)` nos demais.
 

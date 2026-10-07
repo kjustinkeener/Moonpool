@@ -189,7 +189,7 @@ Tylko po to, aby sprawdzić aktualizacje: pobiera plik wydania (`update.json`) z
 aktualizacje**. Każde pobranie jest weryfikowane kluczem podpisu Moonpool, zanim zostanie użyte.
 
 **Która powłoka uruchamia moje polecenia?**
-`cmd /c` w systemie Windows, `$SHELL -c` w systemach Linux i macOS.
+`cmd /c` w systemie Windows, `$SHELL -c` w systemie Linux.
 
 **Gdzie umieszczać sekrety?**
 Wartości `env` są przechowywane jako zwykły tekst w `apps.json`. Lepiej użyć pliku, który aplikacja
@@ -198,5 +198,5 @@ aplikacje.
 
 **Czy kanał sterowania jest chroniony?**
 Nie ma logowania ani tokenu. Każdy proces działający jako Ty może wysyłać mu polecenia. W
-systemach Linux i macOS gniazdo jest czytelne tylko dla Twojego użytkownika. Zob.
+systemie Linux gniazdo jest czytelne tylko dla Twojego użytkownika. Zob.
 [Właściwości bezpieczeństwa](/pl/automation/overview/#właściwości-bezpieczeństwa).

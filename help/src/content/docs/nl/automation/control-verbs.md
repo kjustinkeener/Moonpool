@@ -14,7 +14,7 @@ map is afgeleid: `\\.\pipe\moonpool-<id>`.
 hetzelfde voor die map bij herstarts en updates, en verandert als je de map verplaatst. De
 `moonpool.exe` van een kopie, inclusief `moonpool.exe mcp`, vindt altijd het kanaal van zijn eigen kopie.
 
-Onder Linux en macOS luistert het in plaats daarvan op een Unix-domeinsocket, met modus `0600`:
+Onder Linux luistert het in plaats daarvan op een Unix-domeinsocket, met modus `0600`:
 
 | Geval | Socketpad |
 | --- | --- |
@@ -110,7 +110,7 @@ Voorbeelduitwisselingen:
 
 ## Diagnostische verbs (testen)
 
-Alleen kanaal: de opdrachtregel accepteert deze niet. Alle werken onder Windows, Linux en macOS
+Alleen kanaal: de opdrachtregel accepteert deze niet. Alle werken onder Windows en Linux
 behalve `screenshot`, dat alleen onder Windows werkt en elders antwoordt met `screenshot is not supported on this
 platform (Windows only)`.
 

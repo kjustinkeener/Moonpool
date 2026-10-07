@@ -21,7 +21,7 @@ Moonpool, so it always describes the version you run. Moonpool updates itself; s
 - **apps.json errors are shown.** A banner over the sidebar shows the error, and a failed
   Reload keeps the last list that loaded. See
   [When apps.json has an error](/using/hub-window/#when-appsjson-has-an-error).
-- **Control channel on Linux and macOS**, through a Unix socket, plus the `list` verb. See
+- **Control channel on Linux**, through a Unix socket, plus the `list` verb. See
   [Control verbs](/automation/control-verbs/).
 - About and the app editor follow theme and language changes live. The **Install
   Moonpool...** menu item is hidden off Windows.
@@ -46,4 +46,3 @@ Moonpool, so it always describes the version you run. Moonpool updates itself; s
 
 - Windows 10 or 11 with WebView2 (see [Windows](/platforms/windows/)).
 - Linux with WebKitGTK 4.1 and an AppIndicator library (see [Linux](/platforms/linux/)).
-- macOS: build from source; not yet distributed or tested.

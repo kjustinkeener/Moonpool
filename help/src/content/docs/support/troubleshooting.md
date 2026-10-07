@@ -184,13 +184,12 @@ Only to check for updates: it fetches the release file (`update.json`) from GitH
 download is verified against Moonpool's signing key before it is used.
 
 **Which shell runs my commands?**
-`cmd /c` on Windows, `$SHELL -c` on Linux and macOS.
+`cmd /c` on Windows, `$SHELL -c` on Linux.
 
 **Where do I put secrets?**
 `env` values are stored in plain text in `apps.json`. Prefer a file your app reads itself,
 or a variable already set in your user environment, which launched apps inherit.
 
 **Is the control channel protected?**
-It has no login or token. Any process running as you can send it commands. On Linux and
-macOS the socket is readable only by your user. See
+It has no login or token. Any process running as you can send it commands. On Linux the socket is readable only by your user. See
 [Safety properties](/automation/overview/#safety-properties).

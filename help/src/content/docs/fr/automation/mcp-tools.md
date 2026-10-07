@@ -61,7 +61,7 @@ peut voir une copie privée du dossier de configuration au lieu du vrai.
 
 ## Avancé : outils de test
 
-`moonpool_screenshot` est réservé à Windows ; sous Linux et macOS, il échoue avec « screenshot is not
+`moonpool_screenshot` est réservé à Windows ; sous Linux, il échoue avec « screenshot is not
 supported on this platform ». `moonpool_window_state` et `moonpool_reset_mcp_seen` fonctionnent sur
 toutes les plateformes.
 

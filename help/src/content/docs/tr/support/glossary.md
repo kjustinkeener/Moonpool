@@ -67,7 +67,7 @@ asla durdurmaz.
 | `killMode` | Durdur'un uygulamanın terminalini sonlandırdıktan sonra attığı ek adım. Bkz. [Durdurma ve yeniden başlatma](/tr/apps/stop-and-restart/). |
 | `stopCommand` | `killMode` değeri `command` olduğunda Durdur'un çalıştırdığı komut. |
 | `processName` | Moonpool'un izlediği ve `processName` modunda sonlandırdığı süreç adı. |
-| denetim kanalı (control channel) | Merkezin yanıt verdiği adlandırılmış kanal (Windows) veya Unix soketi (Linux, macOS). Bkz. [Denetim fiilleri](/tr/automation/control-verbs/). |
+| denetim kanalı (control channel) | Merkezin yanıt verdiği adlandırılmış kanal (Windows) veya Unix soketi (Linux). Bkz. [Denetim fiilleri](/tr/automation/control-verbs/). |
 | fiil (verb) | Komut satırında veya denetim kanalında verilen `launch` ya da `reload` gibi bir komut sözcüğü. |
 | bilet (ticket) | Bir komutun sonucunu `state.json` içinden okumak için `--ticket` ile eklediğiniz anahtar. |
 | belirteç (token) | Bir yapılandırma yazımının taşıması gereken `apps.json` sürüm damgası. |

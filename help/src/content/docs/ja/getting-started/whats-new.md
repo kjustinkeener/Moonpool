@@ -11,7 +11,7 @@ description: "最近の Moonpool リリースでの変更点、動作要件、Gi
 - **テーマブラウザー。** 68 種類のテーマを、それぞれの配色でプレビューできます。[テーマ、言語、透明度](/ja/using/themes-and-language/)を参照してください。
 - **そのまま動くサンプル。** 新しい `apps.json` には、そのまま動作するサンプルアプリが入っています。サンプルダッシュボードは、アプリが管理する `dashboards/examples` フォルダーに置かれ、Moonpool とともに更新されます。[サンプルダッシュボード](/ja/getting-started/example-dashboards/)を参照してください。
 - **apps.json のエラーを表示。** サイドバーの上にバナーでエラーが表示され、再読み込みに失敗しても、最後に読み込めた一覧が保たれます。[apps.json にエラーがあるとき](/ja/using/hub-window/#appsjson-にエラーがあるとき)を参照してください。
-- **Linux と macOS の制御チャネル。** Unix ソケットを使い、`list` 動詞も追加されました。[制御コマンド](/ja/automation/control-verbs/)を参照してください。
+- **Linux の制御チャネル。** Unix ソケットを使い、`list` 動詞も追加されました。[制御コマンド](/ja/automation/control-verbs/)を参照してください。
 - 情報画面とアプリエディターが、テーマと言語の変更にリアルタイムで追従するようになりました。**Moonpool をインストール…** メニュー項目は、Windows 以外では非表示になります。
 
 ## 0.3.15
@@ -31,4 +31,3 @@ description: "最近の Moonpool リリースでの変更点、動作要件、Gi
 
 - WebView2 を備えた Windows 10 または 11 ([Windows](/ja/platforms/windows/)を参照)。
 - WebKitGTK 4.1 と AppIndicator ライブラリーを備えた Linux ([Linux](/ja/platforms/linux/)を参照)。
-- macOS: ソースからビルドしてください。まだ配布もテストもされていません。

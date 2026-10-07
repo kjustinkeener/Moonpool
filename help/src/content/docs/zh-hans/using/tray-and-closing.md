@@ -14,7 +14,7 @@ description: "控制托盘图标、关闭按钮、最小化和“退出”各自
 
 ## 退出
 
-**退出** 会退出 Moonpool，并且在 Windows 上会停止 Moonpool 启动的每个应用，包括它们的子进程。在 Moonpool 发现它们之前就已在运行的应用（显示为运行中但没有“由 Moonpool 管理”）不会受影响。在 Linux 和 macOS 上，退出并不能可靠地停止已启动的应用。
+**退出** 会退出 Moonpool，并且在 Windows 上会停止 Moonpool 启动的每个应用，包括它们的子进程。在 Moonpool 发现它们之前就已在运行的应用（显示为运行中但没有“由 Moonpool 管理”）不会受影响。在 Linux 上，退出并不能可靠地停止已启动的应用。
 
 ## 关闭与最小化
 

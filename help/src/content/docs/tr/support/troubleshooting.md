@@ -193,7 +193,7 @@ açıksa) ve **Güncellemeleri denetle** düğmesine bastığınızda GitHub'dan
 doğrulanır.
 
 **Komutlarımı hangi kabuk çalıştırır?**
-Windows'ta `cmd /c`, Linux ve macOS'ta `$SHELL -c`.
+Windows'ta `cmd /c`, Linux'ta `$SHELL -c`.
 
 **Gizli bilgileri nereye koymalıyım?**
 `env` değerleri `apps.json` içinde düz metin olarak saklanır. Uygulamanızın kendi okuduğu bir
@@ -202,5 +202,5 @@ uygulamalar bunu devralır.
 
 **Denetim kanalı korumalı mı?**
 Oturum açma ya da belirteç yoktur. Sizin adınıza çalışan herhangi bir süreç ona komut
-gönderebilir. Linux ve macOS'ta soket yalnızca kullanıcınız tarafından okunabilir. Bkz.
+gönderebilir. Linux'ta soket yalnızca kullanıcınız tarafından okunabilir. Bkz.
 [Güvenlik özellikleri](/tr/automation/overview/#güvenlik-özellikleri).

@@ -66,7 +66,7 @@ Terminal-Tab; er startet die App nie. Das Schließen eines Tabs stoppt die App n
 | `killMode` | Der zusätzliche Schritt, den Stoppen nach dem Beenden des Terminals der App ausführt. Siehe [Stoppen und Neustarten](/de/apps/stop-and-restart/). |
 | `stopCommand` | Der Befehl, den Stoppen ausführt, wenn `killMode` gleich `command` ist. |
 | `processName` | Der Prozessname, auf den Moonpool achtet und den es im Modus `processName` beendet. |
-| Steuerkanal | Die Named Pipe (Windows) oder der Unix-Socket (Linux, macOS), auf der der Hub antwortet. Siehe [Steuerverben](/de/automation/control-verbs/). |
+| Steuerkanal | Die Named Pipe (Windows) oder der Unix-Socket (Linux), auf der der Hub antwortet. Siehe [Steuerverben](/de/automation/control-verbs/). |
 | Verb | Ein Befehlswort wie `launch` oder `reload`, angegeben in der Befehlszeile oder über den Steuerkanal. |
 | Ticket | Ein Schlüssel, den Sie mit `--ticket` anhängen, um das Ergebnis eines Befehls aus `state.json` zu lesen. |
 | Token | Der Versionsstempel von `apps.json`, den ein Schreibvorgang auf die Konfiguration mitbringen muss. |

@@ -18,7 +18,7 @@ suggerimento indica di quale copia si tratta. Vedi
 
 **Esci** chiude Moonpool e, su Windows, arresta ogni app avviata da Moonpool, inclusi i loro
 processi figli. Le app che erano già in esecuzione prima che Moonpool le vedesse (mostrate come in
-esecuzione senza «managed by Moonpool») vengono lasciate stare. Su Linux e macOS, uscire non
+esecuzione senza «managed by Moonpool») vengono lasciate stare. Su Linux, uscire non
 arresta in modo affidabile le app avviate.
 
 ## Chiusura e riduzione a icona

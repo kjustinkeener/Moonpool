@@ -61,7 +61,7 @@ klasörü yerine onun özel bir kopyası gösterilebilir.
 
 ## İleri düzey: test araçları
 
-`moonpool_screenshot` yalnızca Windows'ta çalışır; Linux ve macOS'ta "screenshot is not
+`moonpool_screenshot` yalnızca Windows'ta çalışır; Linux'ta "screenshot is not
 supported on this platform" ile başarısız olur. `moonpool_window_state` ve `moonpool_reset_mcp_seen` her platformda
 çalışır.
 

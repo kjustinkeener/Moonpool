@@ -66,7 +66,7 @@ solo se abre su pestaña de terminal; nunca inicia la app. Cerrar una pestaña n
 | `killMode` | El paso adicional que da Detener tras terminar la terminal de la app. Consulta [Detener y reiniciar](/es/apps/stop-and-restart/). |
 | `stopCommand` | El comando que ejecuta Detener cuando `killMode` es `command`. |
 | `processName` | El nombre de proceso que Moonpool vigila, y que termina en el modo `processName`. |
-| canal de control | La canalización con nombre (Windows) o el socket Unix (Linux, macOS) en el que responde el hub. Consulta [Verbos de control](/es/automation/control-verbs/). |
+| canal de control | La canalización con nombre (Windows) o el socket Unix (Linux) en el que responde el hub. Consulta [Verbos de control](/es/automation/control-verbs/). |
 | verbo | Una palabra de comando como `launch` o `reload`, que se indica en la línea de comandos o en el canal de control. |
 | ticket | Una clave que añades con `--ticket` para leer en `state.json` el resultado de un comando. |
 | token | El sello de versión de `apps.json` que debe llevar una escritura de configuración. |

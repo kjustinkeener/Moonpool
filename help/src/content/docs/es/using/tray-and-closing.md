@@ -17,7 +17,7 @@ emergente indica de qué copia se trata. Consulta [Modo portable](/es/data/porta
 
 **Salir** cierra Moonpool y, en Windows, detiene todas las apps que Moonpool inició, incluidos sus
 procesos hijo. Las apps que ya estaban en ejecución antes de que Moonpool las viera (se muestran como en
-ejecución sin "gestionada por Moonpool") no se tocan. En Linux y macOS, salir no detiene de forma fiable
+ejecución sin "gestionada por Moonpool") no se tocan. En Linux, salir no detiene de forma fiable
 las apps iniciadas.
 
 ## Cerrar y minimizar

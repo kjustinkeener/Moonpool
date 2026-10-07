@@ -14,7 +14,7 @@ onafhankelijk, elk met een eigen besturingskanaal. Een oppervlak bereikt altijd 
 | --- | --- | --- |
 | MCP-server | `moonpool.exe mcp`, een stdio-[MCP](https://modelcontextprotocol.io)-server die een AI-host start. | [MCP-installatie](/nl/automation/mcp-setup/), [MCP-tools](/nl/automation/mcp-tools/) |
 | Opdrachtregel | `moonpool.exe <verb> [args]`. Een tweede uitvoering van dezelfde kopie geeft de verb via het besturingskanaal door aan zijn hub en sluit af. | [Opdrachtregel](/nl/automation/command-line/) |
-| Besturingskanaal | Een named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` voor een draagbare kopie), onder Windows en een Unix-socket onder Linux en macOS, met één JSON-verzoek per regel. | [Besturings-verbs](/nl/automation/control-verbs/) |
+| Besturingskanaal | Een named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` voor een draagbare kopie), onder Windows en een Unix-socket onder Linux, met één JSON-verzoek per regel. | [Besturings-verbs](/nl/automation/control-verbs/) |
 
 ## Hoe ze zich tot elkaar verhouden
 
@@ -62,7 +62,7 @@ Alleen-lezen tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_
   een andere app. De PNG wordt in het geheugen opgebouwd en inline teruggegeven; Moonpool slaat hem niet op in een
   bestand.
 - **Geen authenticatie op het kanaal.** Moonpool voegt geen login of token toe aan de besturingspipe of
-  -socket. Elk proces dat hem kan openen kan verbs sturen. Onder Linux en macOS wordt het socketbestand
+  -socket. Elk proces dat hem kan openen kan verbs sturen. Onder Linux wordt het socketbestand
   aangemaakt met modus `0600`, dus alleen je eigen gebruiker kan dat.
 - **Hosts in een sandbox worden gedetecteerd.** Als de MCP-server merkt dat hij in een verpakte
   (Store/MSIX) sandbox draait, waar hij een privékopie van de bestanden van Moonpool zou zien, geven de tools die
@@ -73,9 +73,8 @@ Alleen-lezen tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_
 
 ## Platform
 
-Het besturingskanaal bestaat op elk platform: een named pipe onder Windows, een Unix-socket onder Linux
-en macOS (locatie in [Besturings-verbs](/nl/automation/control-verbs/#waar-het-luistert)). Alleen
-`screenshot` (en dus `moonpool_screenshot`) werkt alleen onder Windows; onder Linux en macOS geeft het
+Het besturingskanaal bestaat op elk platform: een named pipe onder Windows, een Unix-socket onder Linux (locatie in [Besturings-verbs](/nl/automation/control-verbs/#waar-het-luistert)). Alleen
+`screenshot` (en dus `moonpool_screenshot`) werkt alleen onder Windows; onder Linux geeft het
 "not supported on this platform" terug. De verbs van de opdrachtregel werken op elk platform.
 
 ## Zie ook

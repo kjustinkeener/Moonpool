@@ -17,7 +17,7 @@ it is. See [Portable mode](/data/portable-mode/#several-copies-at-once).
 
 **Quit** exits Moonpool and, on Windows, stops every app Moonpool launched, including their
 child processes. Apps that were already running before Moonpool saw them (shown as running
-without "managed by Moonpool") are left alone. On Linux and macOS, quitting does not reliably
+without "managed by Moonpool") are left alone. On Linux, quitting does not reliably
 stop launched apps.
 
 ## Closing and minimizing

@@ -14,7 +14,7 @@ independently, each with its own control channel. A surface always reaches the c
 | --- | --- | --- |
 | MCP server | `moonpool.exe mcp`, a stdio [MCP](https://modelcontextprotocol.io) server that an AI host starts. | [MCP setup](/automation/mcp-setup/), [MCP tools](/automation/mcp-tools/) |
 | Command line | `moonpool.exe <verb> [args]`. A second run of the same copy hands the verb to its hub over the control channel and exits. | [Command line](/automation/command-line/) |
-| Control channel | A named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` for a portable copy), on Windows and a Unix socket on Linux and macOS, speaking one JSON request per line. | [Control verbs](/automation/control-verbs/) |
+| Control channel | A named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` for a portable copy), on Windows and a Unix socket on Linux, speaking one JSON request per line. | [Control verbs](/automation/control-verbs/) |
 
 ## How they relate
 
@@ -62,7 +62,7 @@ Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_con
   another app. The PNG is built in memory and returned inline; Moonpool does not save it to a
   file.
 - **No authentication on the channel.** Moonpool adds no login or token to the control pipe or
-  socket. Any process that can open it can send verbs. On Linux and macOS the socket file is
+  socket. Any process that can open it can send verbs. On Linux the socket file is
   created with mode `0600`, so only your own user can.
 - **Sandboxed hosts are detected.** If the MCP server finds it is running inside a packaged
   (Store/MSIX) sandbox, where it would see a private copy of Moonpool's files, the tools that
@@ -73,9 +73,8 @@ Read-only tools: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_read_con
 
 ## Platform
 
-The control channel exists on every platform: a named pipe on Windows, a Unix socket on Linux
-and macOS (location in [Control verbs](/automation/control-verbs/#where-it-listens)). Only
-`screenshot` (and so `moonpool_screenshot`) is Windows only; on Linux and macOS it returns
+The control channel exists on every platform: a named pipe on Windows, a Unix socket on Linux (location in [Control verbs](/automation/control-verbs/#where-it-listens)). Only
+`screenshot` (and so `moonpool_screenshot`) is Windows only; on Linux it returns
 "not supported on this platform". The command line verbs work on every platform.
 
 ## See also

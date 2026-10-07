@@ -20,7 +20,7 @@ description: "최근 Moonpool 릴리스에서 달라진 점, 실행에 필요한
 - **apps.json 오류 표시.** 사이드바 위의 배너에 오류가 표시되며, 새로 고침에 실패하면 마지막으로
   불러온 목록이 유지됩니다.
   [apps.json에 오류가 있을 때](/ko/using/hub-window/#appsjson에-오류가-있을-때)를 참고하세요.
-- **Linux와 macOS의 제어 채널.** Unix 소켓을 통해 사용하며 `list` 동사가 추가되었습니다.
+- **Linux의 제어 채널.** Unix 소켓을 통해 사용하며 `list` 동사가 추가되었습니다.
   [제어 동사](/ko/automation/control-verbs/)를 참고하세요.
 - 정보 창과 앱 편집기가 테마와 언어 변경을 실시간으로 따릅니다. **Moonpool 설치…** 메뉴
   항목은 Windows가 아닌 환경에서 숨겨집니다.
@@ -45,4 +45,3 @@ description: "최근 Moonpool 릴리스에서 달라진 점, 실행에 필요한
 
 - WebView2가 설치된 Windows 10 또는 11 ([Windows](/ko/platforms/windows/) 참고).
 - WebKitGTK 4.1과 AppIndicator 라이브러리가 있는 Linux ([Linux](/ko/platforms/linux/) 참고).
-- macOS: 소스에서 빌드해야 하며, 아직 배포나 테스트가 이루어지지 않았습니다.

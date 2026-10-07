@@ -67,7 +67,7 @@ onglet n'arrête jamais l'app.
 | `killMode` | L'étape supplémentaire qu'Arrêter exécute après avoir mis fin au terminal de l'app. Voir [Arrêt et redémarrage](/fr/apps/stop-and-restart/). |
 | `stopCommand` | La commande qu'Arrêter exécute quand `killMode` vaut `command`. |
 | `processName` | Le nom de processus que Moonpool surveille, et qu'il termine en mode `processName`. |
-| canal de contrôle | Le canal nommé (named pipe, Windows) ou le socket Unix (Linux, macOS) sur lequel le hub répond. Voir [Verbes de contrôle](/fr/automation/control-verbs/). |
+| canal de contrôle | Le canal nommé (named pipe, Windows) ou le socket Unix (Linux) sur lequel le hub répond. Voir [Verbes de contrôle](/fr/automation/control-verbs/). |
 | verbe | Un mot de commande comme `launch` ou `reload`, donné en ligne de commande ou sur le canal de contrôle. |
 | ticket | Une clé que vous joignez avec `--ticket` pour lire le résultat d'une commande dans `state.json`. |
 | jeton | L'horodatage de version d'`apps.json` que toute écriture de configuration doit porter. |

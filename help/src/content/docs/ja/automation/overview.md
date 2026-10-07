@@ -11,7 +11,7 @@ Moonpool のコピーはそれぞれが独自のハブです。インストー�
 | --- | --- | --- |
 | MCP サーバー | `moonpool.exe mcp`。AI ホストが起動する stdio の [MCP](https://modelcontextprotocol.io) サーバーです。 | [MCP のセットアップ](/ja/automation/mcp-setup/)、[MCP ツール](/ja/automation/mcp-tools/) |
 | コマンドライン | `moonpool.exe <verb> [args]`。同じコピーを 2 回目に実行すると、動詞が制御チャネル経由でそのハブに渡され、実行は終了します。 | [コマンドライン](/ja/automation/command-line/) |
-| 制御チャネル | Windows では名前付きパイプ `\\.\pipe\moonpool`(ポータブル版は `\\.\pipe\moonpool-<id>`)、Linux と macOS では Unix ソケットで、1 行に 1 つの JSON リクエストを受け付けます。 | [制御動詞](/ja/automation/control-verbs/) |
+| 制御チャネル | Windows では名前付きパイプ `\\.\pipe\moonpool`(ポータブル版は `\\.\pipe\moonpool-<id>`)、Linux では Unix ソケットで、1 行に 1 つの JSON リクエストを受け付けます。 | [制御動詞](/ja/automation/control-verbs/) |
 
 ## 相互の関係
 
@@ -41,12 +41,12 @@ Moonpool のコピーはそれぞれが独自のハブです。インストー�
 - **設定の書き込みは保護されています。** 書き込みには直前の読み取りで得たバージョントークンが必要で、古いトークンは拒否され、何かを書き込む前に新しい `apps.json` が検証されます。拒否された書き込みは `apps.json` を変更しません。[MCP ツール](/ja/automation/mcp-tools/#設定)を参照してください。
 - **アプリ ID は制限されています。** MCP サーバーが受け付けるのは英字、数字、`.`、`_`、`-` だけで、先頭の `-` は認められません。そのため、ID がコマンドラインのフラグとして解釈されることはありません。
 - **スクリーンショットは Moonpool のみです。** `moonpool_screenshot` が取得するのは、Moonpool 自身の 6 つのウィンドウ(`main`、`settings`、`about`、`installer`、`editor`、`help`、`themes`)のいずれかで、画面全体やほかのアプリは取得しません。PNG はメモリ上で作られてインラインで返され、Moonpool がファイルに保存することはありません。
-- **チャネルに認証はありません。** Moonpool は、制御パイプやソケットにログインやトークンを追加していません。開けるプロセスなら、どれでも動詞を送れます。Linux と macOS では、ソケットファイルがモード `0600` で作られるため、自分のユーザーだけが開けます。
+- **チャネルに認証はありません。** Moonpool は、制御パイプやソケットにログインやトークンを追加していません。開けるプロセスなら、どれでも動詞を送れます。Linux では、ソケットファイルがモード `0600` で作られるため、自分のユーザーだけが開けます。
 - **サンドボックス化されたホストを検出します。** MCP サーバーが、Moonpool のファイルの非公開コピーが見えてしまうパッケージ化された(Store/MSIX)サンドボックス内で動作していることを検出すると、ファイルを読み書きするツール(`moonpool_app_output`、`moonpool_read_config`、`moonpool_write_config`、`moonpool_restore_config`)は、古いデータの代わりにその理由を説明するエラーを返します。制御チャネルだけを使うツールはブロックされません。[MCP のセットアップ](/ja/automation/mcp-setup/#サンドボックス化されたホスト)を参照してください。
 
 ## プラットフォーム
 
-制御チャネルはすべてのプラットフォームにあります。Windows では名前付きパイプ、Linux と macOS では Unix ソケットです(場所は[制御動詞](/ja/automation/control-verbs/#待ち受け先)にあります)。Windows 専用なのは `screenshot`(したがって `moonpool_screenshot`)だけで、Linux と macOS では "not supported on this platform" を返します。コマンドラインの動詞は、すべてのプラットフォームで動作します。
+制御チャネルはすべてのプラットフォームにあります。Windows では名前付きパイプ、Linux では Unix ソケットです(場所は[制御動詞](/ja/automation/control-verbs/#待ち受け先)にあります)。Windows 専用なのは `screenshot`(したがって `moonpool_screenshot`)だけで、Linux では "not supported on this platform" を返します。コマンドラインの動詞は、すべてのプラットフォームで動作します。
 
 ## 関連項目
 

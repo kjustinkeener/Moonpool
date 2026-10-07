@@ -18,7 +18,7 @@ kopię chodzi. Zob. [Tryb przenośny](/pl/data/portable-mode/#kilka-kopii-naraz)
 **Zakończ** zamyka Moonpool, a w systemie Windows zatrzymuje każdą aplikację uruchomioną przez
 Moonpool, łącznie z ich procesami potomnymi. Aplikacje, które działały już, zanim Moonpool je
 zobaczył (pokazane jako działające bez „zarządzane przez Moonpool”), pozostają nietknięte. W
-systemach Linux i macOS zakończenie pracy nie zatrzymuje niezawodnie uruchomionych aplikacji.
+systemie Linux zakończenie pracy nie zatrzymuje niezawodnie uruchomionych aplikacji.
 
 ## Zamykanie i minimalizowanie
 

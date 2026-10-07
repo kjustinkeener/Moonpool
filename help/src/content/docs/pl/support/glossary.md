@@ -67,7 +67,7 @@ aplikacji.
 | `killMode` | Dodatkowy krok, który Zatrzymaj wykonuje po zakończeniu terminala aplikacji. Zob. [Zatrzymywanie i ponowne uruchamianie](/pl/apps/stop-and-restart/). |
 | `stopCommand` | Polecenie, które Zatrzymaj uruchamia, gdy `killMode` ma wartość `command`. |
 | `processName` | Nazwa procesu, której szuka Moonpool i którą kończy w trybie `processName`. |
-| kanał sterowania | Potok nazwany (Windows) lub gniazdo Unix (Linux, macOS), na którym odpowiada hub. Zob. [Polecenia sterujące](/pl/automation/control-verbs/). |
+| kanał sterowania | Potok nazwany (Windows) lub gniazdo Unix (Linux), na którym odpowiada hub. Zob. [Polecenia sterujące](/pl/automation/control-verbs/). |
 | polecenie (verb) | Słowo polecenia, takie jak `launch` lub `reload`, podawane w wierszu poleceń lub w kanale sterowania. |
 | bilet (ticket) | Klucz dołączany przez `--ticket`, aby odczytać wynik polecenia z `state.json`. |
 | token | Znacznik wersji `apps.json`, który musi towarzyszyć zapisowi konfiguracji. |

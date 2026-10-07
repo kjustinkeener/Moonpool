@@ -66,7 +66,7 @@ terminal dele; nunca inicia o app. Fechar uma aba nunca para o app.
 | `killMode` | A etapa extra que Parar executa depois de encerrar o terminal do app. Veja [Parar e reiniciar](/pt-br/apps/stop-and-restart/). |
 | `stopCommand` | O comando que Parar executa quando `killMode` é `command`. |
 | `processName` | O nome de processo que o Moonpool observa, e que encerra no modo `processName`. |
-| canal de controle | O pipe nomeado (Windows) ou socket Unix (Linux, macOS) em que o hub responde. Veja [Verbos de controle](/pt-br/automation/control-verbs/). |
+| canal de controle | O pipe nomeado (Windows) ou socket Unix (Linux) em que o hub responde. Veja [Verbos de controle](/pt-br/automation/control-verbs/). |
 | verbo | Uma palavra de comando como `launch` ou `reload`, dada na linha de comando ou no canal de controle. |
 | ticket | Uma chave que você anexa com `--ticket` para ler o resultado de um comando em `state.json`. |
 | token | O carimbo de versão do `apps.json` que uma gravação de configuração deve levar. |

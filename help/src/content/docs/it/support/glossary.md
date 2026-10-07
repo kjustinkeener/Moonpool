@@ -67,7 +67,7 @@ arresta mai l'app.
 | `killMode` | Il passaggio aggiuntivo che Arresta esegue dopo aver terminato il terminale dell'app. Vedi [Arresto e riavvio](/it/apps/stop-and-restart/). |
 | `stopCommand` | Il comando che Arresta esegue quando `killMode` è `command`. |
 | `processName` | Il nome del processo che Moonpool controlla e che termina in modalità `processName`. |
-| canale di controllo | La named pipe (Windows) o il socket Unix (Linux, macOS) su cui risponde l'hub. Vedi [Verbi di controllo](/it/automation/control-verbs/). |
+| canale di controllo | La named pipe (Windows) o il socket Unix (Linux) su cui risponde l'hub. Vedi [Verbi di controllo](/it/automation/control-verbs/). |
 | verbo (verb) | Una parola di comando come `launch` o `reload`, data sulla riga di comando o sul canale di controllo. |
 | ticket | Una chiave che alleghi con `--ticket` per leggere l'esito di un comando da `state.json`. |
 | token | Il contrassegno di versione di `apps.json` che una scrittura di configurazione deve riportare. |

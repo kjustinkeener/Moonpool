@@ -11,7 +11,7 @@ Moonpool 복사본마다 각자 하나의 허브입니다. 설치된 복사본�
 | --- | --- | --- |
 | MCP 서버 | `moonpool.exe mcp`. AI 호스트가 시작하는 stdio [MCP](https://modelcontextprotocol.io) 서버입니다. | [MCP 설정](/ko/automation/mcp-setup/), [MCP 도구](/ko/automation/mcp-tools/) |
 | 명령줄 | `moonpool.exe <verb> [args]`. 같은 복사본을 한 번 더 실행하면 제어 채널을 통해 동사를 해당 허브에 전달하고 종료합니다. | [명령줄](/ko/automation/command-line/) |
-| 제어 채널 | Windows에서는 이름 있는 파이프 `\\.\pipe\moonpool`(포터블 복사본은 `\\.\pipe\moonpool-<id>`), Linux와 macOS에서는 Unix 소켓이며, 한 줄에 JSON 요청 하나를 주고받습니다. | [제어 동사](/ko/automation/control-verbs/) |
+| 제어 채널 | Windows에서는 이름 있는 파이프 `\\.\pipe\moonpool`(포터블 복사본은 `\\.\pipe\moonpool-<id>`), Linux에서는 Unix 소켓이며, 한 줄에 JSON 요청 하나를 주고받습니다. | [제어 동사](/ko/automation/control-verbs/) |
 
 ## 서로의 관계
 
@@ -41,12 +41,12 @@ Moonpool 복사본마다 각자 하나의 허브입니다. 설치된 복사본�
 - **설정 쓰기는 보호됩니다.** 쓰기에는 마지막으로 읽은 시점의 버전 토큰이 있어야 하고, 오래된 토큰은 거부되며, 새 `apps.json`은 쓰기 전에 검증됩니다. 거부된 쓰기는 `apps.json`을 건드리지 않습니다. [MCP 도구](/ko/automation/mcp-tools/#구성)를 참고하세요.
 - **앱 id는 제한됩니다.** MCP 서버는 영문자, 숫자, `.`, `_`, `-`만 허용하며 맨 앞의 `-`는 허용하지 않으므로, id가 명령줄 플래그로 해석될 수 없습니다.
 - **스크린샷은 Moonpool만 대상으로 합니다.** `moonpool_screenshot`은 Moonpool 자체 창(`main`, `settings`, `about`, `installer`, `editor`, `help`, `themes`) 중 하나만 캡처하며, 화면 전체나 다른 앱은 캡처하지 않습니다. PNG는 메모리에서 만들어져 그대로 반환되며, Moonpool은 이를 파일로 저장하지 않습니다.
-- **채널에는 인증이 없습니다.** Moonpool은 제어 파이프나 소켓에 로그인이나 토큰을 추가하지 않습니다. 열 수 있는 프로세스는 누구나 동사를 보낼 수 있습니다. Linux와 macOS에서는 소켓 파일이 `0600` 모드로 만들어지므로 사용자 본인만 열 수 있습니다.
+- **채널에는 인증이 없습니다.** Moonpool은 제어 파이프나 소켓에 로그인이나 토큰을 추가하지 않습니다. 열 수 있는 프로세스는 누구나 동사를 보낼 수 있습니다. Linux에서는 소켓 파일이 `0600` 모드로 만들어지므로 사용자 본인만 열 수 있습니다.
 - **샌드박스 호스트를 감지합니다.** MCP 서버가 패키지(Store/MSIX) 샌드박스 안에서 실행되어 Moonpool 파일의 비공개 복사본을 보게 된다면, 파일을 읽거나 쓰는 도구(`moonpool_app_output`, `moonpool_read_config`, `moonpool_write_config`, `moonpool_restore_config`)는 오래된 데이터를 반환하는 대신 이유를 설명하는 오류를 반환합니다. 제어 채널만 쓰는 도구는 차단되지 않습니다. [MCP 설정](/ko/automation/mcp-setup/#샌드박스-호스트)을 참고하세요.
 
 ## 플랫폼
 
-제어 채널은 모든 플랫폼에 있습니다. Windows에서는 이름 있는 파이프, Linux와 macOS에서는 Unix 소켓입니다(위치는 [제어 동사](/ko/automation/control-verbs/#수신-위치) 참고). `screenshot`(따라서 `moonpool_screenshot`)만 Windows 전용이며, Linux와 macOS에서는 "not supported on this platform"을 반환합니다. 명령줄 동사는 모든 플랫폼에서 동작합니다.
+제어 채널은 모든 플랫폼에 있습니다. Windows에서는 이름 있는 파이프, Linux에서는 Unix 소켓입니다(위치는 [제어 동사](/ko/automation/control-verbs/#수신-위치) 참고). `screenshot`(따라서 `moonpool_screenshot`)만 Windows 전용이며, Linux에서는 "not supported on this platform"을 반환합니다. 명령줄 동사는 모든 플랫폼에서 동작합니다.
 
 ## 관련 항목
 

@@ -14,7 +14,7 @@ folder: `\\.\pipe\moonpool-<id>`.
 same for that folder across restarts and updates, and changes if you move the folder. The
 `moonpool.exe` of a copy, including `moonpool.exe mcp`, always finds its own copy's channel.
 
-On Linux and macOS it listens on a Unix domain socket instead, with mode `0600`:
+On Linux it listens on a Unix domain socket instead, with mode `0600`:
 
 | Case | Socket path |
 | --- | --- |
@@ -111,7 +111,7 @@ Example exchanges:
 
 ## Diagnostic verbs (testing)
 
-Channel only: the command line does not accept these. All work on Windows, Linux and macOS
+Channel only: the command line does not accept these. All work on Windows and Linux
 except `screenshot`, which is Windows only and answers `screenshot is not supported on this
 platform (Windows only)` elsewhere.
 
