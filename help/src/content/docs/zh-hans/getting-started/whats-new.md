@@ -8,6 +8,13 @@ description: "了解 Moonpool 近几个版本的变化、运行所需的环境�
 一起发布，所以它描述的始终是你正在运行的版本。Moonpool 会自动更新；参见
 [更新](/zh-hans/data/updating/)。
 
+## 0.3.17
+
+- **14 种语言的帮助。** 帮助以 Moonpool 的界面语言打开：英语、德语、西班牙语、法语、意大利语、荷兰语、波兰语、巴西葡萄牙语、俄语、土耳其语、日语、韩语，以及简体中文和繁体中文。
+- **新的指南和支持页面**，涵盖开发服务器、端口、登录时启动、MCP 智能体、Python 脚本和常见错误消息。
+- **`mcpProcessName`。** 用于应用 MCP 服务器进程名的通配符模式，适用于以其他名称运行的服务器。参见 [mcpProcessName](/zh-hans/apps/fields/#mcpprocessname)。
+- **不再支持 macOS。** 没有 macOS 版本。Windows 和 Linux 不受影响。
+
 ## 0.3.16
 
 - **同时运行多个 Moonpool。** 已安装的 Moonpool 和任意数量的便携副本可以并排运行，

@@ -8,6 +8,18 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.17
+
+- **Help in 14 talen.** De help opent in de taal van Moonpool: Engels, Duits, Spaans, Frans,
+  Italiaans, Nederlands, Pools, Braziliaans-Portugees, Russisch, Turks, Japans, Koreaans en
+  vereenvoudigd en traditioneel Chinees.
+- **Nieuwe handleidingen en ondersteuningspagina's** over ontwikkelservers, poorten, starten bij
+  aanmelden, MCP-agents, Python-scripts en veelvoorkomende foutmeldingen.
+- **`mcpProcessName`.** Een jokertekenpatroon voor de procesnaam van de MCP-server van een app,
+  voor servers die onder een andere naam draaien. Zie [mcpProcessName](/nl/apps/fields/#mcpprocessname).
+- **macOS wordt niet meer ondersteund.** Er zijn geen macOS-builds meer. Voor Windows en Linux
+  verandert er niets.
+
 ## 0.3.16
 
 - **Meerdere Moonpools tegelijk.** De geïnstalleerde Moonpool en een willekeurig aantal
