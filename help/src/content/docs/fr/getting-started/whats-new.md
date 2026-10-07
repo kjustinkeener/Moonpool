@@ -8,6 +8,11 @@ Les notes complètes de chaque version se trouvent sur la
 est livrée dans Moonpool : elle décrit donc toujours la version que vous utilisez. Moonpool se
 met à jour tout seul ; voir [Mises à jour](/fr/data/updating/).
 
+## 0.3.18
+
+- **La mise à jour n'échoue plus avec « Accès refusé »** lorsqu'un serveur MCP de Moonpool
+  lancé avant la mise à jour précédente tourne encore.
+
 ## 0.3.17
 
 - **Aide en 14 langues.** L'aide s'ouvre dans la langue de Moonpool : anglais, allemand,

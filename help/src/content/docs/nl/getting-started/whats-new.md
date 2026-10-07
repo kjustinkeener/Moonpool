@@ -8,6 +8,11 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.18
+
+- **Bijwerken mislukt niet meer met "Toegang geweigerd"** terwijl een Moonpool-MCP-server
+  draait die vóór de vorige update is gestart.
+
 ## 0.3.17
 
 - **Help in 14 talen.** De help opent in de taal van Moonpool: Engels, Duits, Spaans, Frans,

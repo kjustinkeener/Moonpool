@@ -8,6 +8,11 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.18
+
+- **Updating no longer fails with "Access is denied"** while a Moonpool MCP server started
+  before the previous update is still running.
+
 ## 0.3.17
 
 - **Help in 14 languages.** The help opens in Moonpool's language: English, German, Spanish,
