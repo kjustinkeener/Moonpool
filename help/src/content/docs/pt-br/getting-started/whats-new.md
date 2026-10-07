@@ -8,6 +8,11 @@ As notas completas de cada versão estão na
 distribuída dentro do Moonpool, então sempre descreve a versão que você usa. O Moonpool se atualiza
 sozinho; veja [Atualização](/pt-br/data/updating/).
 
+## 0.3.18
+
+- **A atualização não falha mais com "Acesso negado"** enquanto ainda roda um servidor MCP
+  do Moonpool iniciado antes da atualização anterior.
+
 ## 0.3.17
 
 - **Ajuda em 14 idiomas.** A ajuda abre no idioma do Moonpool: inglês, alemão, espanhol,

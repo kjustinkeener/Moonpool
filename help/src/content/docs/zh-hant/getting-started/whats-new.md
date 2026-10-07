@@ -5,6 +5,10 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.18
+
+- **即使在上次更新之前啟動的 Moonpool MCP 伺服器仍在執行，更新也不會再因「存取被拒」而失敗。**
+
 ## 0.3.17
 
 - **14 種語言的說明。** 說明會以 Moonpool 的介面語言開啟：英文、德文、西班牙文、法文、義大利文、荷蘭文、波蘭文、巴西葡萄牙文、俄文、土耳其文、日文、韓文，以及簡體中文和繁體中文。

@@ -8,6 +8,11 @@ Die vollständigen Hinweise zu jeder Version stehen auf der
 wird in Moonpool mitgeliefert und beschreibt daher immer die Version, die Sie ausführen. Moonpool
 aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
+## 0.3.18
+
+- **Das Aktualisieren schlägt nicht mehr mit „Zugriff verweigert“ fehl**, wenn noch ein
+  Moonpool-MCP-Server läuft, der vor dem letzten Update gestartet wurde.
+
 ## 0.3.17
 
 - **Hilfe in 14 Sprachen.** Die Hilfe öffnet sich in der Sprache von Moonpool: Englisch,

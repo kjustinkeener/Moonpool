@@ -7,6 +7,11 @@ Pełne informacje o każdym wydaniu znajdują się na [stronie Releases](https:/
 projektu. Ta pomoc jest dostarczana wraz z Moonpool, więc zawsze opisuje używaną wersję. Moonpool
 aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
+## 0.3.18
+
+- **Aktualizacja nie kończy się już błędem „Odmowa dostępu”**, gdy nadal działa serwer MCP
+  Moonpool uruchomiony przed poprzednią aktualizacją.
+
 ## 0.3.17
 
 - **Pomoc w 14 językach.** Pomoc otwiera się w języku Moonpool: angielskim, niemieckim,

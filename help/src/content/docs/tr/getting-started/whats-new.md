@@ -8,6 +8,11 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.18
+
+- **Güncelleme artık "Erişim engellendi" hatasıyla başarısız olmuyor**; önceki güncellemeden
+  önce başlatılmış bir Moonpool MCP sunucusu hâlâ çalışıyor olsa bile.
+
 ## 0.3.17
 
 - **14 dilde yardım.** Yardım, Moonpool'un dilinde açılır: İngilizce, Almanca, İspanyolca,
