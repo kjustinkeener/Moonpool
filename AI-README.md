@@ -32,7 +32,7 @@ variable form, and then edit a file the real Moonpool never sees.
                                  //   Conventional groups: "Desktop apps", "Web apps", "Docs", "CLI tools"
   "type": "web",                 // required: desktop | web | static | cli
   "cwd": "C:\\path\\to\\app",    // working directory the command runs in
-  "command": "npm run dev",      // launch command (run via `cmd /c`; `$SHELL -c` on Linux/macOS)
+  "command": "npm run dev",      // launch command (run via `cmd /c`; `$SHELL -c` on Linux)
   "port": 5173,                  // web: used for status + browser-open
   "url": "http://localhost:5173",// web: opened when the port goes live; static: opened directly
   "openBrowser": true,           // web/static: open the browser
@@ -103,7 +103,7 @@ you set it explicitly. If the field the mode reads is missing (no `port`, no `pr
 ## Command rules (important)
 
 - Every `command` runs through `cmd /c` in `cwd` on Windows (`$SHELL -c`, else `/bin/sh -c`,
-  on Linux and macOS), inheriting the environment plus `env`. The quoting rules below are
+  on Linux), inheriting the environment plus `env`. The quoting rules below are
   for `cmd /c`.
 - **Prefer a FOREGROUND command that streams logs** (`python app.py`, `node server.js`, an app's
   `dev-run.ps1`) over a detached/windowless launcher (`pythonw`, `.vbs`, `start ...`), so output
@@ -212,7 +212,7 @@ announces itself as `moonpool (<folder>)` and names its folder in its server ins
 
 The server is a *client* of the resident tray instance of ITS copy: it sends each command over
 that copy's control channel (a named pipe on Windows, `\\.\pipe\moonpool` installed or
-`\\.\pipe\moonpool-<id>` portable; a Unix socket on Linux/macOS) and returns the real outcome.
+`\\.\pipe\moonpool-<id>` portable; a Unix socket on Linux) and returns the real outcome.
 Whether Moonpool is running is decided by pinging that channel. Most tools need Moonpool
 already running; call `moonpool_bootup_launcher` first if it is not. `moonpool_list_apps` is
 answered live by the running hub and fails with "Moonpool is not running" rather than

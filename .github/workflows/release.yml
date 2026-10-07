@@ -1,6 +1,6 @@
 # Release + auto-update workflow
 #
-# Triggers on a version tag (e.g. v0.1.0) and builds Moonpool for Windows, macOS, and Linux,
+# Triggers on a version tag (e.g. v0.1.0) and builds Moonpool for Windows and Linux,
 # then publishes a DRAFT GitHub Release containing the per-OS bundles. On Windows it also
 # publishes the CUSTOM updater artifacts that Moonpool's in-app self-updater reads:
 #   - moonpool.exe   the raw, self-installing/self-updating executable (the download)
@@ -40,8 +40,6 @@ jobs:
         include:
           - platform: windows-latest
             args: ""
-          - platform: macos-latest
-            args: "--target universal-apple-darwin"
           - platform: ubuntu-latest
             args: ""
 
@@ -68,9 +66,6 @@ jobs:
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          # macOS universal binary needs both architecture targets.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - uses: Swatinem/rust-cache@v2
         with:
