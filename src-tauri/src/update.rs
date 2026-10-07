@@ -87,6 +87,24 @@ pub fn cleanup_old() {
     }
 }
 
+/// Rename `path` aside so a new file can take its place, and return where it went. A
+/// running exe can be renamed but not overwritten, so this is how both the updater and a
+/// reinstall over an in-use install get the old bytes out of the way. The aside name is
+/// `<stem>.old`, or `<stem>.old-<pid>` when `.old` can't be removed: a `moonpool.exe mcp`
+/// started before the last update or reinstall still runs from the previous `.old`, which
+/// locks it, and renaming onto it would fail with Access denied. `cleanup_old` sweeps both
+/// once the process holding them ends.
+pub(crate) fn step_aside(path: &Path) -> std::io::Result<PathBuf> {
+    let mut old = path.with_extension("old");
+    let _ = std::fs::remove_file(&old);
+    if old.exists() {
+        old = path.with_extension(format!("old-{}", std::process::id()));
+        let _ = std::fs::remove_file(&old);
+    }
+    std::fs::rename(path, &old)?;
+    Ok(old)
+}
+
 /// The file we are allowed to replace. In an AppImage process `current_exe()`
 /// points into the temporary FUSE mount, not at the AppImage the user launched;
 /// APPIMAGE is the stable source file. Packaged Linux installs deliberately return
@@ -258,17 +276,9 @@ fn self_replace_and_relaunch(
     new_version: &str,
 ) -> Result<(), String> {
     let cur = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let mut old = cur.with_extension("old");
-    let _ = std::fs::remove_file(&old);
-    // A `moonpool.exe mcp` started before the last update still runs from the previous
-    // `.old`, which locks it; renaming onto it then fails with Access denied. Step aside
-    // to a unique name instead. `cleanup_old` removes it once that process ends.
-    if old.exists() {
-        old = cur.with_extension(format!("old-{}", std::process::id()));
-    }
 
     // Rename works on a running exe; overwrite does not.
-    std::fs::rename(&cur, &old).map_err(|e| format!("rename self aside: {e}"))?;
+    let old = step_aside(&cur).map_err(|e| format!("rename self aside: {e}"))?;
 
     if let Err(e) = write_new_exe(&cur, new_bytes) {
         // Roll back so the app still launches next time.

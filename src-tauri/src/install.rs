@@ -114,21 +114,49 @@ pub fn perform_install(desktop_shortcut: bool) -> Result<String, String> {
 
     // If we're somehow already the installed copy, don't copy onto ourselves.
     if src.canonicalize().ok() != target.canonicalize().ok() {
-        std::fs::copy(&src, &target).map_err(|e| format!("copy exe: {e}"))?;
+        replace_exe(&src, &target)?;
     }
 
+    // Shortcuts are a convenience: a failure here must not stop the install from
+    // registering its uninstall entry, or the exe is left in place with no way to
+    // remove it from "Installed apps".
     let start_menu = start_menu_dir().map(|d| d.join("Moonpool.lnk"));
     if let Some(lnk) = &start_menu {
-        create_shortcut(lnk, &target)?;
+        if let Err(e) = create_shortcut(lnk, &target) {
+            eprintln!("moonpool: Start Menu shortcut not created ({e})");
+        }
     }
     if desktop_shortcut {
         if let Some(desk) = desktop_dir() {
-            create_shortcut(&desk.join("Moonpool.lnk"), &target)?;
+            if let Err(e) = create_shortcut(&desk.join("Moonpool.lnk"), &target) {
+                eprintln!("moonpool: Desktop shortcut not created ({e})");
+            }
         }
     }
 
     register_uninstall(&dir, &target)?;
     Ok(target.display().to_string())
+}
+
+/// Copy `src` over `target`. An existing `target` may be running (a reinstall while a
+/// `moonpool.exe mcp` helper an agent session started is still alive), and a running exe
+/// can't be overwritten, so it is renamed aside first with the updater's naming rule
+/// (`update::step_aside`; `cleanup_old` sweeps it on a later startup). If the copy then
+/// fails, the original is put back so the install is left as it was.
+fn replace_exe(src: &Path, target: &Path) -> Result<(), String> {
+    let aside = if target.exists() {
+        Some(crate::update::step_aside(target).map_err(|e| format!("move old exe aside: {e}"))?)
+    } else {
+        None
+    };
+    if let Err(e) = std::fs::copy(src, target) {
+        if let Some(aside) = &aside {
+            let _ = std::fs::remove_file(target);
+            let _ = std::fs::rename(aside, target);
+        }
+        return Err(format!("copy exe: {e}"));
+    }
+    Ok(())
 }
 
 /// Spawn `exe` and quit this process, handing off cleanly. The child is told to wait
@@ -231,8 +259,11 @@ fn start_menu_dir() -> Option<PathBuf> {
         .map(|p| PathBuf::from(p).join(r"Microsoft\Windows\Start Menu\Programs"))
 }
 
+/// The real Desktop via the known-folder API. Not `%USERPROFILE%\Desktop`: OneDrive
+/// backup (on by default on Windows 11) moves the Desktop into the OneDrive folder, and
+/// a shortcut written to the old path lands somewhere the user never sees.
 fn desktop_dir() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE").map(|p| PathBuf::from(p).join("Desktop"))
+    dirs::desktop_dir()
 }
 
 /// Create a .lnk via WScript.Shell (PowerShell), matching the codebase's existing
@@ -377,6 +408,104 @@ fn remove_uninstall_key() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A fresh, empty temp folder for one test.
+    fn scratch(tag: &str) -> PathBuf {
+        let n = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("moonpool-{tag}-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// Open `path` the way a running exe image is held: others may read and rename it, but
+    /// not write it. `delete: false` also refuses deletion, like an exe still running from
+    /// a previous `.old`.
+    #[cfg(windows)]
+    fn hold(path: &Path, delete: bool) -> std::fs::File {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ: u32 = 0x1;
+        const FILE_SHARE_DELETE: u32 = 0x4;
+        let share = if delete {
+            FILE_SHARE_READ | FILE_SHARE_DELETE
+        } else {
+            FILE_SHARE_READ
+        };
+        std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(share)
+            .open(path)
+            .unwrap()
+    }
+
+    #[test]
+    fn replace_exe_into_an_empty_dir_just_copies() {
+        let dir = scratch("inst-fresh");
+        let src = dir.join("download.exe");
+        let target = dir.join("moonpool.exe");
+        std::fs::write(&src, b"new").unwrap();
+        replace_exe(&src, &target).unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+        assert!(!target.with_extension("old").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn replace_exe_puts_the_original_back_when_the_copy_fails() {
+        let dir = scratch("inst-rollback");
+        let target = dir.join("moonpool.exe");
+        std::fs::write(&target, b"installed").unwrap();
+        let err = replace_exe(&dir.join("missing.exe"), &target).unwrap_err();
+        assert!(err.starts_with("copy exe:"), "{err}");
+        assert_eq!(std::fs::read(&target).unwrap(), b"installed");
+        assert!(!target.with_extension("old").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Reinstall while the installed exe is in use (an agent's `moonpool.exe mcp`): a plain
+    /// copy onto it fails, so it must be renamed to `.old` first.
+    #[cfg(windows)]
+    #[test]
+    fn replace_exe_moves_an_in_use_exe_aside() {
+        let dir = scratch("inst-inuse");
+        let src = dir.join("download.exe");
+        let target = dir.join("moonpool.exe");
+        std::fs::write(&src, b"new").unwrap();
+        std::fs::write(&target, b"installed").unwrap();
+        let running = hold(&target, true);
+        assert!(std::fs::copy(&src, &target).is_err(), "the hold must block a plain copy");
+        replace_exe(&src, &target).unwrap();
+        drop(running);
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+        assert_eq!(std::fs::read(target.with_extension("old")).unwrap(), b"installed");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The previous `.old` is itself still running and can't be removed: step aside to
+    /// `.old-<pid>` instead, leaving the locked `.old` alone.
+    #[cfg(windows)]
+    #[test]
+    fn replace_exe_uses_a_pid_name_when_old_is_locked() {
+        let dir = scratch("inst-oldlocked");
+        let src = dir.join("download.exe");
+        let target = dir.join("moonpool.exe");
+        let old = target.with_extension("old");
+        std::fs::write(&src, b"new").unwrap();
+        std::fs::write(&target, b"installed").unwrap();
+        std::fs::write(&old, b"older").unwrap();
+        let older_running = hold(&old, false);
+        let running = hold(&target, true);
+        replace_exe(&src, &target).unwrap();
+        drop(running);
+        drop(older_running);
+        let pid_old = target.with_extension(format!("old-{}", std::process::id()));
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+        assert_eq!(std::fs::read(&old).unwrap(), b"older");
+        assert_eq!(std::fs::read(&pid_old).unwrap(), b"installed");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn uninstall_script_stops_only_this_folder_then_deletes_it() {

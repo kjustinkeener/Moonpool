@@ -2285,6 +2285,7 @@ version = "0.3.18"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "dirs",
  "include_dir",
  "libc",
  "minisign-verify",
