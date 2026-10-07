@@ -58,14 +58,30 @@ fn current_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
-/// Delete leftover `moonpool.old` / `moonpool.new` next to the running exe (from a
-/// prior update). Best-effort: if a file is somehow still locked, we retry next launch.
+/// Delete leftover `moonpool.old`, `moonpool.old-<n>` and `moonpool.new` next to the
+/// running exe (from a prior update). Best-effort: a file still locked by an MCP server
+/// started before the update is retried next launch.
 pub fn cleanup_old() {
     if let Some(cur) = update_target() {
         for ext in ["old", "new"] {
             let stray = cur.with_extension(ext);
             if stray.exists() {
                 let _ = std::fs::remove_file(&stray);
+            }
+        }
+        let (Some(dir), Some(stem)) = (cur.parent(), cur.file_stem().and_then(|s| s.to_str()))
+        else {
+            return;
+        };
+        let prefix = format!("{stem}.old-");
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for e in entries.flatten() {
+                if e.file_name()
+                    .to_str()
+                    .is_some_and(|n| n.starts_with(&prefix))
+                {
+                    let _ = std::fs::remove_file(e.path());
+                }
             }
         }
     }
@@ -242,8 +258,14 @@ fn self_replace_and_relaunch(
     new_version: &str,
 ) -> Result<(), String> {
     let cur = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
-    let old = cur.with_extension("old");
+    let mut old = cur.with_extension("old");
     let _ = std::fs::remove_file(&old);
+    // A `moonpool.exe mcp` started before the last update still runs from the previous
+    // `.old`, which locks it; renaming onto it then fails with Access denied. Step aside
+    // to a unique name instead. `cleanup_old` removes it once that process ends.
+    if old.exists() {
+        old = cur.with_extension(format!("old-{}", std::process::id()));
+    }
 
     // Rename works on a running exe; overwrite does not.
     std::fs::rename(&cur, &old).map_err(|e| format!("rename self aside: {e}"))?;
