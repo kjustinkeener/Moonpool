@@ -141,6 +141,16 @@ npm run tauri dev
 `npm run tauri build` produces the bundled release artifacts under
 `src-tauri/target/release/bundle/` (`.msi`/`.exe` on Windows, `.deb`/`.rpm`/`.AppImage` on Linux).
 
+**macOS (unsupported):** there are no macOS releases and macOS issues won't be fixed, but the
+Unix code paths are shared with Linux, so it should still build. Install the Xcode Command Line
+Tools per the Tauri prerequisites, then `npm run tauri build` makes a `.app` and `.dmg` for your
+Mac's architecture. For one build that runs on both Apple Silicon and Intel:
+
+```bash
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+npm run tauri build -- --target universal-apple-darwin
+```
+
 ## Security / trust model
 
 Moonpool runs the `command` of each app in `apps.json` **with your full user privileges**, in a
