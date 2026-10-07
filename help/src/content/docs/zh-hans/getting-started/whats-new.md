@@ -21,7 +21,7 @@ description: "了解 Moonpool 近几个版本的变化、运行所需的环境�
 - **会显示 apps.json 的错误。** 侧边栏上方的提示条会显示错误，重新加载失败时会保留
   上次成功加载的列表。参见
   [apps.json 出错时](/zh-hans/using/hub-window/#当-appsjson-有错误时)。
-- **Linux 和 macOS 上的控制通道**，通过 Unix 套接字实现，另外新增了 `list` 动词。参见
+- **Linux 上的控制通道**，通过 Unix 套接字实现，另外新增了 `list` 动词。参见
   [控制动词](/zh-hans/automation/control-verbs/)。
 - “关于”窗口和应用编辑器会实时跟随主题和语言的变化。**安装 Moonpool…** 菜单项在
   非 Windows 系统上会隐藏。
@@ -46,4 +46,3 @@ description: "了解 Moonpool 近几个版本的变化、运行所需的环境�
 
 - 带有 WebView2 的 Windows 10 或 11（参见 [Windows](/zh-hans/platforms/windows/)）。
 - 带有 WebKitGTK 4.1 和 AppIndicator 库的 Linux（参见 [Linux](/zh-hans/platforms/linux/)）。
-- macOS：需要从源代码构建；尚未发布，也未经测试。

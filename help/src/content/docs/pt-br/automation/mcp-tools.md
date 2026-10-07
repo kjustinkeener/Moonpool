@@ -62,7 +62,7 @@ cópia privada da pasta de configuração em vez da real.
 
 ## Avançado: ferramentas de teste
 
-`moonpool_screenshot` é exclusiva do Windows; no Linux e no macOS falha com "screenshot is not supported on
+`moonpool_screenshot` é exclusiva do Windows; no Linux falha com "screenshot is not supported on
 this platform". `moonpool_window_state` e `moonpool_reset_mcp_seen` funcionam em todas as plataformas.
 
 `window` é um entre `main`, `settings`, `about`, `installer`, `editor`, `help` ou `themes`, e o padrão é

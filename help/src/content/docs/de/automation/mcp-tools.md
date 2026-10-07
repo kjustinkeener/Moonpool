@@ -61,7 +61,7 @@ eine private Kopie des Konfigurationsordners statt des echten angezeigt werden k
 
 ## Erweitert: Testwerkzeuge
 
-`moonpool_screenshot` gibt es nur unter Windows; unter Linux und macOS schlägt es mit „screenshot is not
+`moonpool_screenshot` gibt es nur unter Windows; unter Linux schlägt es mit „screenshot is not
 supported on this platform“ fehl. `moonpool_window_state` und `moonpool_reset_mcp_seen` funktionieren auf
 allen Plattformen.
 

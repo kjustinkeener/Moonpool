@@ -9,7 +9,7 @@ Moonpool のコピーはそれぞれ独自のチャネルを持つため、イ�
 
 `<id>` は、そのコピーの `moonpool-config` フォルダーのパスから求めた 16 進数 8 桁です。同じフォルダーであれば再起動や更新をしても変わらず、フォルダーを移動すると変わります。`moonpool.exe mcp` を含め、あるコピーの `moonpool.exe` は、常に自分のコピーのチャネルを見つけます。
 
-Linux と macOS では、代わりにモード `0600` の Unix ドメインソケットで待ち受けます。
+Linux では、代わりにモード `0600` の Unix ドメインソケットで待ち受けます。
 
 | 場合 | ソケットのパス |
 | --- | --- |
@@ -93,7 +93,7 @@ $r.ReadLine()
 
 ## 診断用の動詞(テスト用)
 
-チャネル専用です。コマンドラインからは使えません。`screenshot` を除き、すべて Windows、Linux、macOS で動作します。`screenshot` は Windows 専用で、それ以外では `screenshot is not supported on this platform (Windows only)` と応答します。
+チャネル専用です。コマンドラインからは使えません。`screenshot` を除き、すべて Windows と Linux で動作します。`screenshot` は Windows 専用で、それ以外では `screenshot is not supported on this platform (Windows only)` と応答します。
 
 | 動詞 | 引数 | 結果 |
 | --- | --- | --- |

@@ -13,7 +13,7 @@ dinler. Taşınabilir bir kopya klasöründen türetilen bir kimlik ekler: `\\.\
 yeniden başlatmalarda ve güncellemelerde aynı kalır, klasörü taşırsanız değişir. Bir kopyanın `moonpool.exe`
 dosyası, `moonpool.exe mcp` dahil, her zaman kendi kopyasının kanalını bulur.
 
-Linux ve macOS'ta bunun yerine `0600` kipinde bir Unix etki alanı soketini dinler:
+Linux'ta bunun yerine `0600` kipinde bir Unix etki alanı soketini dinler:
 
 | Durum | Soket yolu |
 | --- | --- |
@@ -106,7 +106,7 @@ kaydeder ve pencereyi yeniler.
 
 ## Tanılama komutları (test)
 
-Yalnızca kanal: komut satırı bunları kabul etmez. Hepsi Windows, Linux ve macOS'ta çalışır; yalnızca
+Yalnızca kanal: komut satırı bunları kabul etmez. Hepsi Windows ve Linux'ta çalışır; yalnızca
 `screenshot` Windows'a özgüdür ve başka yerlerde `screenshot is not supported on this
 platform (Windows only)` yanıtını verir.
 

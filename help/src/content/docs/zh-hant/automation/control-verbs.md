@@ -9,7 +9,7 @@ description: "Moonpool 控制通道（具名管道或 Unix 通訊端）如何運
 
 `<id>` 是由該副本的 `moonpool-config` 資料夾路徑衍生出的 8 位十六進位數，所以對同一個資料夾，它在重新啟動與更新之間維持不變，而如果你搬動了資料夾，它就會改變。副本的 `moonpool.exe`（包括 `moonpool.exe mcp`）總是能找到它自己副本的通道。
 
-在 Linux 與 macOS 上，它改為監聽 Unix 網域通訊端，權限為 `0600`：
+在 Linux 上，它改為監聽 Unix 網域通訊端，權限為 `0600`：
 
 | 情形 | 通訊端路徑 |
 | --- | --- |
@@ -93,7 +93,7 @@ $r.ReadLine()
 
 ## 診斷動詞（測試用）
 
-僅限通道：命令列不接受這些動詞。除 `screenshot` 外，在 Windows、Linux 與 macOS 上都能用；`screenshot` 僅限 Windows，在其他系統上會回應 `screenshot is not supported on this platform (Windows only)`。
+僅限通道：命令列不接受這些動詞。除 `screenshot` 外，在 Windows 與 Linux 上都能用；`screenshot` 僅限 Windows，在其他系統上會回應 `screenshot is not supported on this platform (Windows only)`。
 
 | 動詞 | 引數 | 結果 |
 | --- | --- | --- |

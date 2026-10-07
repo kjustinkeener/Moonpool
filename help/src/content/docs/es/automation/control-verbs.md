@@ -15,7 +15,7 @@ modo que se mantiene igual para esa carpeta entre reinicios y actualizaciones, y
 carpeta. El `moonpool.exe` de una copia, incluido `moonpool.exe mcp`, siempre encuentra el canal de su
 propia copia.
 
-En Linux y macOS escucha en cambio en un socket de dominio Unix, con modo `0600`:
+En Linux escucha en cambio en un socket de dominio Unix, con modo `0600`:
 
 | Caso | Ruta del socket |
 | --- | --- |
@@ -110,7 +110,7 @@ Ejemplos de intercambios:
 
 ## Verbos de diagnóstico (pruebas)
 
-Solo canal: la línea de comandos no los acepta. Todos funcionan en Windows, Linux y macOS excepto
+Solo canal: la línea de comandos no los acepta. Todos funcionan en Windows y Linux excepto
 `screenshot`, que es exclusivo de Windows y responde `screenshot is not supported on this
 platform (Windows only)` en los demás.
 

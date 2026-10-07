@@ -9,7 +9,7 @@ Moonpool 복사본마다 자체 채널이 있으므로, 설치된 Moonpool과 �
 
 `<id>`는 복사본의 `moonpool-config` 폴더 경로에서 만든 16진수 8자리로, 재시작이나 업데이트를 거쳐도 같은 폴더에서는 같은 값이 유지되고 폴더를 옮기면 바뀝니다. 복사본의 `moonpool.exe`(`moonpool.exe mcp` 포함)는 항상 자신의 복사본 채널을 찾습니다.
 
-Linux와 macOS에서는 대신 `0600` 모드의 Unix 도메인 소켓에서 수신합니다.
+Linux에서는 대신 `0600` 모드의 Unix 도메인 소켓에서 수신합니다.
 
 | 경우 | 소켓 경로 |
 | --- | --- |
@@ -93,7 +93,7 @@ $r.ReadLine()
 
 ## 진단용 동사(테스트)
 
-채널 전용이며 명령줄에서는 사용할 수 없습니다. Windows 전용인 `screenshot`을 제외하면 Windows, Linux, macOS에서 모두 동작하며, `screenshot`은 다른 곳에서 `screenshot is not supported on this platform (Windows only)`로 응답합니다.
+채널 전용이며 명령줄에서는 사용할 수 없습니다. Windows 전용인 `screenshot`을 제외하면 Windows와 Linux에서 모두 동작하며, `screenshot`은 다른 곳에서 `screenshot is not supported on this platform (Windows only)`로 응답합니다.
 
 | 동사 | 인수 | 결과 |
 | --- | --- | --- |

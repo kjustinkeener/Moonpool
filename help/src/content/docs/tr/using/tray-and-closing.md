@@ -17,7 +17,7 @@ hangi kopya olduğunu söyler. Bkz. [Taşınabilir mod](/tr/data/portable-mode/#
 
 **Çıkış**, Moonpool'dan çıkar ve Windows'ta Moonpool'un başlattığı her uygulamayı, alt süreçleri
 dahil durdurur. Moonpool onları görmeden önce zaten çalışan uygulamalara ("Moonpool tarafından
-yönetilmiyor" ile çalışıyor gösterilenler) dokunulmaz. Linux ve macOS'ta çıkmak, başlatılan
+yönetilmiyor" ile çalışıyor gösterilenler) dokunulmaz. Linux'ta çıkmak, başlatılan
 uygulamaları güvenilir biçimde durdurmaz.
 
 ## Kapatma ve küçültme

@@ -14,7 +14,7 @@ Bkz. [Taşınabilir mod](/tr/data/portable-mode/#aynı-anda-birkaç-kopya).
 | --- | --- | --- |
 | MCP sunucusu | `moonpool.exe mcp`, bir yapay zekâ ana bilgisayarının başlattığı stdio [MCP](https://modelcontextprotocol.io) sunucusu. | [MCP kurulumu](/tr/automation/mcp-setup/), [MCP araçları](/tr/automation/mcp-tools/) |
 | Komut satırı | `moonpool.exe <verb> [args]`. Aynı kopyanın ikinci bir çalıştırması komutu denetim kanalı üzerinden merkezina iletir ve çıkar. | [Komut satırı](/tr/automation/command-line/) |
-| Denetim kanalı | Windows'ta adlandırılmış bir kanal, `\\.\pipe\moonpool` (taşınabilir kopya için `\\.\pipe\moonpool-<id>`), Linux ve macOS'ta bir Unix soketi; satır başına bir JSON isteğiyle konuşur. | [Denetim komutları](/tr/automation/control-verbs/) |
+| Denetim kanalı | Windows'ta adlandırılmış bir kanal, `\\.\pipe\moonpool` (taşınabilir kopya için `\\.\pipe\moonpool-<id>`), Linux'ta bir Unix soketi; satır başına bir JSON isteğiyle konuşur. | [Denetim komutları](/tr/automation/control-verbs/) |
 
 ## Birbirleriyle ilişkileri
 
@@ -59,7 +59,7 @@ Salt okunur araçlar: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_rea
   birini (`main`, `settings`, `about`, `installer`, `editor`, `help`, `themes`) yakalar; ekranı veya başka bir
   uygulamayı asla yakalamaz. PNG bellekte oluşturulur ve satır içi döndürülür; Moonpool onu bir dosyaya kaydetmez.
 - **Kanalda kimlik doğrulama yoktur.** Moonpool denetim kanalına veya sokete bir oturum açma ya da belirteç
-  eklemez. Onu açabilen herhangi bir süreç komut gönderebilir. Linux ve macOS'ta soket dosyası `0600` kipiyle
+  eklemez. Onu açabilen herhangi bir süreç komut gönderebilir. Linux'ta soket dosyası `0600` kipiyle
   oluşturulur; yani yalnızca kendi kullanıcınız açabilir.
 - **Korumalı alandaki ana bilgisayarlar algılanır.** MCP sunucusu paketlenmiş (Store/MSIX) bir korumalı alanın
   içinde çalıştığını, yani Moonpool'un dosyalarının özel bir kopyasını gördüğünü anlarsa, dosya okuyan veya yazan
@@ -69,9 +69,9 @@ Salt okunur araçlar: `moonpool_list_apps`, `moonpool_app_output`, `moonpool_rea
 
 ## Platform
 
-Denetim kanalı her platformda vardır: Windows'ta adlandırılmış bir kanal, Linux ve macOS'ta bir Unix soketi
+Denetim kanalı her platformda vardır: Windows'ta adlandırılmış bir kanal, Linux'ta bir Unix soketi
 (konumu [Denetim komutları](/tr/automation/control-verbs/#dinlediği-yer) sayfasında). Yalnızca
-`screenshot` (ve dolayısıyla `moonpool_screenshot`) Windows'a özgüdür; Linux ve macOS'ta
+`screenshot` (ve dolayısıyla `moonpool_screenshot`) Windows'a özgüdür; Linux'ta
 "not supported on this platform" döndürür. Komut satırı komutları her platformda çalışır.
 
 ## Ayrıca bakın

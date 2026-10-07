@@ -21,7 +21,7 @@ aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 - **apps.json-Fehler werden angezeigt.** Ein Banner über der Seitenleiste zeigt den Fehler, und ein
   fehlgeschlagenes Neuladen behält die zuletzt geladene Liste. Siehe
   [Wenn apps.json einen Fehler enthält](/de/using/hub-window/#wenn-appsjson-einen-fehler-enthält).
-- **Steuerkanal unter Linux und macOS** über einen Unix-Socket, plus das Verb `list`. Siehe
+- **Steuerkanal unter Linux** über einen Unix-Socket, plus das Verb `list`. Siehe
   [Steuerverben](/de/automation/control-verbs/).
 - „Über“ und der App-Editor folgen Änderungen von Design und Sprache sofort. Der Menüpunkt
   **Moonpool installieren…** ist außerhalb von Windows ausgeblendet.
@@ -47,4 +47,3 @@ aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
 - Windows 10 oder 11 mit WebView2 (siehe [Windows](/de/platforms/windows/)).
 - Linux mit WebKitGTK 4.1 und einer AppIndicator-Bibliothek (siehe [Linux](/de/platforms/linux/)).
-- macOS: aus dem Quellcode bauen; noch nicht ausgeliefert oder getestet.

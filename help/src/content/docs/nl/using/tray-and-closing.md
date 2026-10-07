@@ -17,7 +17,7 @@ vermeldt om welke kopie het gaat. Zie [Draagbare modus](/nl/data/portable-mode/#
 
 **Afsluiten** sluit Moonpool af en stopt op Windows elke app die Moonpool heeft gestart, inclusief
 hun onderliggende processen. Apps die al draaiden voordat Moonpool ze zag (getoond als actief
-zonder "managed by Moonpool") blijven met rust gelaten. Op Linux en macOS stopt afsluiten gestarte
+zonder "managed by Moonpool") blijven met rust gelaten. Op Linux stopt afsluiten gestarte
 apps niet betrouwbaar.
 
 ## Sluiten en minimaliseren

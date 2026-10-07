@@ -23,7 +23,7 @@ solo; vedi [Aggiornamenti](/it/data/updating/).
 - **Gli errori di apps.json vengono mostrati.** Un banner sopra la barra laterale mostra
   l'errore, e un Ricarica non riuscito mantiene l'ultimo elenco caricato. Vedi
   [Quando apps.json contiene un errore](/it/using/hub-window/#quando-appsjson-contiene-un-errore).
-- **Canale di controllo su Linux e macOS**, tramite un socket Unix, più il verbo `list`. Vedi
+- **Canale di controllo su Linux**, tramite un socket Unix, più il verbo `list`. Vedi
   [Verbi di controllo](/it/automation/control-verbs/).
 - La finestra Informazioni e l'editor delle app seguono in tempo reale i cambi di tema e di
   lingua. La voce di menu **Installa Moonpool...** è nascosta fuori da Windows.
@@ -49,4 +49,3 @@ solo; vedi [Aggiornamenti](/it/data/updating/).
 
 - Windows 10 o 11 con WebView2 (vedi [Windows](/it/platforms/windows/)).
 - Linux con WebKitGTK 4.1 e una libreria AppIndicator (vedi [Linux](/it/platforms/linux/)).
-- macOS: compila dal sorgente; non ancora distribuito né testato.

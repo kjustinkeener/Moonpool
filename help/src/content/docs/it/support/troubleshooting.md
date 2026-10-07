@@ -194,13 +194,12 @@ aggiornamenti**. Ogni download viene verificato con la chiave di firma di Moonpo
 essere usato.
 
 **Quale shell esegue i miei comandi?**
-`cmd /c` su Windows, `$SHELL -c` su Linux e macOS.
+`cmd /c` su Windows, `$SHELL -c` su Linux.
 
 **Dove metto i segreti?**
 I valori di `env` sono salvati in chiaro in `apps.json`. Preferisci un file che la tua app legge
 da sé, oppure una variabile già impostata nel tuo ambiente utente, che le app avviate ereditano.
 
 **Il canale di controllo è protetto?**
-Non ha login né token. Qualsiasi processo eseguito come te può inviargli comandi. Su Linux e
-macOS il socket è leggibile solo dal tuo utente. Vedi
+Non ha login né token. Qualsiasi processo eseguito come te può inviargli comandi. Su Linux il socket è leggibile solo dal tuo utente. Vedi
 [Proprietà di sicurezza](/it/automation/overview/#proprietà-di-sicurezza).

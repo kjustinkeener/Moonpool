@@ -51,7 +51,7 @@ notes-app  [stopped]  [mcp: stopped]  Notes App
 
 ## 고급: 테스트용 도구
 
-`moonpool_screenshot`은 Windows 전용입니다. Linux와 macOS에서는 "screenshot is not supported on this platform"으로 실패합니다. `moonpool_window_state`와 `moonpool_reset_mcp_seen`은 모든 플랫폼에서 동작합니다.
+`moonpool_screenshot`은 Windows 전용입니다. Linux에서는 "screenshot is not supported on this platform"으로 실패합니다. `moonpool_window_state`와 `moonpool_reset_mcp_seen`은 모든 플랫폼에서 동작합니다.
 
 `window`는 `main`, `settings`, `about`, `installer`, `editor`, `help`, `themes` 중 하나이며 기본값은 `main`입니다. 알 수 없는 이름은 `unknown window '<name>'`으로 실패합니다.
 

@@ -23,7 +23,7 @@ Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 - **Fouten in apps.json worden getoond.** Een banner boven de zijbalk toont de fout en een
   mislukte Opnieuw laden behoudt de laatst geladen lijst. Zie
   [Wanneer apps.json een fout bevat](/nl/using/hub-window/#wanneer-appsjson-een-fout-bevat).
-- **Besturingskanaal op Linux en macOS**, via een Unix-socket, plus het werkwoord `list`. Zie
+- **Besturingskanaal op Linux**, via een Unix-socket, plus het werkwoord `list`. Zie
   [Besturingswerkwoorden](/nl/automation/control-verbs/).
 - Over en de app-editor volgen wijzigingen van thema en taal live. Het menu-item
   **Moonpool installeren…** wordt buiten Windows verborgen.
@@ -49,4 +49,3 @@ Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
 - Windows 10 of 11 met WebView2 (zie [Windows](/nl/platforms/windows/)).
 - Linux met WebKitGTK 4.1 en een AppIndicator-bibliotheek (zie [Linux](/nl/platforms/linux/)).
-- macOS: zelf bouwen vanuit de broncode; nog niet gedistribueerd of getest.

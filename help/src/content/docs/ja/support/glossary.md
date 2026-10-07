@@ -65,7 +65,7 @@ description: "Moonpool のヘルプで使う、各部の名称、アプリの状
 | `killMode` | 停止がアプリのターミナルを終了させた後に行う追加の手順。[停止と再起動](/ja/apps/stop-and-restart/)を参照してください。 |
 | `stopCommand` | `killMode` が `command` のときに、停止が実行するコマンド。 |
 | `processName` | Moonpool が監視するプロセス名。`processName` モードでは、これを終了させる対象にもなります。 |
-| 制御チャネル(control channel) | ハブが応答する名前付きパイプ(Windows)または Unix ソケット(Linux、macOS)。[制御動詞](/ja/automation/control-verbs/)を参照してください。 |
+| 制御チャネル(control channel) | ハブが応答する名前付きパイプ(Windows)または Unix ソケット(Linux)。[制御動詞](/ja/automation/control-verbs/)を参照してください。 |
 | 動詞(verb) | `launch` や `reload` のようなコマンドの語。コマンドラインまたは制御チャネルで指定します。 |
 | チケット(ticket) | `--ticket` で付けるキー。`state.json` からコマンドの結果を読み取るために使います。 |
 | トークン(token) | 設定の書き込みに付ける必要がある、`apps.json` のバージョンスタンプ。 |

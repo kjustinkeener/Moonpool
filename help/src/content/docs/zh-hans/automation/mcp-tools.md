@@ -51,7 +51,7 @@ notes-app  [stopped]  [mcp: stopped]  Notes App
 
 ## 进阶：测试工具
 
-`moonpool_screenshot` 仅限 Windows；在 Linux 和 macOS 上它会以 "screenshot is not supported on this platform" 失败。`moonpool_window_state` 和 `moonpool_reset_mcp_seen` 在所有平台上都可用。
+`moonpool_screenshot` 仅限 Windows；在 Linux 上它会以 "screenshot is not supported on this platform" 失败。`moonpool_window_state` 和 `moonpool_reset_mcp_seen` 在所有平台上都可用。
 
 `window` 是 `main`、`settings`、`about`、`installer`、`editor`、`help` 或 `themes` 之一，默认为 `main`。未知名称会以 `unknown window '<name>'` 失败。
 

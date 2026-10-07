@@ -61,7 +61,7 @@ een privékopie van de configuratiemap te zien kan krijgen in plaats van de echt
 
 ## Geavanceerd: testtools
 
-`moonpool_screenshot` werkt alleen onder Windows; onder Linux en macOS mislukt het met "screenshot is not
+`moonpool_screenshot` werkt alleen onder Windows; onder Linux mislukt het met "screenshot is not
 supported on this platform". `moonpool_window_state` en `moonpool_reset_mcp_seen` werken op
 elk platform.
 

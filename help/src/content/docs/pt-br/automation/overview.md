@@ -14,7 +14,7 @@ Veja [Modo portátil](/pt-br/data/portable-mode/#várias-cópias-ao-mesmo-tempo)
 | --- | --- | --- |
 | Servidor MCP | `moonpool.exe mcp`, um servidor [MCP](https://modelcontextprotocol.io) stdio que um host de IA inicia. | [Configuração do MCP](/pt-br/automation/mcp-setup/), [Ferramentas MCP](/pt-br/automation/mcp-tools/) |
 | Linha de comando | `moonpool.exe <verb> [args]`. Uma segunda execução da mesma cópia entrega o verbo ao hub dela pelo canal de controle e termina. | [Linha de comando](/pt-br/automation/command-line/) |
-| Canal de controle | Um pipe nomeado, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` para uma cópia portátil), no Windows e um socket Unix no Linux e no macOS, que atende uma requisição JSON por linha. | [Verbos de controle](/pt-br/automation/control-verbs/) |
+| Canal de controle | Um pipe nomeado, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` para uma cópia portátil), no Windows e um socket Unix no Linux, que atende uma requisição JSON por linha. | [Verbos de controle](/pt-br/automation/control-verbs/) |
 
 ## Como se relacionam
 
@@ -61,7 +61,7 @@ Ferramentas somente leitura: `moonpool_list_apps`, `moonpool_app_output`, `moonp
   Moonpool (`main`, `settings`, `about`, `installer`, `editor`, `help`, `themes`), nunca a tela nem outro
   app. O PNG é montado na memória e devolvido em linha; o Moonpool não o salva em um arquivo.
 - **Sem autenticação no canal.** O Moonpool não adiciona login nem token ao pipe ou socket de controle.
-  Qualquer processo que consiga abri-lo pode enviar verbos. No Linux e no macOS, o arquivo do socket é
+  Qualquer processo que consiga abri-lo pode enviar verbos. No Linux, o arquivo do socket é
   criado com o modo `0600`, então só o seu próprio usuário consegue.
 - **Hosts em sandbox são detectados.** Se o servidor MCP perceber que está rodando dentro de uma sandbox
   empacotada (Store/MSIX), onde veria uma cópia privada dos arquivos do Moonpool, as ferramentas que leem
@@ -72,9 +72,8 @@ Ferramentas somente leitura: `moonpool_list_apps`, `moonpool_app_output`, `moonp
 
 ## Plataforma
 
-O canal de controle existe em todas as plataformas: um pipe nomeado no Windows, um socket Unix no Linux e
-no macOS (local em [Verbos de controle](/pt-br/automation/control-verbs/#onde-ele-escuta)). Apenas
-`screenshot` (e portanto `moonpool_screenshot`) é exclusivo do Windows; no Linux e no macOS retorna
+O canal de controle existe em todas as plataformas: um pipe nomeado no Windows, um socket Unix no Linux (local em [Verbos de controle](/pt-br/automation/control-verbs/#onde-ele-escuta)). Apenas
+`screenshot` (e portanto `moonpool_screenshot`) é exclusivo do Windows; no Linux retorna
 "not supported on this platform" (não suportado nesta plataforma). Os verbos da linha de comando funcionam
 em todas as plataformas.
 

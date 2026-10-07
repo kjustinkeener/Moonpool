@@ -14,7 +14,7 @@ la copia di cui usa il `moonpool.exe`. Vedi [Modalità portatile](/it/data/porta
 | --- | --- | --- |
 | Server MCP | `moonpool.exe mcp`, un server [MCP](https://modelcontextprotocol.io) stdio che viene avviato da un host IA. | [Configurazione MCP](/it/automation/mcp-setup/), [Strumenti MCP](/it/automation/mcp-tools/) |
 | Riga di comando | `moonpool.exe <verb> [args]`. Una seconda esecuzione della stessa copia passa il verbo al suo hub tramite il canale di controllo e termina. | [Riga di comando](/it/automation/command-line/) |
-| Canale di controllo | Una named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` per una copia portatile), su Windows e un socket Unix su Linux e macOS, che accetta una richiesta JSON per riga. | [Verbi di controllo](/it/automation/control-verbs/) |
+| Canale di controllo | Una named pipe, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` per una copia portatile), su Windows e un socket Unix su Linux, che accetta una richiesta JSON per riga. | [Verbi di controllo](/it/automation/control-verbs/) |
 
 ## Come si relazionano
 
@@ -65,7 +65,7 @@ Strumenti di sola lettura: `moonpool_list_apps`, `moonpool_app_output`, `moonpoo
   schermo o un'altra app. Il PNG viene creato in memoria e restituito inline; Moonpool non lo
   salva in un file.
 - **Nessuna autenticazione sul canale.** Moonpool non aggiunge alcun login o token alla pipe o al
-  socket di controllo. Qualsiasi processo che possa aprirli può inviare verbi. Su Linux e macOS
+  socket di controllo. Qualsiasi processo che possa aprirli può inviare verbi. Su Linux
   il file socket viene creato con modalità `0600`, quindi solo il tuo utente può farlo.
 - **Gli host in sandbox vengono rilevati.** Se il server MCP rileva di essere eseguito in una
   sandbox in pacchetto (Store/MSIX), dove vedrebbe una copia privata dei file di Moonpool, gli
@@ -77,8 +77,8 @@ Strumenti di sola lettura: `moonpool_list_apps`, `moonpool_app_output`, `moonpoo
 ## Piattaforma
 
 Il canale di controllo esiste su ogni piattaforma: una named pipe su Windows, un socket Unix su
-Linux e macOS (posizione in [Verbi di controllo](/it/automation/control-verbs/#dove-è-in-ascolto)).
-Solo `screenshot` (e quindi `moonpool_screenshot`) è esclusivo di Windows; su Linux e macOS
+Linux (posizione in [Verbi di controllo](/it/automation/control-verbs/#dove-è-in-ascolto)).
+Solo `screenshot` (e quindi `moonpool_screenshot`) è esclusivo di Windows; su Linux
 restituisce "not supported on this platform". I verbi della riga di comando funzionano su ogni
 piattaforma.
 

@@ -14,7 +14,7 @@ independiente, cada una con su propio canal de control. Una superficie siempre l
 | --- | --- | --- |
 | Servidor MCP | `moonpool.exe mcp`, un servidor [MCP](https://modelcontextprotocol.io) stdio que inicia un host de IA. | [Configuración de MCP](/es/automation/mcp-setup/), [Herramientas MCP](/es/automation/mcp-tools/) |
 | Línea de comandos | `moonpool.exe <verb> [args]`. Una segunda ejecución de la misma copia entrega el verbo a su hub a través del canal de control y termina. | [Línea de comandos](/es/automation/command-line/) |
-| Canal de control | Una canalización con nombre, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` para una copia portable), en Windows y un socket Unix en Linux y macOS, que atiende una solicitud JSON por línea. | [Verbos de control](/es/automation/control-verbs/) |
+| Canal de control | Una canalización con nombre, `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` para una copia portable), en Windows y un socket Unix en Linux, que atiende una solicitud JSON por línea. | [Verbos de control](/es/automation/control-verbs/) |
 
 ## Cómo se relacionan
 
@@ -62,7 +62,7 @@ Herramientas de solo lectura: `moonpool_list_apps`, `moonpool_app_output`, `moon
   pantalla ni otra app. El PNG se construye en memoria y se devuelve en línea; Moonpool no lo guarda en un
   archivo.
 - **Sin autenticación en el canal.** Moonpool no añade inicio de sesión ni token a la canalización o al
-  socket de control. Cualquier proceso que pueda abrirlo puede enviar verbos. En Linux y macOS, el archivo
+  socket de control. Cualquier proceso que pueda abrirlo puede enviar verbos. En Linux, el archivo
   del socket se crea con el modo `0600`, de modo que solo tu propio usuario puede.
 - **Se detectan los hosts aislados.** Si el servidor MCP detecta que se ejecuta dentro de un entorno aislado
   empaquetado (Store/MSIX), donde vería una copia privada de los archivos de Moonpool, las herramientas que
@@ -74,8 +74,8 @@ Herramientas de solo lectura: `moonpool_list_apps`, `moonpool_app_output`, `moon
 ## Plataforma
 
 El canal de control existe en todas las plataformas: una canalización con nombre en Windows, un socket
-Unix en Linux y macOS (ubicación en [Verbos de control](/es/automation/control-verbs/#dónde-escucha)).
-Solo `screenshot` (y por tanto `moonpool_screenshot`) es exclusivo de Windows; en Linux y macOS devuelve
+Unix en Linux (ubicación en [Verbos de control](/es/automation/control-verbs/#dónde-escucha)).
+Solo `screenshot` (y por tanto `moonpool_screenshot`) es exclusivo de Windows; en Linux devuelve
 "not supported on this platform" (no compatible con esta plataforma). Los verbos de la línea de comandos
 funcionan en todas las plataformas.
 

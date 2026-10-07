@@ -19,7 +19,7 @@ notification. L'infobulle indique de quelle copie il s'agit. Voir
 **Quitter** ferme Moonpool et, sous Windows, arrête toutes les apps lancées par Moonpool, y
 compris leurs processus enfants. Les apps qui étaient déjà en cours d'exécution avant que Moonpool
 ne les voie (affichées comme en cours sans « managed by Moonpool ») ne sont pas touchées. Sous
-Linux et macOS, quitter n'arrête pas de façon fiable les apps lancées.
+Linux, quitter n'arrête pas de façon fiable les apps lancées.
 
 ## Fermer et réduire
 

@@ -202,7 +202,7 @@ eingeschaltet ist) und beim Drücken von **Nach Updates suchen** die Release-Dat
 Signaturschlüssels von Moonpool geprüft.
 
 **Welche Shell führt meine Befehle aus?**
-`cmd /c` unter Windows, `$SHELL -c` unter Linux und macOS.
+`cmd /c` unter Windows, `$SHELL -c` unter Linux.
 
 **Wohin gehören Geheimnisse?**
 `env`-Werte werden im Klartext in `apps.json` gespeichert. Bevorzugen Sie eine Datei, die
@@ -211,5 +211,5 @@ ist und die gestartete Apps erben.
 
 **Ist der Steuerkanal geschützt?**
 Er hat weder Anmeldung noch Token. Jeder Prozess, der unter Ihrem Konto läuft, kann ihm
-Befehle senden. Unter Linux und macOS ist der Socket nur für Ihren Benutzer lesbar. Siehe
+Befehle senden. Unter Linux ist der Socket nur für Ihren Benutzer lesbar. Siehe
 [Sicherheitseigenschaften](/de/automation/overview/#sicherheitseigenschaften).

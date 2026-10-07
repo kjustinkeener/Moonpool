@@ -14,7 +14,7 @@ niezależnie, każda z własnym kanałem sterowania. Powierzchnia zawsze trafia 
 | --- | --- | --- |
 | Serwer MCP | `moonpool.exe mcp`, serwer stdio [MCP](https://modelcontextprotocol.io) uruchamiany przez host AI. | [Konfiguracja MCP](/pl/automation/mcp-setup/), [Narzędzia MCP](/pl/automation/mcp-tools/) |
 | Wiersz poleceń | `moonpool.exe <verb> [args]`. Drugie uruchomienie tej samej kopii przekazuje polecenie jej hubowi przez kanał sterowania i kończy pracę. | [Wiersz poleceń](/pl/automation/command-line/) |
-| Kanał sterowania | Potok nazwany `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` dla kopii przenośnej) w systemie Windows i gniazdo Unix w systemach Linux i macOS, obsługujące jedno żądanie JSON na wiersz. | [Polecenia sterujące](/pl/automation/control-verbs/) |
+| Kanał sterowania | Potok nazwany `\\.\pipe\moonpool` (`\\.\pipe\moonpool-<id>` dla kopii przenośnej) w systemie Windows i gniazdo Unix w systemie Linux, obsługujące jedno żądanie JSON na wiersz. | [Polecenia sterujące](/pl/automation/control-verbs/) |
 
 ## Jak są powiązane
 
@@ -61,7 +61,7 @@ Narzędzia tylko do odczytu: `moonpool_list_apps`, `moonpool_app_output`, `moonp
   innej aplikacji. PNG jest budowany w pamięci i zwracany jako wbudowany; Moonpool nie zapisuje go do
   pliku.
 - **Brak uwierzytelniania kanału.** Moonpool nie dodaje logowania ani tokenu do potoku sterowania ani
-  gniazda. Każdy proces, który może go otworzyć, może wysyłać polecenia. W systemach Linux i macOS plik gniazda jest
+  gniazda. Każdy proces, który może go otworzyć, może wysyłać polecenia. W systemie Linux plik gniazda jest
   tworzony z trybem `0600`, więc może go otworzyć tylko ten sam użytkownik.
 - **Hosty w piaskownicy są wykrywane.** Jeśli serwer MCP stwierdzi, że działa w pakietowej
   piaskownicy (Store/MSIX), w której widziałby prywatną kopię plików Moonpool, narzędzia, które
@@ -72,9 +72,8 @@ Narzędzia tylko do odczytu: `moonpool_list_apps`, `moonpool_app_output`, `moonp
 
 ## Platforma
 
-Kanał sterowania istnieje na każdej platformie: potok nazwany w systemie Windows, gniazdo Unix w systemach Linux
-i macOS (lokalizacja w sekcji [Polecenia sterujące](/pl/automation/control-verbs/#gdzie-nasłuchuje)). Tylko
-`screenshot` (a więc `moonpool_screenshot`) działa wyłącznie w systemie Windows; w systemach Linux i macOS zwraca
+Kanał sterowania istnieje na każdej platformie: potok nazwany w systemie Windows, gniazdo Unix w systemie Linux (lokalizacja w sekcji [Polecenia sterujące](/pl/automation/control-verbs/#gdzie-nasłuchuje)). Tylko
+`screenshot` (a więc `moonpool_screenshot`) działa wyłącznie w systemie Windows; w systemie Linux zwraca
 „not supported on this platform”. Polecenia wiersza poleceń działają na każdej platformie.
 
 ## Zobacz też

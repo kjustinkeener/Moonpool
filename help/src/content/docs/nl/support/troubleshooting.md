@@ -187,7 +187,7 @@ updates** drukt. Elke download wordt gecontroleerd aan de hand van de onderteken
 voordat die wordt gebruikt.
 
 **Welke shell voert mijn commando's uit?**
-`cmd /c` op Windows, `$SHELL -c` op Linux en macOS.
+`cmd /c` op Windows, `$SHELL -c` op Linux.
 
 **Waar zet ik geheimen?**
 `env`-waarden worden als gewone tekst in `apps.json` opgeslagen. Gebruik liever een bestand dat je
@@ -196,5 +196,5 @@ erven die.
 
 **Is het besturingskanaal beveiligd?**
 Het heeft geen aanmelding of token. Elk proces dat als je draait, kan er commando's naartoe sturen. Op
-Linux en macOS is de socket alleen leesbaar voor je gebruiker. Zie
+Linux is de socket alleen leesbaar voor je gebruiker. Zie
 [Veiligheidseigenschappen](/nl/automation/overview/#veiligheidseigenschappen).

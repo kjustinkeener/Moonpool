@@ -14,7 +14,7 @@ Ordner gebildete ID an: `\\.\pipe\moonpool-<id>`.
 für diesen Ordner über Neustarts und Updates hinweg gleich und ändert sich, wenn Sie den Ordner verschieben. Die
 `moonpool.exe` einer Kopie, einschließlich `moonpool.exe mcp`, findet immer den Kanal ihrer eigenen Kopie.
 
-Unter Linux und macOS lauscht es stattdessen auf einem Unix-Domain-Socket mit dem Modus `0600`:
+Unter Linux lauscht es stattdessen auf einem Unix-Domain-Socket mit dem Modus `0600`:
 
 | Fall | Socket-Pfad |
 | --- | --- |
@@ -111,7 +111,7 @@ Beispielabläufe:
 
 ## Diagnoseverben (Tests)
 
-Nur Kanal: Die Befehlszeile akzeptiert diese nicht. Alle funktionieren unter Windows, Linux und macOS,
+Nur Kanal: Die Befehlszeile akzeptiert diese nicht. Alle funktionieren unter Windows und Linux,
 außer `screenshot`, das nur unter Windows läuft und sonst `screenshot is not supported on this
 platform (Windows only)` antwortet.
 

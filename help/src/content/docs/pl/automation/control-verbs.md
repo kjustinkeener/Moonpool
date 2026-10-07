@@ -14,7 +14,7 @@ folderu: `\\.\pipe\moonpool-<id>`.
 takie samo dla tego folderu po ponownych uruchomieniach i aktualizacjach, a zmienia się po przeniesieniu folderu.
 `moonpool.exe` danej kopii, w tym `moonpool.exe mcp`, zawsze znajduje kanał własnej kopii.
 
-W systemach Linux i macOS nasłuchuje natomiast na gnieździe domeny Unix z trybem `0600`:
+W systemie Linux nasłuchuje natomiast na gnieździe domeny Unix z trybem `0600`:
 
 | Przypadek | Ścieżka gniazda |
 | --- | --- |
@@ -111,7 +111,7 @@ Przykładowe wymiany:
 
 ## Polecenia diagnostyczne (testowanie)
 
-Tylko kanał: wiersz poleceń ich nie przyjmuje. Wszystkie działają w systemach Windows, Linux i macOS
+Tylko kanał: wiersz poleceń ich nie przyjmuje. Wszystkie działają w systemach Windows i Linux
 z wyjątkiem `screenshot`, który działa tylko w systemie Windows, a gdzie indziej odpowiada `screenshot is not supported on this
 platform (Windows only)`.
 

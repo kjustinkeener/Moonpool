@@ -66,7 +66,7 @@ terminal tab; it never starts the app. Closing a tab never stops the app.
 | `killMode` | The extra step Stop takes after ending the app's terminal. See [Stop and restart](/apps/stop-and-restart/). |
 | `stopCommand` | The command Stop runs when `killMode` is `command`. |
 | `processName` | The process name Moonpool watches for, and kills in `processName` mode. |
-| control channel | The named pipe (Windows) or Unix socket (Linux, macOS) the hub answers on. See [Control verbs](/automation/control-verbs/). |
+| control channel | The named pipe (Windows) or Unix socket (Linux) the hub answers on. See [Control verbs](/automation/control-verbs/). |
 | verb | A command word such as `launch` or `reload`, given on the command line or the control channel. |
 | ticket | A key you attach with `--ticket` to read a command's outcome from `state.json`. |
 | token | The version stamp of `apps.json` that a config write must carry. |

@@ -21,7 +21,7 @@ aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 - **Błędy apps.json są pokazywane.** Baner nad paskiem bocznym wyświetla błąd, a nieudane
   odświeżenie zachowuje ostatnią listę, która została wczytana. Zob.
   [Gdy apps.json zawiera błąd](/pl/using/hub-window/#gdy-appsjson-zawiera-błąd).
-- **Kanał sterowania w systemach Linux i macOS**, przez gniazdo Unix, oraz polecenie `list`. Zob.
+- **Kanał sterowania w systemie Linux**, przez gniazdo Unix, oraz polecenie `list`. Zob.
   [Polecenia sterujące](/pl/automation/control-verbs/).
 - Okno O programie i edytor aplikacji na bieżąco reagują na zmiany motywu i języka. Pozycja menu
   **Zainstaluj Moonpool...** jest ukryta poza systemem Windows.
@@ -47,4 +47,3 @@ aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
 - Windows 10 lub 11 z WebView2 (zob. [Windows](/pl/platforms/windows/)).
 - Linux z WebKitGTK 4.1 i biblioteką AppIndicator (zob. [Linux](/pl/platforms/linux/)).
-- macOS: kompilacja ze źródeł; jeszcze niedystrybuowany ani nieprzetestowany.

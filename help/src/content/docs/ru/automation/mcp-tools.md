@@ -61,7 +61,7 @@ notes-app  [stopped]  [mcp: stopped]  Notes App
 
 ## Дополнительно: инструменты для тестирования
 
-`moonpool_screenshot` работает только в Windows; в Linux и macOS он завершается с «screenshot is not
+`moonpool_screenshot` работает только в Windows; в Linux он завершается с «screenshot is not
 supported on this platform». `moonpool_window_state` и `moonpool_reset_mcp_seen` работают на
 всех платформах.
 
