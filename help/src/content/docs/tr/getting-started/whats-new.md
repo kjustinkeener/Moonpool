@@ -8,6 +8,17 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.17
+
+- **14 dilde yardım.** Yardım, Moonpool'un dilinde açılır: İngilizce, Almanca, İspanyolca,
+  Fransızca, İtalyanca, Felemenkçe, Lehçe, Brezilya Portekizcesi, Rusça, Türkçe, Japonca, Korece
+  ve Basitleştirilmiş ile Geleneksel Çince.
+- **Yeni kılavuzlar ve destek sayfaları:** geliştirme sunucuları, bağlantı noktaları, oturum
+  açılışında başlatma, MCP ajanları, Python betikleri ve sık görülen hata iletileri.
+- **`mcpProcessName`.** Bir uygulamanın MCP sunucusunun işlem adı için joker karakterli desen;
+  farklı adla çalışan sunucular içindir. Bkz. [mcpProcessName](/tr/apps/fields/#mcpprocessname).
+- **macOS artık desteklenmiyor.** macOS sürümü yok. Windows ve Linux için bir şey değişmiyor.
+
 ## 0.3.16
 
 - **Aynı anda birden çok Moonpool.** Kurulu Moonpool ve istediğiniz sayıda taşınabilir kopya,

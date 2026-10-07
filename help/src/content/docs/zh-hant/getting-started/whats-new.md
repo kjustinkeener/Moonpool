@@ -5,6 +5,13 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.17
+
+- **14 種語言的說明。** 說明會以 Moonpool 的介面語言開啟：英文、德文、西班牙文、法文、義大利文、荷蘭文、波蘭文、巴西葡萄牙文、俄文、土耳其文、日文、韓文，以及簡體中文和繁體中文。
+- **新的指南和支援頁面**，涵蓋開發伺服器、連接埠、登入時啟動、MCP 代理程式、Python 指令碼和常見錯誤訊息。
+- **`mcpProcessName`。** 用於應用程式 MCP 伺服器處理程序名稱的萬用字元模式，適用於以其他名稱執行的伺服器。請參閱 [mcpProcessName](/zh-hant/apps/fields/#mcpprocessname)。
+- **不再支援 macOS。** 沒有 macOS 版本。Windows 和 Linux 不受影響。
+
 ## 0.3.16
 
 - **同時執行多個 Moonpool。** 已安裝的 Moonpool 與任意數量的可攜副本可以並排執行，每個資料夾一個，各自擁有自己的應用程式、系統匣圖示與控制通道。請參閱[可攜模式](/zh-hant/data/portable-mode/#同時執行多個副本)。

@@ -8,6 +8,19 @@ Die vollständigen Hinweise zu jeder Version stehen auf der
 wird in Moonpool mitgeliefert und beschreibt daher immer die Version, die Sie ausführen. Moonpool
 aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
+## 0.3.17
+
+- **Hilfe in 14 Sprachen.** Die Hilfe öffnet sich in der Sprache von Moonpool: Englisch,
+  Deutsch, Spanisch, Französisch, Italienisch, Niederländisch, Polnisch, brasilianisches
+  Portugiesisch, Russisch, Türkisch, Japanisch, Koreanisch sowie vereinfachtes und traditionelles
+  Chinesisch.
+- **Neue Anleitungen und Supportseiten** zu Entwicklungsservern, Ports, Start bei der Anmeldung,
+  MCP-Agenten, Python-Skripten und häufigen Fehlermeldungen.
+- **`mcpProcessName`.** Ein Platzhaltermuster für den Prozessnamen des MCP-Servers einer App,
+  für Server, die unter einem anderen Namen laufen. Siehe [mcpProcessName](/de/apps/fields/#mcpprocessname).
+- **macOS wird nicht mehr unterstützt.** Es gibt keine macOS-Builds mehr. Für Windows und Linux
+  ändert sich nichts.
+
 ## 0.3.16
 
 - **Mehrere Moonpools gleichzeitig.** Das installierte Moonpool und beliebig viele portable Kopien
