@@ -24,7 +24,7 @@ What you expected to happen instead.
 
 ## Environment
 
-- OS and version: <!-- e.g. Windows 11 23H2 / Ubuntu 24.04 (GNOME) / macOS 14 -->
+- OS and version: <!-- e.g. Windows 11 23H2 / Ubuntu 24.04 (GNOME) -->
 - Moonpool version: <!-- from the About panel, or the release/tag you installed -->
 - Install method: <!-- Releases installer (.msi/.exe/.deb/.AppImage) or built from source -->
 

@@ -20,8 +20,8 @@ terminal** so you see its console output as if you'd opened the CLI yourself, bi
 
 Built with Tauri v2 + Svelte 5. **Cross-platform:** the OS-specific bits (shell wrapper,
 process/tree kill, port freeing, exe-icon extraction) live behind a small `platform` module with
-Windows and Unix implementations. Windows is the primary/tested target; Linux and macOS are
-supported but need testing on those platforms. Notes: desktop-app **icon extraction from the
+Windows and Linux implementations. Windows is the primary/tested target; Linux is supported.
+macOS is not supported. Notes: desktop-app **icon extraction from the
 binary is Windows-only** (elsewhere it falls back to project-folder icons + favicons), and the
 Linux system tray needs `libayatana-appindicator` installed (stock GNOME also needs the
 AppIndicator shell extension; see [docs/linux-setup.md](docs/linux-setup.md)).
@@ -61,7 +61,6 @@ Prebuilt installers are published on the
 | --- | --- | --- |
 | **Windows** | `moonpool.exe` | Recommended. A single self-installing exe: run it and click Install (or Install portable). The `.msi` and NSIS `.exe` bundles are legacy and are not the update path. |
 | **Linux** | `.AppImage`, `.deb` or `.rpm` | See [docs/linux-setup.md](docs/linux-setup.md) for GNOME tray setup and runtime deps. |
-| **macOS** | build from source | Not yet distributed or tested; see [Build from source](#build-from-source). |
 
 Moonpool ships an auto-updater: once installed, it checks the Releases feed and can update
 itself in place. On Linux only the AppImage updates itself; `.deb` and `.rpm` installs update
@@ -91,7 +90,7 @@ Each entry:
   "group": "Web apps",           // any label; groups render in first-seen order
   "type": "web",                 // desktop | web | static | cli
   "cwd": "C:\\path\\to\\app",
-  "command": "npm run dev",      // run through cmd /c ($SHELL -c on Linux/macOS)
+  "command": "npm run dev",      // run through cmd /c ($SHELL -c on Linux)
   "port": 3000,                  // web: status + browser-open
   "url": "http://localhost:3000",
   "openBrowser": true,
@@ -116,7 +115,7 @@ that outlive it: `processName` kills by exe name, `port` kills whatever listens 
 runs `stopCommand`, `none` does nothing. Docker apps on Windows must use `none` or `command`, never
 `port` (it would kill Docker Desktop). Full reference: the in-app Help, "Configuration".
 
-**Command tips:** every `command` runs via `cmd /c` (Windows) or `sh -c` (Linux/macOS) in `cwd`,
+**Command tips:** every `command` runs via `cmd /c` (Windows) or `sh -c` (Linux) in `cwd`,
 inheriting the environment plus `env`. Prefer a foreground command that streams logs
 (`python x.py`, `node server.js`) over a detached/windowless launcher. Avoid nested double-quotes
 (they get mangled through the wrapper); to run a one-shot command and keep a shell open, use the
@@ -132,9 +131,7 @@ unquoted form `pwsh -NoExit -Command <tokens...>`.
 **Prerequisites:** [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org) 20+, and the
 [Tauri v2 system prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS (on Windows:
 the Microsoft C++ Build Tools and WebView2, which ships with Windows 11). Linux users: see
-[docs/linux-setup.md](docs/linux-setup.md) for the exact `apt` packages. macOS users: install the
-Xcode Command Line Tools per the Tauri prerequisites (Moonpool is not yet distributed or tested on
-macOS, so building from source is currently the only path there).
+[docs/linux-setup.md](docs/linux-setup.md) for the exact `apt` packages.
 
 ```bash
 npm install
@@ -147,7 +144,7 @@ npm run tauri dev
 ## Security / trust model
 
 Moonpool runs the `command` of each app in `apps.json` **with your full user privileges**, in a
-real shell (`cmd /c` on Windows, `sh -c` on Linux/macOS). There is no sandbox: an entry can run
+real shell (`cmd /c` on Windows, `sh -c` on Linux). There is no sandbox: an entry can run
 any program, script, or shell pipeline you could run yourself.
 
 Treat `apps.json` like a shell script you are about to execute:

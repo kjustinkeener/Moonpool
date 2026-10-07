@@ -16,8 +16,8 @@ npm run tauri build    # produce release bundles under src-tauri/target/release/
 
 ## What CI checks
 
-Every push and pull request runs the [CI workflow](.github/workflows/ci.yml) on Windows, Ubuntu,
-and macOS. Please make sure these pass locally before opening a PR (they are the same commands CI
+Every push and pull request runs the [CI workflow](.github/workflows/ci.yml) on Windows and
+Ubuntu. Please make sure these pass locally before opening a PR (they are the same commands CI
 runs):
 
 ```bash
