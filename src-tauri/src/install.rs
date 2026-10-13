@@ -83,6 +83,13 @@ pub struct SetupState {
     pub version: String,
     pub build_date: String,
     pub install_dir: String,
+    /// The installed version when it is newer than this exe and this exe is not the
+    /// installed copy: the card then offers to open that install instead of downgrading it.
+    /// `None` when not newer, when the installed exe is missing, or when the registry can't
+    /// say (behaves as before).
+    pub newer_installed: Option<String>,
+    /// The installed exe, for the card's "Open Moonpool" hand-off.
+    pub installed_exe: String,
 }
 
 /// Tell the frontend whether to show the install card or boot straight to the hub.
@@ -92,14 +99,66 @@ pub fn setup_state() -> SetupState {
         .map(|d| d.display().to_string())
         .unwrap_or_default();
     let existing = installed_exe().map(|p| p.exists()).unwrap_or(false);
+    let installed = is_installed();
+    // Only when the installed exe is really there: a stale uninstall key over a deleted
+    // folder must not trade the Install button for an "Open" that launches nothing.
+    let newer_installed = if installed || !existing {
+        None
+    } else {
+        newer_than(
+            installed_display_version().as_deref(),
+            env!("CARGO_PKG_VERSION"),
+        )
+    };
     SetupState {
         needs_setup: needs_setup(),
-        installed: is_installed(),
+        installed,
         existing,
         version: env!("CARGO_PKG_VERSION").to_string(),
         build_date: env!("MOONPOOL_BUILD_DATE").to_string(),
         install_dir: dir,
+        newer_installed,
+        installed_exe: installed_exe()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default(),
     }
+}
+
+/// `installed` when it is a strictly newer semver than `current`. Anything unparseable or
+/// missing is `None`: an unknown installed version must not block an install.
+fn newer_than(installed: Option<&str>, current: &str) -> Option<String> {
+    let inst = installed?.trim();
+    let new = semver::Version::parse(inst.trim_start_matches('v')).ok()?;
+    let cur = semver::Version::parse(current.trim_start_matches('v')).ok()?;
+    (new > cur).then(|| inst.trim_start_matches('v').to_string())
+}
+
+/// The installed version as "Installed apps" records it (`DisplayVersion` under the
+/// uninstall key, kept current by `update_display_version`). `None` when there is no
+/// install or the read fails.
+fn installed_display_version() -> Option<String> {
+    if !cfg!(windows) {
+        return None;
+    }
+    let mut c = Command::new("reg");
+    c.args(["query", UNINSTALL_KEY, "/v", "DisplayVersion"]);
+    platform::hidden(&mut c);
+    let out = c.output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    parse_reg_value(&String::from_utf8_lossy(&out.stdout), "DisplayVersion")
+}
+
+/// Pull one `REG_SZ` value out of `reg query` output, whose value lines read
+/// `    <name>    REG_SZ    <data>`.
+fn parse_reg_value(out: &str, name: &str) -> Option<String> {
+    out.lines().find_map(|l| {
+        let mut parts = l.split_whitespace();
+        (parts.next()? == name && parts.next()? == "REG_SZ")
+            .then(|| parts.collect::<Vec<_>>().join(" "))
+            .filter(|v| !v.is_empty())
+    })
 }
 
 /// Copy this exe into the install dir, create shortcuts, and register uninstall.
@@ -177,6 +236,27 @@ pub fn launch_installed_and_exit(app: AppHandle, exe: String) {
     relaunch_and_exit(&app, Path::new(&exe));
 }
 
+/// A download that has not been installed yet shares the installed copy's identity
+/// (`instance::copy_id` is `None` for both), so launching it while the installed hub runs
+/// would only surface that hub and the install would silently never happen. Say so in a
+/// native message box (this runs before Tauri builds any window) and exit.
+pub fn exit_close_running_first() -> ! {
+    #[cfg(windows)]
+    unsafe {
+        use windows::core::w;
+        use windows::Win32::UI::WindowsAndMessaging::{
+            MessageBoxW, MB_ICONINFORMATION, MB_OK, MB_SETFOREGROUND,
+        };
+        MessageBoxW(
+            None,
+            w!("Close Moonpool, then run the downloaded file again."),
+            w!("Moonpool"),
+            MB_OK | MB_ICONINFORMATION | MB_SETFOREGROUND,
+        );
+    }
+    std::process::exit(1);
+}
+
 /// Quit the app outright. Used by the installer's close button: the installer
 /// window is frameless (no OS titlebar), so without this the only way out before
 /// installing is Alt+F4 / Task Manager.
@@ -191,6 +271,13 @@ pub fn quit_app(app: AppHandle) {
 /// Removes shortcuts + registry, then schedules deletion of the install dir via a
 /// detached cmd (we can't delete our own running exe directly).
 pub fn run_uninstall() {
+    // Only the installed copy uninstalls. `--uninstall` on any other copy (a download not
+    // yet installed, a portable copy, a dev build) would otherwise tear down the real
+    // install's shortcuts, registry entry and folder.
+    if !is_installed() {
+        eprintln!("moonpool: --uninstall ignored: only the installed copy can uninstall");
+        std::process::exit(1);
+    }
     remove_shortcuts();
     remove_uninstall_key();
 
@@ -475,11 +562,17 @@ mod tests {
         std::fs::write(&src, b"new").unwrap();
         std::fs::write(&target, b"installed").unwrap();
         let running = hold(&target, true);
-        assert!(std::fs::copy(&src, &target).is_err(), "the hold must block a plain copy");
+        assert!(
+            std::fs::copy(&src, &target).is_err(),
+            "the hold must block a plain copy"
+        );
         replace_exe(&src, &target).unwrap();
         drop(running);
         assert_eq!(std::fs::read(&target).unwrap(), b"new");
-        assert_eq!(std::fs::read(target.with_extension("old")).unwrap(), b"installed");
+        assert_eq!(
+            std::fs::read(target.with_extension("old")).unwrap(),
+            b"installed"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -505,6 +598,34 @@ mod tests {
         assert_eq!(std::fs::read(&old).unwrap(), b"older");
         assert_eq!(std::fs::read(&pid_old).unwrap(), b"installed");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn newer_than_only_reports_a_strictly_newer_install() {
+        assert_eq!(
+            newer_than(Some("0.4.0"), "0.3.19").as_deref(),
+            Some("0.4.0")
+        );
+        assert_eq!(
+            newer_than(Some("v0.3.20"), "0.3.19").as_deref(),
+            Some("0.3.20")
+        );
+        assert_eq!(newer_than(Some("0.3.19"), "0.3.19"), None, "same version");
+        assert_eq!(newer_than(Some("0.3.1"), "0.3.19"), None, "older install");
+        assert_eq!(newer_than(Some("garbage"), "0.3.19"), None, "unreadable");
+        assert_eq!(newer_than(None, "0.3.19"), None, "no install");
+    }
+
+    #[test]
+    fn parse_reg_value_reads_a_reg_query_line() {
+        let out = "\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Moonpool\r\n    DisplayVersion    REG_SZ    0.3.19\r\n\r\n";
+        assert_eq!(
+            parse_reg_value(out, "DisplayVersion").as_deref(),
+            Some("0.3.19")
+        );
+        assert_eq!(parse_reg_value(out, "DisplayName"), None);
+        let empty = "    DisplayVersion    REG_SZ    \r\n";
+        assert_eq!(parse_reg_value(empty, "DisplayVersion"), None);
     }
 
     #[test]

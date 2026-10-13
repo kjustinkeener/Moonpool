@@ -151,6 +151,9 @@ export const ko: PartialDict = {
     "직접 고른 폴더 (USB 메모리, 압축 파일 등)에서 Moonpool을 실행하고 어디로든 옮길 수 있습니다. 데이터는 exe와 같은 위치에 저장됩니다.",
   "installer.installPortable": "포터블로 설치",
   "installer.installPath": "설치 경로: {dir}",
+  "installer.newerInstalled": "Moonpool {version}이(가) 이미 설치되어 있습니다",
+  "installer.openInstalled": "Moonpool 열기",
+  "installer.uninstallFirst": "이 이전 버전을 설치하려면 먼저 Moonpool을 제거하세요.",
 
   "editor.addApp": "앱 추가",
   "editor.editApp": "앱 편집",

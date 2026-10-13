@@ -443,7 +443,8 @@
       .then((r) => {
         if (r) {
           currentVersion = r.current;
-          if (r.available) update = r.available;
+          // A copy that can't apply it (dev build) gets no banner to click.
+          if (r.available && r.canApply) update = r.available;
         }
       })
       .catch(() => {});

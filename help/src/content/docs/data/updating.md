@@ -15,7 +15,15 @@ Releases, compares versions, and only offers a strictly newer one. It checks:
   [Settings](/using/settings/);
 - whenever you press **Check for updates** in the About window. That button installs a newer
   version straight away and restarts Moonpool. Otherwise it says you are on the latest
-  version, or shows the error.
+  version, or shows `Couldn't check for updates: <error>`. The startup check stays silent
+  when it fails.
+
+The updater ignores proxy settings (the Windows system proxy and `HTTP_PROXY`/`HTTPS_PROXY`
+alike) and connects to GitHub directly. On a network that only allows traffic through a
+proxy, [update by hand](#updating-by-hand).
+
+On Windows, only the installed copy and portable copies update themselves. A downloaded
+`moonpool.exe` that has not been installed yet does not; install it first.
 
 The About window shows the version you run, under the name:
 
@@ -72,7 +80,8 @@ Update failed: <error>
 | --- | --- | --- |
 | `download failed` | No connection, a proxy, or GitHub limiting requests | Wait and retry, or update by hand. |
 | `signature verification FAILED - refusing to install` | The download is corrupt or was changed | Retry. If it keeps failing, update by hand from the Releases page. |
-| `rename self aside` or `write new exe` | The folder is read-only, or an antivirus holds the file | Make the folder writable, or allow `moonpool.exe` in your antivirus, then retry. |
+| `Updates apply only to the installed copy` | This copy is not installed (a download not installed yet, or a dev build) | Install it, or update the installed copy. |
+| `write new exe`, `rename self aside` or `move new exe into place` | The folder is read-only, or an antivirus holds the file | Make the folder writable, or allow `moonpool.exe` in your antivirus, then retry. |
 | `refusing to install ... not newer than current` | The offered version is not newer | Nothing to do. |
 
 ### Updating by hand

@@ -242,6 +242,9 @@ export interface SetupState {
   version: string;
   buildDate: string;
   installDir: string;
+  // The installed version when it is newer than this (not installed) exe; null otherwise.
+  newerInstalled: string | null;
+  installedExe: string;
 }
 // Rust serializes with snake_case field names; normalize to camelCase here.
 export async function setupState(): Promise<SetupState> {
@@ -253,6 +256,8 @@ export async function setupState(): Promise<SetupState> {
     version: s.version,
     buildDate: s.build_date,
     installDir: s.install_dir,
+    newerInstalled: s.newer_installed ?? null,
+    installedExe: s.installed_exe,
   };
 }
 export const performInstall = (desktopShortcut: boolean) =>
@@ -319,8 +324,14 @@ export interface UpdateInfo {
 export interface CheckResult {
   current: string;
   available: UpdateInfo | null;
+  // Whether this copy can apply an update (installed or portable; not a dev build or a
+  // download that has not been installed yet).
+  canApply: boolean;
 }
-export const updateCheck = () => invoke<CheckResult>("update_check");
+export async function updateCheck(): Promise<CheckResult> {
+  const r = await invoke<any>("update_check");
+  return { current: r.current, available: r.available, canApply: r.can_apply };
+}
 export const updateApply = (info: UpdateInfo) =>
   invoke<void>("update_apply", { info });
 /**

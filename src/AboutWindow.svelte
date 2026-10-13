@@ -93,19 +93,27 @@
   async function checkUpdates() {
     checking = true;
     status = t("about.checking");
+    let r;
     try {
-      const r = await updateCheck();
-      if (r.available) {
-        status = t("about.updateDownloading", { version: r.available.version });
-        // On success the backend relaunches and exits; this won't return.
-        await updateApply(r.available);
-        status = t("about.updateInstalled");
-      } else {
-        status = t("about.upToDate");
-        checking = false;
-      }
+      r = await updateCheck();
     } catch (e) {
       status = t("about.checkFailed", { error: String(e) });
+      checking = false;
+      return;
+    }
+    if (!r.available) {
+      status = t("about.upToDate");
+      checking = false;
+      return;
+    }
+    try {
+      status = t("about.updateDownloading", { version: r.available.version });
+      // On success the backend relaunches and exits; this won't return. A copy that
+      // can't update itself gets the backend's refusal here.
+      await updateApply(r.available);
+      status = t("about.updateInstalled");
+    } catch (e) {
+      status = t("app.updateFailed", { error: String(e) });
       checking = false;
     }
   }

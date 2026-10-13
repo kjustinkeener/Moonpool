@@ -150,6 +150,9 @@ export const zhHans: PartialDict = {
     "从你指定的文件夹运行 Moonpool（U 盘、压缩包均可），随时整个搬走。数据就存放在 exe 旁边。",
   "installer.installPortable": "安装便携版",
   "installer.installPath": "安装路径：{dir}",
+  "installer.newerInstalled": "Moonpool {version} 已安装",
+  "installer.openInstalled": "打开 Moonpool",
+  "installer.uninstallFirst": "要安装此旧版本，请先卸载 Moonpool。",
 
   "editor.addApp": "添加应用",
   "editor.editApp": "编辑应用",

@@ -154,6 +154,9 @@ export const es: PartialDict = {
     "Ejecuta Moonpool desde la carpeta que elijas (memoria USB, zip) y muévela a donde quieras. Los datos se quedan junto al exe.",
   "installer.installPortable": "Instalar portable",
   "installer.installPath": "Ruta de instalación: {dir}",
+  "installer.newerInstalled": "Moonpool {version} ya está instalado",
+  "installer.openInstalled": "Abrir Moonpool",
+  "installer.uninstallFirst": "Para instalar esta versión anterior, desinstala Moonpool primero.",
 
   "editor.addApp": "Añadir app",
   "editor.editApp": "Editar app",

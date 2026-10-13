@@ -113,7 +113,7 @@ export const en = {
   "about.upToDate": "You're on the latest version.",
   "about.updateDownloading": "Update {version} available - downloading...",
   "about.updateInstalled": "Update installed. Restarting...",
-  "about.checkFailed": "Update check failed: {error}",
+  "about.checkFailed": "Couldn't check for updates: {error}",
   "about.builtWith": "Built with",
   "about.byLine": "Made by {author}",
 
@@ -204,6 +204,9 @@ export const en = {
     "Run Moonpool from a folder you choose (USB stick, zip) - move it anywhere. Data stays beside the exe.",
   "installer.installPortable": "Install portable",
   "installer.installPath": "Install path: {dir}",
+  "installer.newerInstalled": "Moonpool {version} is already installed",
+  "installer.openInstalled": "Open Moonpool",
+  "installer.uninstallFirst": "To install this older version, uninstall Moonpool first.",
 
   // -- app editor -----------------------------------------------------------
   "editor.addApp": "Add app",

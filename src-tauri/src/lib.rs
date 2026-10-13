@@ -3158,6 +3158,12 @@ pub fn run() {
     let _instance_lock = match instance::acquire(patience) {
         Ok(instance::Acquire::Owned(lock)) => Some(lock),
         Ok(instance::Acquire::HeldElsewhere) => {
+            // A bare launch of a not-yet-installed download while Moonpool runs: tell the
+            // user to close it first instead of just surfacing the running hub. Installed
+            // copies, Start Menu launches, relaunches and CLI verbs keep forwarding.
+            if !relaunch && args.len() <= 1 && install::needs_setup() {
+                install::exit_close_running_first();
+            }
             // A `--wait-pid` relaunch that still finds a hub only wants it surfaced.
             let forwarded: &[String] = if relaunch {
                 &[]

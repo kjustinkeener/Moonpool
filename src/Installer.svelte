@@ -25,6 +25,8 @@
     version,
     buildDate,
     installed = false,
+    newerInstalled = null,
+    installedExe = "",
   }: {
     installDir: string;
     version: string;
@@ -32,6 +34,10 @@
     // True when this copy is already installed (opened from the hub menu). The
     // "Install moonpool" action is then disabled; "Install portable" stays live.
     installed?: boolean;
+    // The installed version when it is newer than this exe. Installing would downgrade it,
+    // so the card offers to open the installed copy instead and has no Install button.
+    newerInstalled?: string | null;
+    installedExe?: string;
   } = $props();
 
   import { onMount } from "svelte";
@@ -236,6 +242,15 @@
     {:else if phase === "error"}
       <div class="state err">{t("installer.failed", { error })}</div>
       <button class="cta" onclick={() => (lastAction === "portable" ? runPortable() : install())}>{t("common.tryAgain")}</button>
+    {:else if newerInstalled}
+      <div class="state newer">{t("installer.newerInstalled", { version: newerInstalled })}</div>
+      <!-- First run only: from the hub's menu a Moonpool is already running. -->
+      {#if !detached && installedExe}
+        <button class="cta" style={ctaStyle} onclick={() => launchInstalledAndExit(installedExe).catch(() => {})}>
+          {t("installer.openInstalled")}
+        </button>
+      {/if}
+      <p class="note">{t("installer.uninstallFirst")}</p>
     {:else}
       <button
         class="cta"
@@ -454,6 +469,10 @@
     display: flex;
   }
   .state.err { color: var(--danger, #f06a6a); margin-bottom: 12px; }
+  /* The newer-install card: headline spaced off the button like the error state, and
+     the uninstall hint as secondary text below it. */
+  .state.newer { color: var(--text-strong); margin-bottom: 12px; }
+  .note { margin: 12px 0 0; font-size: 12px; color: var(--text-secondary); }
 
   .foot {
     position: absolute;

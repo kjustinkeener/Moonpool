@@ -156,6 +156,9 @@ export const ru: PartialDict = {
     "Запускайте Moonpool из выбранной вами папки (USB-накопитель, архив) и переносите куда угодно. Данные хранятся рядом с exe-файлом.",
   "installer.installPortable": "Портативная установка",
   "installer.installPath": "Путь установки: {dir}",
+  "installer.newerInstalled": "Moonpool {version} уже установлен",
+  "installer.openInstalled": "Открыть Moonpool",
+  "installer.uninstallFirst": "Чтобы установить эту более старую версию, сначала удалите Moonpool.",
 
   "editor.addApp": "Добавить приложение",
   "editor.editApp": "Изменить приложение",

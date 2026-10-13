@@ -151,6 +151,9 @@ export const ja: PartialDict = {
     "選んだフォルダー (USB メモリー、ZIP など) から Moonpool を実行し、どこへでも持ち運べます。データは exe と同じ場所に保存されます。",
   "installer.installPortable": "ポータブル版として設置",
   "installer.installPath": "インストール先: {dir}",
+  "installer.newerInstalled": "Moonpool {version} はすでにインストールされています",
+  "installer.openInstalled": "Moonpool を開く",
+  "installer.uninstallFirst": "この古いバージョンをインストールするには、先に Moonpool をアンインストールしてください。",
 
   "editor.addApp": "アプリを追加",
   "editor.editApp": "アプリを編集",

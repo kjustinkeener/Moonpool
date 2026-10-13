@@ -150,6 +150,9 @@ export const zhHant: PartialDict = {
     "從你指定的資料夾執行 Moonpool（隨身碟、壓縮檔皆可），可以整個搬到任何地方。資料就存放在 exe 旁邊。",
   "installer.installPortable": "安裝可攜版",
   "installer.installPath": "安裝路徑：{dir}",
+  "installer.newerInstalled": "Moonpool {version} 已安裝",
+  "installer.openInstalled": "開啟 Moonpool",
+  "installer.uninstallFirst": "若要安裝此舊版本，請先解除安裝 Moonpool。",
 
   "editor.addApp": "新增應用程式",
   "editor.editApp": "編輯應用程式",

@@ -155,6 +155,9 @@ export const fr: PartialDict = {
     "Lancez Moonpool depuis un dossier de votre choix (clé USB, zip) et déplacez-le où vous voulez. Les données restent à côté de l'exe.",
   "installer.installPortable": "Installer en portable",
   "installer.installPath": "Chemin d'installation : {dir}",
+  "installer.newerInstalled": "Moonpool {version} est déjà installé",
+  "installer.openInstalled": "Ouvrir Moonpool",
+  "installer.uninstallFirst": "Pour installer cette version plus ancienne, désinstallez d'abord Moonpool.",
 
   "editor.addApp": "Ajouter une app",
   "editor.editApp": "Modifier l'app",

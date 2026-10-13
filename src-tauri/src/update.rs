@@ -4,9 +4,10 @@
 //! Flow: fetch `update.json` from GitHub Releases -> semver-compare -> download the
 //! raw `moonpool.exe` -> verify its minisign signature against the committed pubkey
 //! -> self-replace and relaunch. The self-replace uses the Windows rename trick:
-//! a running .exe can't be overwritten, but it CAN be renamed, so we move ourselves
-//! aside to `moonpool.old`, write the new exe into our original path, relaunch, and
-//! exit. `cleanup_old()` deletes the leftover `.old` on the next startup.
+//! a running .exe can't be overwritten, but it CAN be renamed, so we write the new exe
+//! to `moonpool.new` and fsync it, then move ourselves aside to `moonpool.old` and the
+//! new exe into our original path back to back, relaunch, and exit. `cleanup_old()`
+//! deletes the leftover `.old` on the next startup.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -52,10 +53,37 @@ pub struct UpdateInfo {
 pub struct CheckResult {
     pub current: String,
     pub available: Option<UpdateInfo>,
+    /// Whether `update_apply` would act on this copy (`can_self_update`). The hub hides its
+    /// update banner when false, so a dev build or a not-yet-installed download never offers
+    /// an update it would refuse.
+    pub can_apply: bool,
 }
 
 fn current_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
+}
+
+/// Refusal `update_apply` gives on a Windows copy that may not replace itself.
+#[cfg(windows)]
+const NOT_INSTALLED: &str = "Updates apply only to the installed copy";
+
+/// Whether this copy may replace itself. On Windows that is the installed copy and an
+/// established portable copy (its own movable install, which updates in place); never a
+/// download that has not been installed yet, or a dev build running out of `target\`. On
+/// Linux it is an AppImage (`update_target`); package installs belong to the package manager.
+fn can_self_update() -> bool {
+    #[cfg(windows)]
+    {
+        crate::install::is_installed() || crate::portable::is_portable()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        update_target().is_some()
+    }
+    #[cfg(all(not(windows), not(target_os = "linux")))]
+    {
+        false
+    }
 }
 
 /// Delete leftover `moonpool.old`, `moonpool.old-<n>` and `moonpool.new` next to the
@@ -136,7 +164,9 @@ fn is_newer(current: &str, candidate: &str) -> Result<bool, String> {
 #[tauri::command]
 pub fn update_check() -> Result<CheckResult, String> {
     let body = http_get_string(MANIFEST_URL)?;
-    check_manifest(current_version(), &body)
+    let mut r = check_manifest(current_version(), &body)?;
+    r.can_apply = can_self_update();
+    Ok(r)
 }
 
 /// Parse a fetched manifest and decide whether it offers an upgrade over `current`. Split out
@@ -148,6 +178,7 @@ fn check_manifest(current: &str, body: &str) -> Result<CheckResult, String> {
     Ok(CheckResult {
         current: current.to_string(),
         available,
+        can_apply: false,
     })
 }
 
@@ -155,6 +186,14 @@ fn check_manifest(current: &str, body: &str) -> Result<CheckResult, String> {
 /// returns normally: the process exits and the new exe takes over.
 #[tauri::command]
 pub fn update_apply(app: AppHandle, info: UpdateInfo) -> Result<(), String> {
+    // Only a real install replaces itself: a dev build or a download that has not been
+    // installed yet would otherwise overwrite whatever exe it happens to be running as.
+    // Linux has its own refusal below, which names the package manager.
+    #[cfg(windows)]
+    if !can_self_update() {
+        return Err(NOT_INSTALLED.to_string());
+    }
+
     // Never install a build that isn't strictly newer, even when `update_apply` is
     // called directly: the newer-than check in `update_check` is otherwise the only
     // guard and a caller (or a stale/rolled-back manifest) could bypass it and
@@ -267,8 +306,8 @@ fn verify_signature(data: &[u8], sig_text: &str) -> Result<(), String> {
         .map_err(|_| "signature verification FAILED - refusing to install".to_string())
 }
 
-/// The Windows self-replace: rename running exe aside, write the new one in place,
-/// relaunch it, and exit this (old) process.
+/// The Windows self-replace: stage the new exe beside the running one, swap it in, relaunch
+/// it, and exit this (old) process.
 #[cfg(windows)]
 fn self_replace_and_relaunch(
     app: &AppHandle,
@@ -277,14 +316,7 @@ fn self_replace_and_relaunch(
 ) -> Result<(), String> {
     let cur = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
 
-    // Rename works on a running exe; overwrite does not.
-    let old = step_aside(&cur).map_err(|e| format!("rename self aside: {e}"))?;
-
-    if let Err(e) = write_new_exe(&cur, new_bytes) {
-        // Roll back so the app still launches next time.
-        let _ = std::fs::rename(&old, &cur);
-        return Err(format!("write new exe: {e}"));
-    }
+    let old = swap_in_new_exe(&cur, new_bytes)?;
 
     // The exe is swapped but the uninstall key still shows the old version; sync it
     // so "Installed apps" is right. Best-effort, after the write is committed.
@@ -309,25 +341,39 @@ fn self_replace_and_relaunch(
     Ok(())
 }
 
-/// Write the new exe durably: stream to a temp file beside the target, flush and
-/// fsync it, then atomically rename it into place. A failure or crash mid-write leaves
-/// only the temp file (cleaned up on error and on next launch), never a truncated exe
-/// at `path` that would brick the app.
+/// Replace the exe at `path` with `bytes` and return where the old one went. All the slow,
+/// failure-prone work happens first, while `path` is untouched: the new exe is written to
+/// `<stem>.new` beside it and fsynced. Only then is the old exe renamed aside (`step_aside`;
+/// a running exe can be renamed but not overwritten) and the new one renamed into place, back
+/// to back, so the window in which `path` has no exe is two renames wide. Any failure puts the
+/// old exe back and removes `.new`, leaving the app as it was.
 #[cfg(windows)]
-fn write_new_exe(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+fn swap_in_new_exe(path: &Path, bytes: &[u8]) -> Result<PathBuf, String> {
     use std::io::Write;
-    let tmp = path.with_extension("new");
-    let result = (|| {
-        let mut f = std::fs::File::create(&tmp)?;
+    let staged = path.with_extension("new");
+    let write = (|| {
+        let mut f = std::fs::File::create(&staged)?;
         f.write_all(bytes)?;
         f.flush()?;
-        f.sync_all()?;
-        std::fs::rename(&tmp, path)
+        f.sync_all()
     })();
-    if result.is_err() {
-        let _ = std::fs::remove_file(&tmp);
+    if let Err(e) = write {
+        let _ = std::fs::remove_file(&staged);
+        return Err(format!("write new exe: {e}"));
     }
-    result
+    let old = match step_aside(path) {
+        Ok(old) => old,
+        Err(e) => {
+            let _ = std::fs::remove_file(&staged);
+            return Err(format!("rename self aside: {e}"));
+        }
+    };
+    if let Err(e) = std::fs::rename(&staged, path) {
+        let _ = std::fs::rename(&old, path);
+        let _ = std::fs::remove_file(&staged);
+        return Err(format!("move new exe into place: {e}"));
+    }
+    Ok(old)
 }
 
 // --- tiny HTTP helpers (ureq, blocking) -----------------------------------
@@ -425,11 +471,11 @@ mod tests {
         assert!(super::verify_signature(b"payload", "untrusted comment: x\nnot base64\n").is_err());
     }
 
+    /// A fresh, empty temp folder for one test.
     #[cfg(windows)]
-    #[test]
-    fn write_new_exe_replaces_the_target_and_leaves_no_temp() {
+    fn scratch(tag: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "moonpool-update-{}-{}",
+            "moonpool-{tag}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -437,10 +483,57 @@ mod tests {
                 .unwrap_or(0)
         ));
         std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn swap_in_new_exe_replaces_the_target_and_leaves_no_staged_file() {
+        let dir = scratch("update-swap");
         let target = dir.join("app.exe");
         std::fs::write(&target, b"old").unwrap();
-        super::write_new_exe(&target, b"new bytes").unwrap();
+        let old = super::swap_in_new_exe(&target, b"new bytes").unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), b"new bytes");
+        assert_eq!(std::fs::read(&old).unwrap(), b"old");
+        assert!(!target.with_extension("new").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The new exe can't be staged (here `.new` is a folder, so creating the file fails):
+    /// the running exe must never have been moved.
+    #[cfg(windows)]
+    #[test]
+    fn swap_in_new_exe_leaves_the_target_alone_when_staging_fails() {
+        let dir = scratch("update-stagefail");
+        let target = dir.join("app.exe");
+        std::fs::write(&target, b"old").unwrap();
+        std::fs::create_dir(target.with_extension("new")).unwrap();
+        let err = super::swap_in_new_exe(&target, b"new bytes").unwrap_err();
+        assert!(err.starts_with("write new exe:"), "{err}");
+        assert_eq!(std::fs::read(&target).unwrap(), b"old");
+        assert!(!target.with_extension("old").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The old exe can't be renamed aside (held without delete sharing): `.new` is removed
+    /// and the target keeps its old bytes.
+    #[cfg(windows)]
+    #[test]
+    fn swap_in_new_exe_rolls_back_when_the_old_exe_cannot_move() {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ: u32 = 0x1;
+        let dir = scratch("update-pinned");
+        let target = dir.join("app.exe");
+        std::fs::write(&target, b"old").unwrap();
+        let pinned = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ)
+            .open(&target)
+            .unwrap();
+        let err = super::swap_in_new_exe(&target, b"new bytes").unwrap_err();
+        drop(pinned);
+        assert!(err.starts_with("rename self aside:"), "{err}");
+        assert_eq!(std::fs::read(&target).unwrap(), b"old");
         assert!(!target.with_extension("new").exists());
         let _ = std::fs::remove_dir_all(&dir);
     }

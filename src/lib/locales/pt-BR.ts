@@ -155,6 +155,9 @@ export const ptBR: PartialDict = {
     "Rode o Moonpool a partir de uma pasta à sua escolha (pen drive, zip) e leve para onde quiser. Os dados ficam ao lado do exe.",
   "installer.installPortable": "Instalar portátil",
   "installer.installPath": "Caminho de instalação: {dir}",
+  "installer.newerInstalled": "O Moonpool {version} já está instalado",
+  "installer.openInstalled": "Abrir o Moonpool",
+  "installer.uninstallFirst": "Para instalar esta versão mais antiga, desinstale o Moonpool primeiro.",
 
   "editor.addApp": "Adicionar app",
   "editor.editApp": "Editar app",

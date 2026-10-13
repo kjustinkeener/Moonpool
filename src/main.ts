@@ -55,6 +55,7 @@ async function boot() {
         version: s.version,
         buildDate: s.buildDate,
         installed: s.installed,
+        newerInstalled: s.newerInstalled,
       },
     });
   }
@@ -70,6 +71,8 @@ async function boot() {
           installDir: s.installDir,
           version: s.version,
           buildDate: s.buildDate,
+          newerInstalled: s.newerInstalled,
+          installedExe: s.installedExe,
         },
       });
     }

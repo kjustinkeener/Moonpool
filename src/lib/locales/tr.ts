@@ -156,6 +156,9 @@ export const tr: PartialDict = {
     "Moonpool'u seçtiğiniz bir klasörden çalıştırın (USB bellek, zip) ve istediğiniz yere taşıyın. Veriler exe dosyasının yanında kalır.",
   "installer.installPortable": "Taşınabilir olarak kur",
   "installer.installPath": "Kurulum yolu: {dir}",
+  "installer.newerInstalled": "Moonpool {version} zaten yüklü",
+  "installer.openInstalled": "Moonpool'u aç",
+  "installer.uninstallFirst": "Bu eski sürümü yüklemek için önce Moonpool'u kaldırın.",
 
   "editor.addApp": "Uygulama ekle",
   "editor.editApp": "Uygulamayı düzenle",

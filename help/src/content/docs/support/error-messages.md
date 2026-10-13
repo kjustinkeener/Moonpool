@@ -51,7 +51,7 @@ Moonpool`. The full rule list is in [Validation](/apps/apps-json/#validation).
 | --- | --- |
 | `... Repair settings.json and restart Moonpool before changing settings` | `settings.json` is malformed. Fix or delete it and restart. See [settings.json](/data/settings-json/#reading-and-repair). |
 | `Update failed: <error>` | The download or install of an update failed. See [When an update fails](/data/updating/#when-an-update-fails). |
-| `Update check failed: <error>` | The update check in About failed. The text after the colon says why. Try again later. |
+| `Couldn't check for updates: <error>` | The update check in About failed. The text after the colon says why. Try again later. |
 | `Install failed: <error>` | The installer stopped at the step named after the colon, for example `copy exe: ...`. Quit any Moonpool running from `%USERPROFILE%\.moonpool` and retry. |
 | `target folder does not exist` | The folder picked for a portable copy is gone. Pick an existing one. |
 

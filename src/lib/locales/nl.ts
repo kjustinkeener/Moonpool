@@ -156,6 +156,9 @@ export const nl: PartialDict = {
     "Start Moonpool vanuit een map die je zelf kiest (usb-stick, zip) en verplaats die waarheen je wilt. De gegevens blijven naast de exe staan.",
   "installer.installPortable": "Portable installeren",
   "installer.installPath": "Installatiepad: {dir}",
+  "installer.newerInstalled": "Moonpool {version} is al geïnstalleerd",
+  "installer.openInstalled": "Moonpool openen",
+  "installer.uninstallFirst": "Verwijder eerst Moonpool om deze oudere versie te installeren.",
 
   "editor.addApp": "App toevoegen",
   "editor.editApp": "App bewerken",

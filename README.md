@@ -64,7 +64,9 @@ Prebuilt installers are published on the
 
 Moonpool ships an auto-updater: once installed, it checks the Releases feed and can update
 itself in place. On Linux only the AppImage updates itself; `.deb` and `.rpm` installs update
-through your package manager.
+through your package manager. The updater ignores proxy settings (the Windows system proxy and
+`HTTP_PROXY`/`HTTPS_PROXY` alike) and connects to GitHub directly, so on a network that only
+allows traffic through a proxy, download new releases by hand.
 
 ## Configuring your apps
 

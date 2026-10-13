@@ -18,6 +18,13 @@ shortcut (and a desktop one if the box is ticked), and registers an entry in Add
 Programs. Then it starts the installed copy and closes. The file you downloaded stays where
 it was; you can delete it. After that, launch Moonpool from the shortcut like any other app.
 
+If Moonpool is already running when you run a downloaded `moonpool.exe`, a message says
+"Close Moonpool, then run the downloaded file again." Quit Moonpool from the tray first.
+
+If a newer Moonpool is already installed, the card says so ("Moonpool 0.4.0 is already
+installed", with the installed version) and offers **Open Moonpool** instead of installing.
+To install the older version anyway, uninstall Moonpool first.
+
 ![The install card: Install Moonpool button, desktop shortcut checkbox, Install portable link and the install path](../../../assets/screenshots/installer-window.png)
 
 Everything Moonpool needs lives under that one folder: the program, your
@@ -50,7 +57,8 @@ and logs). Back up this folder first if you want to keep your configuration:
 %USERPROFILE%\.moonpool\moonpool-config
 ```
 
-Any running Moonpool is stopped as part of uninstalling.
+Any running Moonpool is stopped as part of uninstalling. `--uninstall` works only on the
+installed copy; on any other copy it does nothing.
 
 ## Portable mode
 
