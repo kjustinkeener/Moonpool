@@ -8,6 +8,12 @@ As notas completas de cada versão estão na
 distribuída dentro do Moonpool, então sempre descreve a versão que você usa. O Moonpool se atualiza
 sozinho; veja [Atualização](/pt-br/data/updating/).
 
+## 0.3.19
+
+- **Reinstalar funciona enquanto um servidor MCP do Moonpool está rodando.**
+- O atalho vai para a sua Área de Trabalho real, mesmo se o OneDrive a tiver movido, e um atalho
+  que não pode ser criado não interrompe mais a instalação.
+
 ## 0.3.18
 
 - **A atualização não falha mais com "Acesso negado"** enquanto ainda roda um servidor MCP

@@ -8,6 +8,12 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.19
+
+- **Opnieuw installeren werkt terwijl een Moonpool-MCP-server draait.**
+- De snelkoppeling komt op je echte bureaublad, ook als OneDrive het heeft verplaatst, en een
+  snelkoppeling die niet lukt, stopt de installatie niet meer.
+
 ## 0.3.18
 
 - **Bijwerken mislukt niet meer met "Toegang geweigerd"** terwijl een Moonpool-MCP-server

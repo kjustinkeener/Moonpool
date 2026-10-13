@@ -8,6 +8,12 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.19
+
+- **Reinstalling works while a Moonpool MCP server is running.**
+- The Desktop shortcut goes on your real Desktop, including one OneDrive has moved, and a
+  shortcut that can't be made no longer stops the install.
+
 ## 0.3.18
 
 - **Updating no longer fails with "Access is denied"** while a Moonpool MCP server started

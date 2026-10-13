@@ -5,6 +5,11 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.19
+
+- **Moonpool MCP 伺服器執行時也能重新安裝。**
+- 桌面捷徑會放到你真正的桌面上，包括被 OneDrive 移動過的桌面；捷徑建立失敗也不再中斷安裝。
+
 ## 0.3.18
 
 - **即使在上次更新之前啟動的 Moonpool MCP 伺服器仍在執行，更新也不會再因「存取被拒」而失敗。**

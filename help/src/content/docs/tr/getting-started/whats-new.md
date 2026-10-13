@@ -8,6 +8,12 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.19
+
+- **Bir Moonpool MCP sunucusu çalışırken yeniden yükleme çalışıyor.**
+- Kısayol, OneDrive taşımış olsa bile gerçek masaüstünüze gelir ve oluşturulamayan bir kısayol
+  artık kurulumu durdurmaz.
+
 ## 0.3.18
 
 - **Güncelleme artık "Erişim engellendi" hatasıyla başarısız olmuyor**; önceki güncellemeden

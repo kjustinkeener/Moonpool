@@ -8,6 +8,12 @@ Las notas completas de cada versión están en la
 distribuye dentro de Moonpool, así que siempre describe la versión que usas. Moonpool se actualiza solo;
 consulta [Actualización](/es/data/updating/).
 
+## 0.3.19
+
+- **Reinstalar funciona aunque se esté ejecutando un servidor MCP de Moonpool.**
+- El acceso directo se crea en tu escritorio real, también si OneDrive lo ha movido, y un acceso
+  directo que no se puede crear ya no detiene la instalación.
+
 ## 0.3.18
 
 - **La actualización ya no falla con "Acceso denegado"** mientras sigue en ejecución un

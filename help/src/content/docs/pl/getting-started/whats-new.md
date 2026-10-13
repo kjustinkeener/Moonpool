@@ -7,6 +7,12 @@ Pełne informacje o każdym wydaniu znajdują się na [stronie Releases](https:/
 projektu. Ta pomoc jest dostarczana wraz z Moonpool, więc zawsze opisuje używaną wersję. Moonpool
 aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
+## 0.3.19
+
+- **Ponowna instalacja działa, gdy działa serwer MCP Moonpool.**
+- Skrót trafia na prawdziwy pulpit, także przeniesiony przez OneDrive, a skrót, którego nie da się
+  utworzyć, nie przerywa już instalacji.
+
 ## 0.3.18
 
 - **Aktualizacja nie kończy się już błędem „Odmowa dostępu”**, gdy nadal działa serwer MCP

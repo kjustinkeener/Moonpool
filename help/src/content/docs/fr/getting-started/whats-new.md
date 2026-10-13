@@ -8,6 +8,12 @@ Les notes complètes de chaque version se trouvent sur la
 est livrée dans Moonpool : elle décrit donc toujours la version que vous utilisez. Moonpool se
 met à jour tout seul ; voir [Mises à jour](/fr/data/updating/).
 
+## 0.3.19
+
+- **La réinstallation fonctionne pendant qu'un serveur MCP de Moonpool tourne.**
+- Le raccourci arrive sur votre vrai Bureau, même déplacé par OneDrive, et un raccourci impossible
+  à créer n'arrête plus l'installation.
+
 ## 0.3.18
 
 - **La mise à jour n'échoue plus avec « Accès refusé »** lorsqu'un serveur MCP de Moonpool

@@ -8,6 +8,12 @@ Die vollständigen Hinweise zu jeder Version stehen auf der
 wird in Moonpool mitgeliefert und beschreibt daher immer die Version, die Sie ausführen. Moonpool
 aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
+## 0.3.19
+
+- **Neuinstallation funktioniert, während ein Moonpool-MCP-Server läuft.**
+- Die Desktopverknüpfung landet auf Ihrem echten Desktop, auch wenn OneDrive ihn verschoben hat,
+  und eine Verknüpfung, die sich nicht anlegen lässt, bricht die Installation nicht mehr ab.
+
 ## 0.3.18
 
 - **Das Aktualisieren schlägt nicht mehr mit „Zugriff verweigert“ fehl**, wenn noch ein
