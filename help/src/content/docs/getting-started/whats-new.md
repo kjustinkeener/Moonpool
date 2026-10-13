@@ -8,6 +8,11 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.20
+
+- **Safer updates and installs.** Update and uninstall only act on the installed copy, a failed update rolls back, and a newer installed Moonpool is offered to open instead of being overwritten.
+- About now says why an update check or install failed.
+
 ## 0.3.19
 
 - **Reinstalling works while a Moonpool MCP server is running.**

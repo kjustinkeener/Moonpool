@@ -8,6 +8,11 @@ As notas completas de cada versão estão na
 distribuída dentro do Moonpool, então sempre descreve a versão que você usa. O Moonpool se atualiza
 sozinho; veja [Atualização](/pt-br/data/updating/).
 
+## 0.3.20
+
+- **Atualizações e instalações mais seguras.** Atualizar e desinstalar agem apenas na cópia instalada, uma atualização que falha é revertida e, se houver uma versão mais nova instalada, ela é oferecida para abrir em vez de ser sobrescrita.
+- Sobre agora informa por que uma verificação de atualização ou instalação falhou.
+
 ## 0.3.19
 
 - **Reinstalar funciona enquanto um servidor MCP do Moonpool está rodando.**

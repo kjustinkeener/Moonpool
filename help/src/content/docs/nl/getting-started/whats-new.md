@@ -8,6 +8,11 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.20
+
+- **Veiligere updates en installaties.** Updaten en verwijderen werken alleen op het geïnstalleerde exemplaar, een mislukte update wordt teruggedraaid en een nieuwere geïnstalleerde Moonpool wordt aangeboden om te openen in plaats van overschreven te worden.
+- Info vermeldt nu waarom een updatecontrole of installatie mislukte.
+
 ## 0.3.19
 
 - **Opnieuw installeren werkt terwijl een Moonpool-MCP-server draait.**

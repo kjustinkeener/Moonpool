@@ -8,6 +8,11 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.20
+
+- **Daha güvenli güncellemeler ve kurulumlar.** Güncelleme ve kaldırma yalnızca kurulu kopyada çalışır, başarısız bir güncelleme geri alınır ve daha yeni bir kurulu Moonpool üzerine yazılmak yerine açılması önerilir.
+- Hakkında bölümü artık bir güncelleme denetiminin veya kurulumun neden başarısız olduğunu söyler.
+
 ## 0.3.19
 
 - **Bir Moonpool MCP sunucusu çalışırken yeniden yükleme çalışıyor.**

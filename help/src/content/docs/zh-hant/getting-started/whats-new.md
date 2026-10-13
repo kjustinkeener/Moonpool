@@ -5,6 +5,11 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.20
+
+- **更安全的更新與安裝。** 更新和解除安裝只作用於已安裝的副本，失敗的更新會還原，已安裝較新版本的 Moonpool 時會提示開啟而不是覆蓋。
+- 「關於」現在會說明更新檢查或安裝失敗的原因。
+
 ## 0.3.19
 
 - **Moonpool MCP 伺服器執行時也能重新安裝。**
