@@ -5,7 +5,7 @@
 //! `moonpool.portable` flag file beside the exe and skips relocating it into
 //! `%LOCALAPPDATA%\Moonpool`). Thereafter detection is purely presence-based: while
 //! the flag sits next to the exe, we are portable. Delete it to return to installed
-//! mode. See `docs/portable-mode.md` for the full design.
+//! mode. The user-facing guide is the help page data/portable-mode.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;

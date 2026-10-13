@@ -16,3 +16,7 @@ node_modules/.tmp/
 
 # Release-verify download dir (tools/verify-release, gh release download -D ./rel)
 rel/
+
+# Private design docs, removed from history; never re-add.
+docs/portable-mode.md
+docs/portable-scaffold.md
