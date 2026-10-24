@@ -460,32 +460,61 @@ const NEVER_KILL_BY_PORT: &[&str] = &[
     "system",
 ];
 
-/// Free a TCP port by killing whatever is listening on it - skipping any owner whose
-/// image name is in `NEVER_KILL_BY_PORT`. Waits for the kill to finish and returns what the
-/// script printed (a refusal notice, if any) so the caller can log it.
+/// Free a TCP port by killing whatever is listening on it, with its descendants - skipping
+/// any owner whose image name is in `NEVER_KILL_BY_PORT`. Returns a refusal notice per
+/// skipped owner (empty when none) so the caller can log it. Native on Windows: spawning
+/// PowerShell for `Get-NetTCPConnection` cost 0.7-1.2s per Stop, all of it before the
+/// sidebar could show the app as stopped.
 pub fn free_port(port: u16) -> String {
     #[cfg(windows)]
     {
-        let denylist = NEVER_KILL_BY_PORT.join(",");
-        let script = format!(
-            "$deny = '{denylist}'.Split(','); \
-             $l = Get-NetTCPConnection -LocalPort {port} -State Listen -ErrorAction SilentlyContinue; \
-             foreach ($p in ($l.OwningProcess | Sort-Object -Unique)) {{ \
-               $proc = Get-Process -Id $p -ErrorAction SilentlyContinue; \
-               if ($proc -and ($deny -contains $proc.ProcessName.ToLower())) {{ \
-                 Write-Output \"free_port {port}: refusing to kill shared process $($proc.ProcessName) (pid $p)\"; \
-               }} else {{ \
-                 taskkill /PID $p /T /F 2>$null | Out-Null \
-               }} \
-             }}"
-        );
-        // Windows PowerShell 5.1 (always present), not the Store `pwsh`.
-        let mut c = Command::new("powershell");
-        c.args(["-NoProfile", "-Command", &script]);
-        hidden(&mut c);
-        c.output()
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-            .unwrap_or_default()
+        use sysinfo::{Pid, ProcessRefreshKind, System};
+        let owners = listening_pids(port);
+        if owners.is_empty() {
+            return String::new();
+        }
+        let mut sys = System::new();
+        sys.refresh_processes_specifics(ProcessRefreshKind::new());
+        let mut notes = Vec::new();
+        for pid in owners {
+            let Some(proc) = sys.process(Pid::from_u32(pid)) else {
+                continue;
+            };
+            let name = proc.name();
+            let image = name
+                .strip_suffix(".exe")
+                .or_else(|| name.strip_suffix(".EXE"))
+                .unwrap_or(name)
+                .to_lowercase();
+            if NEVER_KILL_BY_PORT.contains(&image.as_str()) {
+                notes.push(format!(
+                    "free_port {port}: refusing to kill shared process {name} (pid {pid})"
+                ));
+                continue;
+            }
+            // Same reach as `taskkill /T`: the owner and everything descended from it.
+            let mut tree = vec![Pid::from_u32(pid)];
+            let mut i = 0;
+            while i < tree.len() {
+                let parent = tree[i];
+                tree.extend(
+                    sys.processes()
+                        .iter()
+                        .filter(|(_, p)| p.parent() == Some(parent))
+                        .map(|(child, _)| *child),
+                );
+                i += 1;
+            }
+            for p in tree {
+                if let Some(p) = sys.process(p) {
+                    p.kill();
+                }
+            }
+        }
+        notes.join(
+            "
+",
+        )
     }
     #[cfg(unix)]
     {
@@ -495,6 +524,75 @@ pub fn free_port(port: u16) -> String {
         let _ = Command::new("sh").args(["-c", &script]).output();
         String::new()
     }
+}
+
+/// PIDs listening on TCP `port` on any local address, IPv4 or IPv6.
+#[cfg(windows)]
+fn listening_pids(port: u16) -> Vec<u32> {
+    use windows_sys::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, NO_ERROR};
+    use windows_sys::Win32::NetworkManagement::IpHelper::{
+        GetExtendedTcpTable, MIB_TCP6ROW_OWNER_PID, MIB_TCP6TABLE_OWNER_PID, MIB_TCPROW_OWNER_PID,
+        MIB_TCPTABLE_OWNER_PID, TCP_TABLE_OWNER_PID_LISTENER,
+    };
+    use windows_sys::Win32::Networking::WinSock::{AF_INET, AF_INET6};
+
+    // u32 elements so the buffer meets the table's alignment.
+    fn table(af: u16) -> Option<Vec<u32>> {
+        let mut buf: Vec<u32> = Vec::new();
+        let mut size = 0u32;
+        loop {
+            let r = unsafe {
+                GetExtendedTcpTable(
+                    buf.as_mut_ptr().cast(),
+                    &mut size,
+                    0,
+                    af as u32,
+                    TCP_TABLE_OWNER_PID_LISTENER,
+                    0,
+                )
+            };
+            match r {
+                NO_ERROR => return Some(buf),
+                ERROR_INSUFFICIENT_BUFFER => buf = vec![0; (size as usize).div_ceil(4)],
+                _ => return None,
+            }
+        }
+    }
+    // dwLocalPort holds the port in network byte order in its low 16 bits.
+    let matches = |p: u32| u16::from_be(p as u16) == port;
+
+    let mut pids = Vec::new();
+    if let Some(buf) = table(AF_INET) {
+        let t = buf.as_ptr().cast::<MIB_TCPTABLE_OWNER_PID>();
+        let rows = unsafe {
+            std::slice::from_raw_parts(
+                std::ptr::addr_of!((*t).table).cast::<MIB_TCPROW_OWNER_PID>(),
+                (*t).dwNumEntries as usize,
+            )
+        };
+        pids.extend(
+            rows.iter()
+                .filter(|r| matches(r.dwLocalPort))
+                .map(|r| r.dwOwningPid),
+        );
+    }
+    if let Some(buf) = table(AF_INET6) {
+        let t = buf.as_ptr().cast::<MIB_TCP6TABLE_OWNER_PID>();
+        let rows = unsafe {
+            std::slice::from_raw_parts(
+                std::ptr::addr_of!((*t).table).cast::<MIB_TCP6ROW_OWNER_PID>(),
+                (*t).dwNumEntries as usize,
+            )
+        };
+        pids.extend(
+            rows.iter()
+                .filter(|r| matches(r.dwLocalPort))
+                .map(|r| r.dwOwningPid),
+        );
+    }
+    pids.sort_unstable();
+    pids.dedup();
+    pids
 }
 
 /// Extract `exe`'s icon to a PNG at `out`. Windows-only; returns false elsewhere,
@@ -566,4 +664,22 @@ mod never_kill_by_port_tests {
 #[cfg(not(windows))]
 pub fn extract_exe_icon(_exe: &std::path::Path, _out: &std::path::Path) -> bool {
     false
+}
+
+#[cfg(all(test, windows))]
+mod listening_pids_tests {
+    use super::listening_pids;
+    use std::net::TcpListener;
+
+    #[test]
+    fn finds_this_process_on_v4_and_v6() {
+        let me = std::process::id();
+        let v4 = TcpListener::bind("127.0.0.1:0").unwrap();
+        assert_eq!(listening_pids(v4.local_addr().unwrap().port()), vec![me]);
+        let v6 = TcpListener::bind("[::1]:0").unwrap();
+        assert_eq!(listening_pids(v6.local_addr().unwrap().port()), vec![me]);
+        let free = v4.local_addr().unwrap().port();
+        drop(v4);
+        assert!(listening_pids(free).is_empty());
+    }
 }

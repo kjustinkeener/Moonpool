@@ -394,7 +394,7 @@ struct PollWake {
 }
 
 const POLL_SLOW: Duration = Duration::from_millis(2000);
-const POLL_FAST: Duration = Duration::from_millis(250);
+const POLL_FAST: Duration = Duration::from_millis(50);
 const POLL_FAST_FOR: Duration = Duration::from_secs(6);
 
 /// Tick the status poller now and keep it polling fast for `POLL_FAST_FOR`.

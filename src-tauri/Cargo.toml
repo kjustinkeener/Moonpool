@@ -55,7 +55,7 @@ libc = "0.2"
 # subtree (cmd -> npm/uv -> node/python -> model server/docker/workers) is assigned
 # to a job at spawn, so Stop kills every descendant by membership - immune to the
 # PID recycling and re-parenting that make a snapshot `taskkill /T` miss grandchildren.
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 # Window-content capture for the pipe `screenshot` verb (control.rs / screenshot.rs).
 # Matches the `windows` crate version Tauri itself resolves to (see Cargo.lock) so we reuse
 # its HWND type (WebviewWindow::hwnd()) instead of pulling in a second, incompatible one.
