@@ -529,6 +529,27 @@ pub fn free_port(port: u16) -> String {
 /// PIDs listening on TCP `port` on any local address, IPv4 or IPv6.
 #[cfg(windows)]
 fn listening_pids(port: u16) -> Vec<u32> {
+    let mut pids: Vec<u32> = tcp_listeners()
+        .into_iter()
+        .filter(|&(p, _)| p == port)
+        .map(|(_, pid)| pid)
+        .collect();
+    pids.sort_unstable();
+    pids.dedup();
+    pids
+}
+
+/// Whether anything is listening on TCP `port`. Reads the OS listener table instead of
+/// connecting: Windows takes ~2s to refuse a connect to a closed loopback port, so a probe
+/// either stalls or, with a short timeout, still costs its full timeout per stopped app.
+#[cfg(windows)]
+pub fn port_listening(port: u16) -> bool {
+    tcp_listeners().iter().any(|&(p, _)| p == port)
+}
+
+/// Every TCP listener as (port, owning pid), IPv4 and IPv6.
+#[cfg(windows)]
+fn tcp_listeners() -> Vec<(u16, u32)> {
     use windows_sys::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, NO_ERROR};
     use windows_sys::Win32::NetworkManagement::IpHelper::{
         GetExtendedTcpTable, MIB_TCP6ROW_OWNER_PID, MIB_TCP6TABLE_OWNER_PID, MIB_TCPROW_OWNER_PID,
@@ -559,9 +580,9 @@ fn listening_pids(port: u16) -> Vec<u32> {
         }
     }
     // dwLocalPort holds the port in network byte order in its low 16 bits.
-    let matches = |p: u32| u16::from_be(p as u16) == port;
+    let port = |p: u32| u16::from_be(p as u16);
 
-    let mut pids = Vec::new();
+    let mut out = Vec::new();
     if let Some(buf) = table(AF_INET) {
         let t = buf.as_ptr().cast::<MIB_TCPTABLE_OWNER_PID>();
         let rows = unsafe {
@@ -570,11 +591,7 @@ fn listening_pids(port: u16) -> Vec<u32> {
                 (*t).dwNumEntries as usize,
             )
         };
-        pids.extend(
-            rows.iter()
-                .filter(|r| matches(r.dwLocalPort))
-                .map(|r| r.dwOwningPid),
-        );
+        out.extend(rows.iter().map(|r| (port(r.dwLocalPort), r.dwOwningPid)));
     }
     if let Some(buf) = table(AF_INET6) {
         let t = buf.as_ptr().cast::<MIB_TCP6TABLE_OWNER_PID>();
@@ -584,15 +601,9 @@ fn listening_pids(port: u16) -> Vec<u32> {
                 (*t).dwNumEntries as usize,
             )
         };
-        pids.extend(
-            rows.iter()
-                .filter(|r| matches(r.dwLocalPort))
-                .map(|r| r.dwOwningPid),
-        );
+        out.extend(rows.iter().map(|r| (port(r.dwLocalPort), r.dwOwningPid)));
     }
-    pids.sort_unstable();
-    pids.dedup();
-    pids
+    out
 }
 
 /// Extract `exe`'s icon to a PNG at `out`. Windows-only; returns false elsewhere,

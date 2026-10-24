@@ -12,6 +12,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::io::{Read, Write};
+#[cfg(not(windows))]
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -2041,6 +2042,12 @@ fn open_url(app: AppHandle, url: String) -> Result<(), String> {
 // Helpers
 // ---------------------------------------------------------------------------
 
+#[cfg(windows)]
+fn tcp_alive(port: u16) -> bool {
+    platform::port_listening(port)
+}
+
+#[cfg(not(windows))]
 fn tcp_alive(port: u16) -> bool {
     // Probe both loopback stacks: a dev server may bind IPv4 (127.0.0.1) or be
     // IPv6-only ([::1]). local_port() collapses localhost/127.0.0.1/[::1] to just the
