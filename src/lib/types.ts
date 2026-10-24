@@ -21,6 +21,9 @@ export interface AppEntry {
   env?: Record<string, string>;
 }
 
+/** A sidebar lifecycle action the user can be waiting on. */
+export type PendingAction = "launch" | "stop" | "restart";
+
 export interface AppStatus {
   id: string;
   running: boolean;

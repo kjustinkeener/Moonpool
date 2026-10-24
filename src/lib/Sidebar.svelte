@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppEntry, AppStatus, AppType } from "./types";
+  import type { AppEntry, AppStatus, AppType, PendingAction } from "./types";
   import { flip } from "svelte/animate";
   import { scrollFade } from "./scrollfade";
   import Icon from "./Icon.svelte";
@@ -10,6 +10,7 @@
     apps,
     statuses,
     pending,
+    pendingAction,
     lastStarted,
     highlight,
     slowReorder,
@@ -41,6 +42,7 @@
     apps: AppEntry[];
     statuses: Record<string, AppStatus>;
     pending: Set<string>;
+    pendingAction: Record<string, PendingAction>;
     lastStarted: Record<string, number>;
     highlight: Set<string>;
     slowReorder: boolean;
@@ -333,7 +335,23 @@
           {/if}
           <button class="action edit" title={t("common.edit")} onclick={() => onEdit(a)}>&#9998;</button>
           {#if pending.has(a.id)}
-            <span class="action spinner" title={t("sidebar.working")}></span>
+            <!-- The clicked action's button pulses until the poller confirms it took effect. -->
+            {@const act = pendingAction[a.id]}
+            <button class="action restart" class:pulsing={act === "restart"} title={t("sidebar.working")} disabled>&#8635;</button>
+            {#if act === "stop"}
+              <button class="action stop pulsing" title={t("sidebar.working")} disabled>&#9632;</button>
+            {:else}
+              <button class="action go" class:pulsing={act === "launch"} title={t("sidebar.working")} disabled>&#9654;</button>
+            {/if}
+          {:else if isStarting(a)}
+            <!-- Launched but not yet up (building, binding its port): keep the start
+                 control pulsing alongside the disc; Stop stays live to cancel. -->
+            {#if pendingAction[a.id] === "launch"}
+              <button class="action go pulsing" title={t("sidebar.working")} onclick={() => onLaunch(a)}>&#9654;</button>
+            {:else}
+              <button class="action restart pulsing" title={t("sidebar.working")} onclick={() => onRestart(a)}>&#8635;</button>
+            {/if}
+            <button class="action stop" title={t("sidebar.stop")} onclick={() => onStop(a)}>&#9632;</button>
           {:else}
             <!-- Always available: a restart on a stopped app just launches it,
                  so there's one control that works no matter the app's state. -->
@@ -820,21 +838,24 @@
     font-style: italic;
     color: var(--text-dim);
   }
-  .action.spinner {
-    box-sizing: border-box;
-    width: 12px;
-    height: 12px;
-    padding: 0;
-    margin: 4px 6px;
-    border-radius: 50%;
-    border: 2px solid var(--border-strong);
-    border-top-color: var(--link);
-    animation: spin 0.7s linear infinite;
+  .action:disabled {
+    cursor: default;
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+  .action:disabled:not(.pulsing) {
+    opacity: 0.4;
+  }
+  /* Same beat as the starting disc, in the action's own hover color. */
+  .action.pulsing {
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .action.go.pulsing {
+    color: var(--success);
+  }
+  .action.stop.pulsing {
+    color: var(--danger);
+  }
+  .action.restart.pulsing {
+    color: var(--link);
   }
   .empty {
     color: var(--text-dim);

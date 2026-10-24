@@ -31,7 +31,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { setTheme, type Theme } from "./lib/theme";
   import { t, tSplit, watchLocale } from "./lib/i18n.svelte";
-  import type { AppEntry, AppStatus } from "./lib/types";
+  import type { AppEntry, AppStatus, PendingAction } from "./lib/types";
   import Icon from "./lib/Icon.svelte";
   import Sidebar from "./lib/Sidebar.svelte";
   import TermView from "./lib/TermView.svelte";
@@ -333,7 +333,12 @@
   const pendingTarget: Record<string, "up" | "down"> = {};
   const pendingTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
-  function setPending(id: string, target: "up" | "down") {
+  // The sidebar action the user last took on each app: its button pulses while that action is
+  // pending, and a launch/restart's keeps pulsing while the app is still starting. Never
+  // cleared; the next action overwrites it.
+  let pendingAction = $state<Record<string, PendingAction>>({});
+  function setPending(id: string, target: "up" | "down", action: PendingAction) {
+    pendingAction[id] = action;
     const s = new Set(pending);
     s.add(id);
     pending = s;
@@ -679,14 +684,14 @@
     if (openTabs.includes(app.id)) {
       // Tab already exists: focus a live one, relaunch a stopped one in place.
       if (!isActive(app.id)) {
-        setPending(app.id, "up");
+        setPending(app.id, "up", "launch");
         launchOnOpen = { ...launchOnOpen, [app.id]: true };
         gen = { ...gen, [app.id]: (gen[app.id] ?? 0) + 1 };
       }
       activeTab = app.id;
       return;
     }
-    setPending(app.id, "up");
+    setPending(app.id, "up", "launch");
     launchOnOpen = { ...launchOnOpen, [app.id]: true };
     openTabs = [...openTabs, app.id];
     activeTab = app.id;
@@ -739,7 +744,7 @@
   }
 
   async function handleStop(app: AppEntry) {
-    setPending(app.id, "down");
+    setPending(app.id, "down", "stop");
     await stopApp(app.id);
   }
 
@@ -753,7 +758,7 @@
       return;
     }
     recordStart(app.id);
-    setPending(app.id, "up");
+    setPending(app.id, "up", "restart");
     await stopApp(app.id);
     // Wait for the poller to confirm the old instance is actually down (PTY gone and,
     // via its tcp_alive probe, the port freed) before rebinding, instead of a fixed
@@ -809,6 +814,7 @@
       {apps}
       {statuses}
       {pending}
+      {pendingAction}
       {lastStarted}
       {highlight}
       {slowReorder}
