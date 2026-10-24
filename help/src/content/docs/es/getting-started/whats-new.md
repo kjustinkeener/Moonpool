@@ -8,6 +8,11 @@ Las notas completas de cada versión están en la
 distribuye dentro de Moonpool, así que siempre describe la versión que usas. Moonpool se actualiza solo;
 consulta [Actualización](/es/data/updating/).
 
+## 0.3.21
+
+- **Estado más rápido.** Los iconos de las apps cambian en cuanto una app se inicia o se detiene, detener una app web ya no espera alrededor de un segundo y las comprobaciones de estado ya no se ralentizan por cada app web detenida.
+- El botón de iniciar, detener o reiniciar que pulsaste parpadea hasta que termina la acción.
+
 ## 0.3.20
 
 - **Actualizaciones e instalaciones más seguras.** Actualizar y desinstalar solo actúan sobre la copia instalada, una actualización fallida se revierte y, si hay una versión más nueva instalada, se ofrece abrirla en lugar de sobrescribirla.

@@ -7,6 +7,11 @@ Pełne informacje o każdym wydaniu znajdują się na [stronie Releases](https:/
 projektu. Ta pomoc jest dostarczana wraz z Moonpool, więc zawsze opisuje używaną wersję. Moonpool
 aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
+## 0.3.21
+
+- **Szybszy stan.** Ikony aplikacji zmieniają się, gdy tylko aplikacja się uruchomi lub zatrzyma, zatrzymanie aplikacji webowej nie czeka już około sekundy, a sprawdzanie stanu nie zwalnia już z każdą zatrzymaną aplikacją webową.
+- Kliknięty przycisk uruchomienia, zatrzymania lub ponownego uruchomienia pulsuje, dopóki akcja się nie zakończy.
+
 ## 0.3.20
 
 - **Bezpieczniejsze aktualizacje i instalacje.** Aktualizacja i odinstalowanie działają tylko na zainstalowanej kopii, nieudana aktualizacja jest cofana, a nowsza zainstalowana wersja Moonpool jest proponowana do otwarcia zamiast nadpisania.

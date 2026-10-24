@@ -8,6 +8,11 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.21
+
+- **Faster status.** App icons update as soon as an app starts or stops, Stop on a web app no longer waits about a second, and status checks no longer slow down for each stopped web app.
+- The launch, stop or restart button you clicked pulses until the action finishes.
+
 ## 0.3.20
 
 - **Safer updates and installs.** Update and uninstall only act on the installed copy, a failed update rolls back, and a newer installed Moonpool is offered to open instead of being overwritten.
