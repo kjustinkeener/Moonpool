@@ -15,8 +15,8 @@ use std::io::{Read, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base64::Engine as _;
 use portable_pty::{native_pty_system, MasterPty, PtySize};
@@ -378,6 +378,31 @@ struct HubState {
     /// Moonpool restart). Write-through: `spawn_status_poller` persists on first
     /// sight of a given id, never removes one (a stopped shim is still "seen").
     mcp_seen: Mutex<HashSet<String>>,
+    /// Lets a launch/stop/exit cut the status poller's sleep short, so the sidebar icon
+    /// flips as soon as the process does instead of on the next 2s tick. See `wake_poller`.
+    poll_wake: Mutex<PollWake>,
+    poll_cv: Condvar,
+}
+
+#[derive(Default)]
+struct PollWake {
+    /// A wake arrived since the poller last looked; tick now.
+    kick: bool,
+    /// Poll at `POLL_FAST` until this instant, to catch a process that exits (or a port
+    /// that binds/frees) a beat after the action that woke us.
+    fast_until: Option<Instant>,
+}
+
+const POLL_SLOW: Duration = Duration::from_millis(2000);
+const POLL_FAST: Duration = Duration::from_millis(250);
+const POLL_FAST_FOR: Duration = Duration::from_secs(6);
+
+/// Tick the status poller now and keep it polling fast for `POLL_FAST_FOR`.
+fn wake_poller(state: &HubState) {
+    let mut w = lock(&state.poll_wake);
+    w.kick = true;
+    w.fast_until = Some(Instant::now() + POLL_FAST_FOR);
+    state.poll_cv.notify_one();
 }
 
 // R1 poison policy
@@ -1380,6 +1405,7 @@ pub(crate) fn kill_mcp_shim(state: &HubState, id: &str) -> Result<(), String> {
             p.kill();
         }
     }
+    wake_poller(state);
     Ok(())
 }
 
@@ -1794,6 +1820,7 @@ fn launch_app(
     });
 
     log_line(&app, &format!("launch {id}: {command} (cwd {cwd})"));
+    wake_poller(&state);
 
     // Reader thread: pump PTY bytes to the frontend until EOF/stop, then clean up.
     let app2 = app.clone();
@@ -1861,6 +1888,9 @@ fn launch_app(
         // that reused this id has a live process the frontend shouldn't mark exited.
         if this_run_exited {
             let _ = app2.emit("term://exit", id2.clone());
+        }
+        if let Some(state) = app2.try_state::<HubState>() {
+            wake_poller(&state);
         }
     });
 
@@ -1979,6 +2009,7 @@ fn stop_app(id: String, app: AppHandle, state: State<HubState>) -> Result<(), St
             _ => {}
         }
     }
+    wake_poller(&state);
     Ok(())
 }
 
@@ -2042,14 +2073,17 @@ fn mcp_shim_running(sys: &System, e: &AppEntry) -> bool {
     sys.processes().values().any(|p| is_mcp_server(p, e))
 }
 
-/// Background poller: emits `status://update` every ~2s.
+/// Background poller: emits `status://update` every ~2s, or every 250ms for a few
+/// seconds after `wake_poller`.
 fn spawn_status_poller(app: AppHandle) {
     std::thread::spawn(move || {
         let mut sys = System::new();
         let mut sampler = stats::StatsSampler::new();
+        let mut last_stats: Option<Instant> = None;
         // Apps we've already auto-opened a browser for this run (once per launch).
         let mut opened: HashSet<String> = HashSet::new();
         loop {
+            let tick_start = Instant::now();
             let entries = {
                 match app.try_state::<HubState>() {
                     Some(s) => lock(&s.manifest).clone(),
@@ -2168,15 +2202,35 @@ fn spawn_status_poller(app: AppHandle) {
             write_state(&app);
             let _ = app.emit("status://update", statuses);
             // Only sample + emit system stats when the status bar is on, so the
-            // extra sysinfo refresh costs nothing for users who keep it hidden.
+            // extra sysinfo refresh costs nothing for users who keep it hidden. Held to
+            // the slow cadence: fast ticks are for status, and CPU% needs a real interval.
             let show_statusbar = app
                 .try_state::<HubState>()
                 .map(|s| lock(&s.settings).show_statusbar)
                 .unwrap_or(true);
-            if show_statusbar {
+            if show_statusbar && last_stats.is_none_or(|t| t.elapsed() >= POLL_SLOW) {
                 let _ = app.emit("sysstats", sampler.sample());
+                last_stats = Some(Instant::now());
             }
-            std::thread::sleep(Duration::from_millis(2000));
+            let tick = tick_start.elapsed();
+            if tick >= POLL_FAST {
+                log_line(&app, &format!("status tick took {}ms", tick.as_millis()));
+            }
+
+            let Some(state) = app.try_state::<HubState>() else {
+                break;
+            };
+            let mut w = lock(&state.poll_wake);
+            if !w.kick {
+                let fast = w.fast_until.is_some_and(|t| Instant::now() < t);
+                let wait = if fast { POLL_FAST } else { POLL_SLOW };
+                w = state
+                    .poll_cv
+                    .wait_timeout_while(w, wait, |w| !w.kick)
+                    .unwrap_or_else(|p| p.into_inner())
+                    .0;
+            }
+            w.kick = false;
         }
     });
 }
@@ -3235,6 +3289,8 @@ pub fn run() {
             // Populated from disk in `.setup()`, once an AppHandle exists to resolve
             // the config dir - see `load_mcp_seen`.
             mcp_seen: Mutex::new(HashSet::new()),
+            poll_wake: Mutex::new(PollWake::default()),
+            poll_cv: Condvar::new(),
         })
         .setup(|app| {
             let handle = app.handle().clone();
