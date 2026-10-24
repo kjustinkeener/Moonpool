@@ -38,7 +38,7 @@ nunca se sobrescribe.
 ## Edición
 
 - **Diálogo.** Usa **Añadir app** en el menú **...** de la parte superior de la barra lateral. Para
-  cambiar una app, usa el lápiz de su fila o haz clic derecho en ella y elige **Editar**. El diálogo
+  cambiar una app, haz clic derecho en ella y elige **Editar**. El diálogo
   valida y guarda al instante.
 - **A mano.** **Editar apps.json** en el mismo menú abre el archivo en tu editor predeterminado.
   Guárdalo y luego elige **Recargar** en el menú (o pulsa F5 o Ctrl+R).

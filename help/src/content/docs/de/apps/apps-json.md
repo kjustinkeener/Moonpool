@@ -38,7 +38,7 @@ wird nie überschrieben.
 ## Bearbeiten
 
 - **Dialog.** Wählen Sie **App hinzufügen** im Menü **...** oben in der Seitenleiste. Um eine
-  App zu ändern, nutzen Sie den Stift in ihrer Zeile oder klicken Sie sie mit der rechten Maustaste an und wählen **Bearbeiten**. Der Dialog
+  App zu ändern, klicken Sie sie mit der rechten Maustaste an und wählen **Bearbeiten**. Der Dialog
   prüft und speichert sofort.
 - **Von Hand.** **apps.json bearbeiten** im selben Menü öffnet die Datei in Ihrem Standardeditor.
   Speichern Sie sie und wählen Sie dann **Neu laden** im Menü (oder drücken Sie F5 oder Strg+R).

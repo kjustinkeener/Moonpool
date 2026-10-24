@@ -23,10 +23,11 @@ Sözcük için noktanın üzerine gelin.
 
 | Denetim | Ne yapar |
 | --- | --- |
-| Kalem | Uygulamayı düzenler. |
 | Yeniden başlat | Durdurur ve yeniden başlatır. Durmuş bir uygulamada onu yalnızca başlatır. |
 | Başlat (oynat) | Uygulamayı başlatır ve terminal sekmesini açar. Uygulama durmuşken gösterilir. |
 | Durdur (kare) | Uygulamayı durdurur. Çalışırken veya başlatılırken gösterilir. |
+
+Bir uygulamayı düzenlemek, yeniden adlandırmak, simgesini ayarlamak veya silmek için üzerine sağ tıklayın.
 
 ![Yakınlaştırılmış tek bir çalışan satır: durum noktası, tür simgesi, ad ve bağlantı noktası, ardından düzenle, yeniden başlat ve durdur düğmeleri](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Sözcük için noktanın üzerine gelin.
 4. Yeniden başlat.
 5. Durdur (çalışırken Başlat yerine gösterilir).
 
-Bir başlatma veya durdurma sürerken denetimlerin yerini bir döndürücü alır (`Çalışılıyor...`).
+Bir başlatma, durdurma veya yeniden başlatma sürerken tıkladığınız düğme işlem bitene kadar nabız gibi atar. Bir uygulama hâlâ başlatılırken Başlat düğmesi atmaya devam eder ve Durdur kullanılabilir kalır.
 
 Bir uygulamanın **adına** tıklamak terminal sekmesini açar veya odaklar ve hiçbir şeyi başlatmaz. Durmuş bir uygulamanın sekmesi bu oturumdaki günlüğü gösterir. Başlatmak için Başlat veya Yeniden başlat'ı kullanın. Yalnızca `url` içeren ve `command` içermeyen bir `static` uygulamanın terminali yoktur: Başlat, URL'yi tarayıcınızda açar.
 

@@ -38,7 +38,7 @@ nigdy nie jest nadpisywany.
 ## Edycja
 
 - **Okno dialogowe.** Użyj **Dodaj aplikację** w menu **...** u góry paska bocznego. Aby zmienić
-  aplikację, użyj ołówka w jej wierszu albo kliknij ją prawym przyciskiem myszy i wybierz **Edytuj**. Okno
+  aplikację, kliknij ją prawym przyciskiem myszy i wybierz **Edytuj**. Okno
   sprawdza poprawność i zapisuje od razu.
 - **Ręcznie.** **Edytuj apps.json** w tym samym menu otwiera plik w domyślnym edytorze.
   Zapisz go, a następnie wybierz **Odśwież** w menu (lub naciśnij F5 albo Ctrl+R).

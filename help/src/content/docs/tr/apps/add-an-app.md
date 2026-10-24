@@ -45,7 +45,7 @@ Bir uygulamanın adına tıklamak yalnızca terminal sekmesini açar; bkz. [Uygu
 - **Soluk alanlar** seçili tür tarafından kullanılmaz. Yine de kaydedilirler.
 - **Adsız kaydetmek** `ad zorunludur.` iletisini gösterir.
 - **Esc** tuşuna basmak ya da düzenleyiciyi kaydedilmemiş değişikliklerle kapatmak "Değişiklikleriniz atılsın mı?" sorusunu getirir.
-- Bir uygulamayı sonradan değiştirmek için satırındaki kalemi kullanın ya da satıra sağ tıklayıp **Düzenle** seçeneğini seçin.
+- Bir uygulamayı sonradan değiştirmek için satıra sağ tıklayıp **Düzenle** seçeneğini seçin.
 
 ## Elle düzenleme
 

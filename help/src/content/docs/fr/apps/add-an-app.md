@@ -46,7 +46,7 @@ Un clic sur le nom d'une app ouvre seulement son onglet de terminal ; voir [Éta
 - Les **champs grisés** ne sont pas utilisés par le type sélectionné. Ils sont tout de même enregistrés.
 - **Enregistrer sans nom** affiche `le nom est obligatoire.`
 - **Échap** ou la fermeture de l'éditeur avec des modifications non enregistrées affiche « Abandonner vos modifications ? ».
-- Pour modifier une app plus tard, utilisez le crayon sur sa ligne, ou faites un clic droit dessus et choisissez **Modifier**.
+- Pour modifier une app plus tard, faites un clic droit dessus et choisissez **Modifier**.
 
 ## Modifier à la main
 

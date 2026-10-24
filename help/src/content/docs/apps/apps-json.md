@@ -38,7 +38,7 @@ never overwritten.
 ## Editing
 
 - **Dialog.** Use **Add app** in the **...** menu at the top of the sidebar. To change an
-  app, use the pencil on its row or right-click it and choose **Edit**. The dialog
+  app, right-click it and choose **Edit**. The dialog
   validates and saves immediately.
 - **By hand.** **Edit apps.json** in the same menu opens the file in your default editor.
   Save it, then choose **Reload** in the menu (or press F5 or Ctrl+R).

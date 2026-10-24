@@ -23,10 +23,11 @@ Survolez le voyant pour voir le mot.
 
 | Commande | Action |
 | --- | --- |
-| Crayon | Modifier l'app. |
 | Redémarrer | Arrêter puis relancer. Sur une app arrêtée, la lance simplement. |
 | Lancer (lecture) | Démarre l'app et ouvre son onglet de terminal. Affiché quand l'app est arrêtée. |
 | Arrêter (carré) | Arrête l'app. Affiché pendant qu'elle est en cours d'exécution ou en démarrage. |
+
+Faites un clic droit sur une app pour la modifier, la renommer, définir son icône ou la supprimer.
 
 ![Une ligne d'app en cours, agrandie : voyant d'état, icône de type, nom et port, puis boutons modifier, redémarrer et arrêter](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Survolez le voyant pour voir le mot.
 4. Redémarrer.
 5. Arrêter (affiché à la place de Lancer pendant l'exécution).
 
-Pendant qu'un lancement ou un arrêt est en cours, les commandes sont remplacées par un indicateur de chargement (`En cours...`).
+Pendant qu'un lancement, un arrêt ou un redémarrage est en cours, le bouton sur lequel vous avez cliqué pulse jusqu'à la fin de l'action. Tant qu'une app est encore en démarrage, son bouton Lancer continue de pulser et Arrêter reste disponible.
 
 Cliquer sur le **nom** d'une app ouvre ou active son onglet de terminal et ne lance jamais rien. Un onglet d'app arrêtée affiche le journal de cette session. Utilisez Lancer ou Redémarrer pour la démarrer. Une app `static` qui n'a qu'une `url` et pas de `command` n'a pas de terminal : Lancer ouvre l'URL dans votre navigateur.
 

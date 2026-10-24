@@ -38,7 +38,7 @@ Bunlardan hangilerinin yedekleneceği [Yedekleme ve kurtarma](/tr/data/backup-an
 ## Düzenleme
 
 - **İletişim kutusu.** Kenar çubuğunun üstündeki **...** menüsünde **Uygulama ekle** seçeneğini kullanın. Bir
-  uygulamayı değiştirmek için satırındaki kalemi kullanın ya da sağ tıklayıp **Düzenle** seçeneğini seçin.
+  uygulamayı değiştirmek için sağ tıklayıp **Düzenle** seçeneğini seçin.
   İletişim kutusu doğrular ve hemen kaydeder.
 - **Elle.** Aynı menüdeki **apps.json dosyasını düzenle** dosyayı varsayılan düzenleyicinizde açar.
   Kaydedin, ardından menüden **Yeniden yükle** seçeneğini seçin (veya F5 ya da Ctrl+R tuşlarına basın).

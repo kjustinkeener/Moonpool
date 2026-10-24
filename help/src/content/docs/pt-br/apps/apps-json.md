@@ -37,8 +37,7 @@ nunca é sobrescrito.
 
 ## Edição
 
-- **Diálogo.** Use **Adicionar app** no menu **...** no topo da barra lateral. Para alterar um app, use o
-  lápis na linha dele ou clique com o botão direito nele e escolha **Editar**. O diálogo valida e salva
+- **Diálogo.** Use **Adicionar app** no menu **...** no topo da barra lateral. Para alterar um app, clique com o botão direito nele e escolha **Editar**. O diálogo valida e salva
   imediatamente.
 - **Manualmente.** **Editar apps.json** no mesmo menu abre o arquivo no seu editor padrão. Salve-o e
   depois escolha **Recarregar** no menu (ou pressione F5 ou Ctrl+R).

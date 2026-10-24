@@ -23,10 +23,11 @@ Fahren Sie mit der Maus über den Punkt, um das Wort zu sehen.
 
 | Bedienelement | Funktion |
 | --- | --- |
-| Stift | Die App bearbeiten. |
 | Neu starten | Stoppen und erneut starten. Bei einer gestoppten App startet es sie einfach. |
 | Starten (Play) | Startet die App und öffnet ihren Terminal-Tab. Wird angezeigt, wenn die App gestoppt ist. |
 | Stoppen (Quadrat) | Stoppt die App. Wird angezeigt, während sie läuft oder startet. |
+
+Klicken Sie eine App mit der rechten Maustaste an, um sie zu bearbeiten, umzubenennen, ihr Symbol festzulegen oder sie zu löschen.
 
 ![Eine laufende Zeile, vergrößert: Statuspunkt, Typ-Symbol, Name und Port, dann die Schaltflächen Bearbeiten, Neu starten und Stoppen](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Fahren Sie mit der Maus über den Punkt, um das Wort zu sehen.
 4. Neu starten.
 5. Stoppen (wird statt Starten angezeigt, solange die App läuft).
 
-Während ein Start oder Stopp läuft, werden die Bedienelemente durch einen Spinner ersetzt (`Arbeitet...`).
+Während ein Start, Stopp oder Neustart läuft, pulsiert die angeklickte Schaltfläche, bis die Aktion abgeschlossen ist. Solange eine App noch startet, pulsiert ihre Starten-Schaltfläche weiter, und Stoppen bleibt verfügbar.
 
 Ein Klick auf den **Namen** einer App öffnet oder fokussiert ihren Terminal-Tab und startet nie etwas. Der Tab einer gestoppten App zeigt das Protokoll dieser Sitzung. Verwenden Sie Starten oder Neu starten, um sie zu starten. Eine `static`-App mit nur einer `url` und ohne `command` hat kein Terminal: Starten öffnet die URL in Ihrem Browser.
 

@@ -45,7 +45,7 @@ Al hacer clic en el nombre de una app solo se abre su pestaña de terminal; cons
 - Los **campos atenuados** no los usa el tipo seleccionado. Aun así se guardan.
 - **Guardar sin nombre** muestra `el nombre es obligatorio.`
 - **Esc** o cerrar el editor con cambios sin guardar pregunta "¿Descartar los cambios?".
-- Para cambiar una app más adelante, usa el lápiz de su fila, o haz clic derecho en ella y elige **Editar**.
+- Para cambiar una app más adelante, haz clic derecho en ella y elige **Editar**.
 
 ## Editar a mano
 

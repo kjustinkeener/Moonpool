@@ -38,7 +38,7 @@ nooit overschreven.
 ## Bewerken
 
 - **Dialoogvenster.** Gebruik **App toevoegen** in het menu **...** bovenaan de zijbalk. Om een
-  app te wijzigen gebruik je het potlood op de rij of klik je er met de rechtermuisknop op en kies je **Bewerken**. Het dialoogvenster
+  app te wijzigen klik je er met de rechtermuisknop op en kies je **Bewerken**. Het dialoogvenster
   valideert en slaat direct op.
 - **Handmatig.** **apps.json bewerken** in hetzelfde menu opent het bestand in je standaardeditor.
   Sla het op en kies dan **Opnieuw laden** in het menu (of druk op F5 of Ctrl+R).

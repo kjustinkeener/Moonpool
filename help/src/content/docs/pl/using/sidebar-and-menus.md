@@ -23,10 +23,11 @@ Po najechaniu na kropkę wyświetla się odpowiednie słowo.
 
 | Kontrolka | Działanie |
 | --- | --- |
-| Ołówek | Edytuje aplikację. |
 | Uruchom ponownie | Zatrzymuje i uruchamia ponownie. Przy zatrzymanej aplikacji po prostu ją uruchamia. |
 | Uruchom (odtwarzanie) | Uruchamia aplikację i otwiera jej kartę terminala. Widoczny, gdy aplikacja jest zatrzymana. |
 | Zatrzymaj (kwadrat) | Zatrzymuje aplikację. Widoczny, gdy działa lub się uruchamia. |
+
+Kliknij aplikację prawym przyciskiem myszy, aby ją edytować, zmienić jej nazwę, ustawić ikonę lub usunąć.
 
 ![Jeden działający wiersz w powiększeniu: kropka stanu, ikona typu, nazwa i port, a potem przyciski edycji, ponownego uruchomienia i zatrzymania](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Po najechaniu na kropkę wyświetla się odpowiednie słowo.
 4. Uruchom ponownie.
 5. Zatrzymaj (widoczny zamiast Uruchom, gdy aplikacja działa).
 
-Gdy trwa uruchamianie lub zatrzymywanie, kontrolki są zastępowane wskaźnikiem postępu (`Pracuję...`).
+Gdy trwa uruchamianie, zatrzymywanie lub ponowne uruchamianie, kliknięty przycisk pulsuje do zakończenia akcji. Dopóki aplikacja jeszcze się uruchamia, jej przycisk Uruchom nadal pulsuje, a Zatrzymaj pozostaje dostępny.
 
 Kliknięcie **nazwy** aplikacji otwiera lub aktywuje jej kartę terminala i niczego nie uruchamia. Karta zatrzymanej aplikacji pokazuje dziennik z bieżącej sesji. Aby ją uruchomić, należy użyć Uruchom lub Uruchom ponownie. Aplikacja `static` mająca tylko `url` i niemająca `command` nie ma terminala: Uruchom otwiera adres URL w przeglądarce.
 

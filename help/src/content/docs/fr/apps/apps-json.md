@@ -38,7 +38,7 @@ n'est jamais écrasé.
 ## Modification
 
 - **Boîte de dialogue.** Utilisez **Ajouter une app** dans le menu **...** en haut de la barre latérale. Pour modifier une
-  app, utilisez le crayon sur sa ligne ou faites un clic droit dessus et choisissez **Modifier**. La boîte de dialogue
+  app, faites un clic droit dessus et choisissez **Modifier**. La boîte de dialogue
   valide et enregistre immédiatement.
 - **À la main.** **Modifier apps.json** dans le même menu ouvre le fichier dans votre éditeur par défaut.
   Enregistrez-le, puis choisissez **Recharger** dans le menu (ou appuyez sur F5 ou Ctrl+R).

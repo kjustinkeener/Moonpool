@@ -23,10 +23,11 @@ Passe o mouse sobre o ponto para ver a palavra.
 
 | Controle | O que faz |
 | --- | --- |
-| Lápis | Editar o app. |
 | Reiniciar | Parar e iniciar de novo. Em um app parado, simplesmente o inicia. |
 | Iniciar (reproduzir) | Inicia o app e abre a aba de terminal dele. Aparece quando o app está parado. |
 | Parar (quadrado) | Para o app. Aparece enquanto ele está em execução ou iniciando. |
+
+Clique com o botão direito em um app para editá-lo, renomeá-lo, definir o ícone dele ou excluí-lo.
 
 ![Uma linha em execução, ampliada: ponto de status, ícone de tipo, nome e porta, depois os botões de editar, reiniciar e parar](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Passe o mouse sobre o ponto para ver a palavra.
 4. Reiniciar.
 5. Parar (aparece no lugar de Iniciar enquanto em execução).
 
-Enquanto uma inicialização ou parada está em andamento, os controles são substituídos por um indicador giratório (`Trabalhando...`).
+Enquanto uma inicialização, parada ou reinicialização está em andamento, o botão em que você clicou pulsa até a ação terminar. Enquanto um app ainda está iniciando, o botão Iniciar dele continua pulsando e Parar continua disponível.
 
 Clicar no **nome** de um app abre ou foca a aba de terminal dele e nunca inicia nada. A aba de um app parado mostra o log desta sessão. Use Iniciar ou Reiniciar para colocá-lo em execução. Um app `static` com apenas uma `url` e sem `command` não tem terminal: Iniciar abre a URL no navegador.
 

@@ -45,7 +45,7 @@ Clicar no nome de um app só abre a aba de terminal dele; veja [Estados do app](
 - Os **campos esmaecidos** não são usados pelo tipo selecionado. Eles ainda são salvos.
 - **Salvar sem um nome** mostra `o nome é obrigatório.`
 - **Esc** ou fechar o editor com alterações não salvas pergunta "Descartar suas alterações?".
-- Para alterar um app depois, use o lápis na linha dele, ou clique com o botão direito nele e escolha **Editar**.
+- Para alterar um app depois, clique com o botão direito nele e escolha **Editar**.
 
 ## Editar manualmente
 

@@ -45,7 +45,7 @@ Kliknięcie nazwy aplikacji tylko otwiera jej kartę terminala; zob. [Stany apli
 - **Przyciemnione pola** nie są używane przez wybrany typ. Mimo to są zapisywane.
 - **Zapis bez nazwy** pokazuje komunikat `nazwa jest wymagana.`
 - **Esc** lub zamknięcie edytora z niezapisanymi zmianami wyświetla pytanie „Odrzucić wprowadzone zmiany?”.
-- Aby później zmienić aplikację, użyj ołówka w jej wierszu albo kliknij ją prawym przyciskiem myszy i wybierz **Edytuj**.
+- Aby później zmienić aplikację, kliknij ją prawym przyciskiem myszy i wybierz **Edytuj**.
 
 ## Edycja ręczna
 

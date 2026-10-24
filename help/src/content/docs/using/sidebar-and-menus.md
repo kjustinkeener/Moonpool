@@ -23,10 +23,11 @@ Hover the dot for the word.
 
 | Control | Does |
 | --- | --- |
-| Pencil | Edit the app. |
 | Restart | Stop and relaunch. On a stopped app it simply launches it. |
 | Launch (play) | Starts the app and opens its terminal tab. Shown when the app is stopped. |
 | Stop (square) | Stops the app. Shown while it is running or starting. |
+
+Right-click an app to edit, rename, set its icon or delete it.
 
 ![One running row, zoomed: status dot, type icon, name and port, then edit, restart and stop buttons](../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Hover the dot for the word.
 4. Restart.
 5. Stop (shown instead of Launch while running).
 
-While a launch or stop is in progress the controls are replaced by a spinner (`Working...`).
+While a launch, stop or restart is in progress, the button you clicked pulses until it finishes. While an app is still starting, its start button keeps pulsing and Stop stays available.
 
 Clicking an app's **name** opens or focuses its terminal tab and never launches anything. A tab for a stopped app shows the log from this session. Use Launch or Restart to start it. A `static` app with only a `url` and no `command` has no terminal: Launch opens the URL in your browser.
 

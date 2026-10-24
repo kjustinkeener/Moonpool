@@ -23,10 +23,11 @@ Passa il cursore sul pallino per vedere la parola.
 
 | Controllo | Cosa fa |
 | --- | --- |
-| Matita | Modifica l'app. |
 | Riavvia | Arresta e rilancia. Su un'app arrestata la avvia semplicemente. |
 | Avvia (riproduzione) | Avvia l'app e apre la sua scheda del terminale. Mostrato quando l'app è arrestata. |
 | Arresta (quadrato) | Arresta l'app. Mostrato mentre è in esecuzione o in avvio. |
+
+Fai clic destro su un'app per modificarla, rinominarla, impostarne l'icona o eliminarla.
 
 ![Una riga in esecuzione, ingrandita: pallino di stato, icona del tipo, nome e porta, poi i pulsanti di modifica, riavvio e arresto](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Passa il cursore sul pallino per vedere la parola.
 4. Riavvia.
 5. Arresta (mostrato al posto di Avvia mentre è in esecuzione).
 
-Mentre un avvio o un arresto è in corso, i controlli vengono sostituiti da un indicatore di attività (`Operazione in corso...`).
+Mentre un avvio, un arresto o un riavvio è in corso, il pulsante su cui hai fatto clic pulsa finché l'azione non termina. Finché un'app è ancora in fase di avvio, il suo pulsante Avvia continua a pulsare e Arresta resta disponibile.
 
 Facendo clic sul **nome** di un'app si apre o si porta in primo piano la sua scheda del terminale e non si avvia mai nulla. La scheda di un'app arrestata mostra il registro di questa sessione. Usa Avvia o Riavvia per avviarla. Un'app `static` con solo un `url` e nessun `command` non ha un terminale: Avvia apre l'URL nel browser.
 

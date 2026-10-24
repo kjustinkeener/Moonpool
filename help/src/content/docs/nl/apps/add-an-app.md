@@ -45,7 +45,7 @@ Een klik op de naam van een app opent alleen het terminaltabblad ervan; zie [App
 - **Gedimde velden** worden niet gebruikt door het gekozen type. Ze worden wel opgeslagen.
 - **Opslaan zonder naam** toont `name is required.` (in de app: "naam is verplicht.")
 - **Esc** of het sluiten van de editor met niet-opgeslagen wijzigingen vraagt "Je wijzigingen weggooien?".
-- Om een app later te wijzigen gebruik je het potlood op de rij, of klik je er met de rechtermuisknop op en kies je **Bewerken**.
+- Om een app later te wijzigen klik je er met de rechtermuisknop op en kies je **Bewerken**.
 
 ## Handmatig bewerken
 

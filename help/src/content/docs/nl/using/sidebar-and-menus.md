@@ -23,10 +23,11 @@ Houd de aanwijzer boven de stip voor het woord.
 
 | Bedieningselement | Functie |
 | --- | --- |
-| Potlood | De app bewerken. |
 | Herstarten | Stoppen en opnieuw starten. Bij een gestopte app wordt deze gewoon gestart. |
 | Starten (afspelen) | Start de app en opent het terminaltabblad. Getoond als de app gestopt is. |
 | Stoppen (vierkant) | Stopt de app. Getoond terwijl de app actief is of start. |
+
+Klik met de rechtermuisknop op een app om deze te bewerken, te hernoemen, het pictogram in te stellen of te verwijderen.
 
 ![Eén actieve rij, uitvergroot: statusstip, typepictogram, naam en poort, daarna de knoppen bewerken, herstarten en stoppen](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Houd de aanwijzer boven de stip voor het woord.
 4. Herstarten.
 5. Stoppen (getoond in plaats van Starten terwijl de app actief is).
 
-Zolang een start of stop bezig is, worden de bedieningselementen vervangen door een draaiend symbool (`Bezig...`).
+Zolang een start, stop of herstart bezig is, pulseert de knop waarop je klikte tot de actie klaar is. Zolang een app nog start, blijft de Starten-knop pulseren en blijft Stoppen beschikbaar.
 
 Een klik op de **naam** van een app opent of focust het terminaltabblad en start nooit iets. Een tabblad van een gestopte app toont het log van deze sessie. Gebruik Starten of Herstarten om de app te starten. Een `static`-app met alleen een `url` en geen `command` heeft geen terminal: Starten opent de URL in je browser.
 

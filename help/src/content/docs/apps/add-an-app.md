@@ -45,7 +45,7 @@ Clicking an app's name only opens its terminal tab; see [App states](/support/gl
 - **Dimmed fields** are not used by the selected type. They are still saved.
 - **Save without a name** shows `name is required.`
 - **Esc** or closing the editor with unsaved changes asks "Discard your changes?".
-- To change an app later, use the pencil on its row, or right-click it and choose **Edit**.
+- To change an app later, right-click it and choose **Edit**.
 
 ## Edit by hand
 

@@ -38,7 +38,7 @@ non viene mai sovrascritto.
 ## Modifica
 
 - **Finestra.** Usa **Aggiungi app** nel menu **...** in alto nella barra laterale. Per modificare
-  un'app, usa la matita sulla sua riga oppure fai clic destro su di essa e scegli **Modifica**.
+  un'app, fai clic destro su di essa e scegli **Modifica**.
   La finestra convalida e salva subito.
 - **A mano.** **Modifica apps.json** nello stesso menu apre il file nell'editor predefinito.
   Salvalo, poi scegli **Ricarica** nel menu (oppure premi F5 o Ctrl+R).

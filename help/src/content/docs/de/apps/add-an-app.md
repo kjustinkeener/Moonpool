@@ -45,7 +45,7 @@ Ein Klick auf den Namen einer App öffnet nur ihren Terminal-Tab; siehe [App-Sta
 - **Abgedunkelte Felder** werden vom gewählten Typ nicht verwendet. Sie werden trotzdem gespeichert.
 - **Speichern ohne Namen** zeigt `Name ist erforderlich.`
 - **Esc** oder das Schließen des Editors mit ungespeicherten Änderungen fragt „Ihre Änderungen verwerfen?“.
-- Um eine App später zu ändern, nutzen Sie den Stift in ihrer Zeile oder klicken Sie sie mit der rechten Maustaste an und wählen **Bearbeiten**.
+- Um eine App später zu ändern, klicken Sie sie mit der rechten Maustaste an und wählen **Bearbeiten**.
 
 ## Von Hand bearbeiten
 

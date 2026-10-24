@@ -45,7 +45,7 @@ Un clic sul nome di un'app apre soltanto la sua scheda del terminale; vedi [Stat
 - I **campi attenuati** non sono usati dal tipo selezionato. Vengono comunque salvati.
 - **Salvare senza nome** mostra `il nome è obbligatorio.`
 - **Esc** o la chiusura dell'editor con modifiche non salvate chiede «Vuoi annullare le modifiche?».
-- Per modificare un'app in seguito, usa la matita sulla sua riga, oppure fai clic destro su di essa e scegli **Modifica**.
+- Per modificare un'app in seguito, fai clic destro su di essa e scegli **Modifica**.
 
 ## Modificare a mano
 

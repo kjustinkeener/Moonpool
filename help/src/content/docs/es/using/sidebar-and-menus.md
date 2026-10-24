@@ -23,10 +23,11 @@ Pasa el cursor por el punto para ver la palabra.
 
 | Control | Qué hace |
 | --- | --- |
-| Lápiz | Editar la app. |
 | Reiniciar | Detener y volver a iniciar. En una app detenida, simplemente la inicia. |
 | Iniciar (reproducir) | Inicia la app y abre su pestaña de terminal. Se muestra cuando la app está detenida. |
 | Detener (cuadrado) | Detiene la app. Se muestra mientras está en ejecución o iniciándose. |
+
+Haz clic derecho en una app para editarla, cambiarle el nombre, establecer su icono o eliminarla.
 
 ![Una fila en ejecución, ampliada: punto de estado, icono de tipo, nombre y puerto, y luego los botones de editar, reiniciar y detener](../../../../assets/screenshots/sidebar-row-controls.png)
 
@@ -36,7 +37,7 @@ Pasa el cursor por el punto para ver la palabra.
 4. Reiniciar.
 5. Detener (se muestra en lugar de Iniciar mientras está en ejecución).
 
-Mientras un inicio o una detención está en curso, los controles se sustituyen por un indicador giratorio (`Trabajando...`).
+Mientras haya un inicio, una detención o un reinicio en curso, el botón en el que hiciste clic late hasta que termina. Mientras una app sigue iniciándose, su botón Iniciar sigue latiendo y Detener sigue disponible.
 
 Al hacer clic en el **nombre** de una app se abre o se enfoca su pestaña de terminal y nunca se inicia nada. Una pestaña de una app detenida muestra el registro de esta sesión. Usa Iniciar o Reiniciar para ponerla en marcha. Una app `static` con solo una `url` y sin `command` no tiene terminal: Iniciar abre la URL en tu navegador.
 

@@ -333,7 +333,6 @@
               {#if a.port}<span class="port">:{a.port}</span>{/if}
             </button>
           {/if}
-          <button class="action edit" title={t("common.edit")} onclick={() => onEdit(a)}>&#9998;</button>
           {#if pending.has(a.id)}
             <!-- The clicked action's button pulses until the poller confirms it took effect. -->
             {@const act = pendingAction[a.id]}
@@ -398,10 +397,10 @@
       }}
     ></div>
     <div class="ctx-menu" style="left: {ctx.x}px; top: {ctx.y}px;">
-      <button onclick={ctxEdit}>{t("common.edit")}</button>
-      <button onclick={ctxRename}>{t("common.rename")}</button>
-      <button onclick={ctxSetIcon}>{t("sidebar.setIcon")}</button>
-      <button class="danger" onclick={ctxDelete}>{t("common.delete")}</button>
+      <button onclick={ctxEdit}><span class="mi"><Icon name="pencil" size={14} /></span>{t("common.edit")}</button>
+      <button onclick={ctxRename}><span class="mi"><Icon name="rename" size={14} /></span>{t("common.rename")}</button>
+      <button onclick={ctxSetIcon}><span class="mi"><Icon name="image" size={14} /></span>{t("sidebar.setIcon")}</button>
+      <button class="danger" onclick={ctxDelete}><span class="mi"><Icon name="trash-empty" size={14} /></span>{t("common.delete")}</button>
     </div>
   {/if}
 </aside>
@@ -773,6 +772,9 @@
     flex-direction: column;
   }
   .ctx-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     text-align: left;
     background: none;
     border: none;
@@ -788,6 +790,15 @@
   }
   .ctx-menu button.danger {
     color: var(--danger);
+  }
+  .ctx-menu .mi {
+    display: inline-flex;
+    width: 14px;
+    flex: none;
+    color: var(--text-muted);
+  }
+  .ctx-menu button.danger .mi {
+    color: inherit;
   }
   .port {
     color: var(--text-dim);
