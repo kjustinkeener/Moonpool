@@ -67,8 +67,7 @@ windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gd
 debug = "line-tables-only"
 
 [profile.release]
-# Smaller, faster release binaries. panic = "abort" is intentionally omitted so
-# the updater/tauri build stays on the default unwinding path.
-codegen-units = 1
-lto = true
+# panic = "abort" is intentionally omitted so the updater/tauri build stays on the
+# default unwinding path. LTO and a single codegen unit are omitted too: they add
+# minutes to every release build for a few MB.
 strip = true
