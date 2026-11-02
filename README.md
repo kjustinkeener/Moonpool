@@ -4,6 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%20v2-24C8DB.svg)](https://tauri.app)
 
+<img src="assets/moonpool-overview.png" alt="MoonPool launcher showing a list of local apps and a terminal tab for each" width="560">
+
 A resident **system-tray launcher hub** for the apps and dev servers on your machine.
 Instead of hunting down Desktop shortcuts and remembering `localhost` ports, Moonpool lists
 every app you register, shows live status, and launches each one inside an **embedded
