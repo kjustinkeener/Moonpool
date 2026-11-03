@@ -118,6 +118,20 @@
       <!-- A star making the pleading face of the 🥺 emoji: big shiny eyes,
            raised inner brows and a small frown. -->
       <svg class="face" viewBox="0 0 32 32" aria-hidden="true">
+        <defs>
+          <!-- Lit from the top centre: white fading through yellow to a
+               yellow-orange that meets the darker orange rim. -->
+          <radialGradient id="star-face-fill" cx="0.5" cy="0.3" r="0.75">
+            <stop offset="0" stop-color="#fffdf0" />
+            <stop offset="0.3" stop-color="#ffe45c" />
+            <stop offset="0.7" stop-color="#ffc42e" />
+            <stop offset="1" stop-color="#f59a1c" />
+          </radialGradient>
+        </defs>
+        <path
+          class="rim"
+          d="M16 4.5 19.64 12.48 28.36 13.48 21.9 19.42 23.64 28.02 16 23.7 8.36 28.02 10.1 19.42 3.64 13.48 12.36 12.48Z"
+        />
         <path
           class="body"
           d="M16 4.5 19.64 12.48 28.36 13.48 21.9 19.42 23.64 28.02 16 23.7 8.36 28.02 10.1 19.42 3.64 13.48 12.36 12.48Z"
@@ -167,10 +181,16 @@
     width: 57px;
     height: 57px;
   }
+  .face .rim {
+    fill: #d8730c;
+    stroke: #d8730c;
+    stroke-width: 4;
+    stroke-linejoin: round;
+  }
   .face .body {
-    fill: var(--warning);
-    stroke: var(--warning);
-    stroke-width: 3.5;
+    fill: url(#star-face-fill);
+    stroke: url(#star-face-fill);
+    stroke-width: 2;
     stroke-linejoin: round;
   }
   .face .eye {
