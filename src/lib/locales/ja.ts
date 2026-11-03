@@ -26,7 +26,7 @@ export const ja: PartialDict = {
   "sidebar.editJson": "apps.json を編集",
   "sidebar.installMoonpool": "Moonpool をインストール…",
   "star.label": "GitHub でスターを付ける",
-  "star.message": "MoonPool は無料のオープンソースです。お役に立てていたら、GitHub でスターを付けていただけると大きな助けになります。",
+  "star.message": "Moonpool は気に入りましたか？\nGitHub でスターを付けてください！",
   "star.action": "GitHub でスターを付ける",
   "star.later": "後で通知",
   "star.never": "今後表示しない",

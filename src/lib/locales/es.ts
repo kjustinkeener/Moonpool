@@ -26,7 +26,7 @@ export const es: PartialDict = {
   "sidebar.editJson": "Editar apps.json",
   "sidebar.installMoonpool": "Instalar Moonpool…",
   "star.label": "Dar una estrella en GitHub",
-  "star.message": "MoonPool es gratuito y de código abierto. Si te ahorra tiempo, una estrella en GitHub ayuda mucho.",
+  "star.message": "¿Te gusta Moonpool?\n¡Dale una estrella en GitHub, por favor!",
   "star.action": "Dar una estrella en GitHub",
   "star.later": "Recordármelo más tarde",
   "star.never": "No volver a mostrar",

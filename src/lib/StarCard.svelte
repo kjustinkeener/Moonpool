@@ -114,9 +114,6 @@
 
 {#if shown}
   <div class="star-card" role="region" aria-label={t("star.label")}>
-    <button class="x" title={t("star.later")} aria-label={t("star.later")} onclick={later}>
-      <Icon name="close" size={13} />
-    </button>
     <div class="head">
       <!-- A star making the pleading face of the 🥺 emoji: big shiny eyes,
            raised inner brows and a small frown. -->
@@ -199,7 +196,7 @@
   .star-card {
     position: relative;
     margin: 10px 10px 0;
-    padding: 10px 28px 10px 10px;
+    padding: 10px;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -215,6 +212,7 @@
   p {
     margin: 0;
     line-height: 1.4;
+    white-space: pre-line;
   }
   .face {
     flex: none;
@@ -287,20 +285,5 @@
     background: var(--accent);
     border-color: var(--accent);
     color: var(--on-accent);
-  }
-  .x {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    display: inline-flex;
-    padding: 3px;
-    background: none;
-    border: none;
-    border-radius: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .x:hover {
-    color: var(--text-strong);
   }
 </style>

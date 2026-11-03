@@ -62,7 +62,7 @@ export const en = {
   "sidebar.editJson": "Edit apps.json",
   "sidebar.installMoonpool": "Install Moonpool…",
   "star.label": "Star on GitHub",
-  "star.message": "MoonPool is free and open source. If it's saving you time, a star on GitHub helps a lot.",
+  "star.message": "Do you like Moonpool?\nPlease star it on GitHub!",
   "star.action": "Star on GitHub",
   "star.later": "Remind me later",
   "star.never": "Never show this again",

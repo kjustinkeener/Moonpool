@@ -26,7 +26,7 @@ export const zhHant: PartialDict = {
   "sidebar.editJson": "編輯 apps.json",
   "sidebar.installMoonpool": "安裝 Moonpool…",
   "star.label": "在 GitHub 上加星",
-  "star.message": "MoonPool 免費且開源。如果它幫你節省了時間，在 GitHub 上加星會幫上大忙。",
+  "star.message": "喜歡 Moonpool 嗎？\n請在 GitHub 上給它加星！",
   "star.action": "在 GitHub 上加星",
   "star.later": "稍後提醒",
   "star.never": "不再顯示",
