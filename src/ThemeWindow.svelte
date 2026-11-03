@@ -13,6 +13,7 @@
     THEMES,
     GROUP_ORDER,
     getTheme,
+    isLocked,
     setTheme,
     themeLabel,
     groupLabel,
@@ -25,6 +26,10 @@
   import brandIcon from "./assets/app-icon.png";
 
   let current = $state<Theme>(getTheme());
+  // The star card writes the unlock from the hub window; re-read it when this
+  // window is shown or focused, and when storage changes.
+  let locked = $state(isLocked("star"));
+  const refreshLock = () => (locked = isLocked("star"));
 
   // Same formula as the other detached windows: each reads --app-alpha off its
   // own document, so it applies the persisted setting itself and follows the
@@ -117,7 +122,11 @@
   });
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && close()} />
+<svelte:window
+  onkeydown={(e) => e.key === "Escape" && close()}
+  onfocus={refreshLock}
+  onstorage={refreshLock}
+/>
 
 <div class="win">
   <div class="bar" data-tauri-drag-region>
@@ -139,15 +148,18 @@
           {#each items as th (th.id)}
             {@const p = pal[th.id]}
             {@const name = themeLabel(th.id, th.label)}
+            {@const off = th.id === "star" && locked}
             <!-- The card ground is the palette's own solid --bg: previews must stay
                  opaque however transparent the window is set. -->
             <button
               class="card"
               class:active={th.id === current}
+              class:locked={off}
+              disabled={off}
               style:background={p.vars["--bg"]}
               style:border-color={p.vars["--border"]}
               onclick={() => pick(th.id)}
-              title={name}
+              title={off ? t("theme.starLocked") : name}
               aria-pressed={th.id === current}
             >
               <div class="row">
@@ -298,7 +310,12 @@
       transform 0.08s ease,
       box-shadow 0.08s ease;
   }
-  .card:hover {
+  .card.locked {
+    opacity: 0.45;
+    filter: grayscale(0.6);
+    cursor: not-allowed;
+  }
+  .card:hover:not(.locked) {
     transform: translateY(-1px);
     box-shadow: 0 5px 16px var(--shadow);
   }

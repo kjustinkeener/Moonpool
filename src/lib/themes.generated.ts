@@ -2,7 +2,7 @@
 // Labels are palette proper nouns and stay untranslated (auto/dark/light get
 // translated names in the UI; see themeLabel in the settings code).
 
-export const GROUP_ORDER = ["Core","Neon","Warm","Cool","Greens","Neutral","Light","Blush","Bright","Light Pastel","Pastel"] as const;
+export const GROUP_ORDER = ["Core","Neon","Warm","Cool","Greens","Neutral","Light","Blush","Bright","Light Pastel","Pastel","Supporter"] as const;
 
 export const THEMES: { id: string; label: string; group: string }[] = [
   { id: "auto", label: "Auto (system)", group: "Core" },
@@ -74,4 +74,5 @@ export const THEMES: { id: string; label: string; group: string }[] = [
   { id: "dracula", label: "Nocturne", group: "Pastel" },
   { id: "tokyonight", label: "Skyline", group: "Pastel" },
   { id: "mauve", label: "Mauve", group: "Pastel" },
+  { id: "star", label: "Star Supporter", group: "Supporter" },
 ];

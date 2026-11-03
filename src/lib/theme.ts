@@ -37,12 +37,36 @@ const GROUP_KEYS = {
   Bright: "theme.group.bright",
   "Light Pastel": "theme.group.lightPastel",
   Pastel: "theme.group.pastel",
+  Supporter: "theme.group.supporter",
 } as const;
 
 export function groupLabel(group: string): string {
   return group in GROUP_KEYS ? tr(GROUP_KEYS[group as keyof typeof GROUP_KEYS]) : group;
 }
 const KNOWN = new Set(THEMES.map((t) => t.id));
+
+// Themes that stay disabled in the picker until the user says they starred the
+// repo (the star card's "I gave it a star" button). Storage is shared by every
+// window, so the theme browser sees the unlock without a message.
+const UNLOCK_KEY = "moonpool.starSupporter";
+const LOCKED = new Set(["star"]);
+
+export function isLocked(id: string): boolean {
+  if (!LOCKED.has(id)) return false;
+  try {
+    return localStorage.getItem(UNLOCK_KEY) !== "1";
+  } catch {
+    return true;
+  }
+}
+
+export function unlockSupporterThemes(): void {
+  try {
+    localStorage.setItem(UNLOCK_KEY, "1");
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 const KEY = "moonpool.theme";
 const listeners = new Set<() => void>();
@@ -55,7 +79,7 @@ export function getTheme(): Theme {
   } catch {
     /* storage unavailable */
   }
-  return t && KNOWN.has(t) ? t : "auto";
+  return t && KNOWN.has(t) && !isLocked(t) ? t : "auto";
 }
 
 function resolve(theme: Theme): string {

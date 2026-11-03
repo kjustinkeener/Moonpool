@@ -39,7 +39,7 @@ const P = {
 
 const GROUP_ORDER = [
   "Core", "Neon", "Warm", "Cool", "Greens", "Neutral",
-  "Light", "Blush", "Bright", "Light Pastel", "Pastel",
+  "Light", "Blush", "Bright", "Light Pastel", "Pastel", "Supporter",
 ];
 
 // Compact var <-> palette key (the flat color tokens).

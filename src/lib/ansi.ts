@@ -65,6 +65,13 @@ export const ANSI: Record<string, AnsiPalette> = {
     "#e6b87a", "#f0b58c", "#eacf8c", "#fff0d6",
   ],
   // Hand-tuned (Moonpool).
+  star: [
+    "#2a2e55", "#ff7a7a", "#8fd18a", "#ffc42e",
+    "#7a9be0", "#c79bf0", "#7fd6e0", "#e8e2c8",
+    "#4a4f82", "#ff9a9a", "#aee6a8", "#ffd866",
+    "#9db6f0", "#dcb6f7", "#a3e6ee", "#fff6d6",
+  ],
+  // Hand-tuned (Moonpool).
   rose: [
     "#4d2f38", "#ff6b8a", "#8cd0a0", "#e6bb7b",
     "#c98ab0", "#f28fb0", "#d99ac4", "#e0c0cc",

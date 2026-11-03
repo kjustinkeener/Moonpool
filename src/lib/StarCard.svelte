@@ -6,6 +6,7 @@
   import Icon from "./Icon.svelte";
   import { openUrl } from "./api";
   import { t } from "./i18n.svelte";
+  import { unlockSupporterThemes } from "./theme";
 
   const REPO = "https://github.com/kjustinkeener/Moonpool";
   const KEY = "moonpool.starPrompt";
@@ -97,6 +98,9 @@
 
   function star() {
     openUrl(REPO);
+  }
+  function gave() {
+    unlockSupporterThemes();
     never();
   }
   function never() {
@@ -160,8 +164,11 @@
       <p>{t("star.message")}</p>
     </div>
     <div class="row">
+      <button class="primary" onclick={gave}>
+        <Icon name="check" size={13} />{t("star.gave")}
+      </button>
       <button
-        class="primary"
+        class="star-btn"
         onclick={star}
         onmouseenter={() => (starHot = true)}
         onmouseleave={() => (starHot = false)}

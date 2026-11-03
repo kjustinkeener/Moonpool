@@ -2586,5 +2586,67 @@
       "#c39ae0",
       "#ef7ba0"
     ]
+  },
+  {
+    "id": "star",
+    "label": "Star Supporter",
+    "group": "Supporter",
+    "scheme": "dark",
+    "note": "Star Supporter: night sky navy; pale gold->gold->amber gauge. Unlocked by starring the repo.",
+    "colors": {
+      "bg": [
+        12,
+        14,
+        30
+      ],
+      "fg": "#f3ecd2",
+      "muted": "#9a97a8",
+      "track": "#23264a",
+      "green": "#8fd18a",
+      "yellow": "#ffd23f",
+      "red": "#ff6b6b",
+      "live": "#ffd23f",
+      "edge": "rgba(255, 214, 90, 0.16)",
+      "edgeSoft": "rgba(255, 214, 90, 0.09)",
+      "hover": "rgba(255, 214, 90, 0.13)",
+      "panel": "rgba(255, 214, 90, 0.06)"
+    },
+    "gradient": [
+      "#fff3b0",
+      "#ffc42e",
+      "#f59a1c"
+    ],
+    "semantic": {
+      "--bg": "#0c0e1e",
+      "--bg-inset": "#0a0b18",
+      "--bg-panel": "#141731",
+      "--bg-elevated": "#1c2040",
+      "--border": "#2a2e55",
+      "--border-muted": "#21254a",
+      "--border-strong": "#3d4274",
+      "--text": "#e8e2c8",
+      "--text-strong": "#fff6d6",
+      "--text-secondary": "#a9a6b8",
+      "--text-muted": "#9a97a8",
+      "--text-dim": "#7a7890",
+      "--text-faint": "#55546b",
+      "--on-accent": "#1a1405",
+      "--accent": "#ffc42e",
+      "--focus": "#ffc42e",
+      "--link": "#ffd866",
+      "--danger": "#ff6b6b",
+      "--danger-border": "#5c2530",
+      "--success": "#8fd18a",
+      "--warning": "#ffd23f",
+      "--dot-run": "#ffc42e",
+      "--dot-run-glow": "#ffc42e88",
+      "--dot-warn": "#ffd23f",
+      "--dot-warn-glow": "#ffd23f88",
+      "--success-bg": "#14261a",
+      "--danger-bg": "#2a1218",
+      "--info-bg": "#10233b",
+      "--overlay": "rgba(0, 0, 0, 0.55)",
+      "--shadow": "rgba(0, 0, 0, 0.5)"
+    }
   }
 ]
