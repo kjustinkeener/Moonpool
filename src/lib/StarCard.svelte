@@ -160,9 +160,9 @@
       <p>{t("star.message")}</p>
     </div>
     <div class="row">
-      <button class="primary" onclick={star}>{t("star.action")}</button>
-      <button onclick={later}>{t("star.later")}</button>
-      <button onclick={never}>{t("star.never")}</button>
+      <button class="primary" onclick={star}><Icon name="star" size={13} />{t("star.action")}</button>
+      <button onclick={later}><Icon name="clock" size={13} />{t("star.later")}</button>
+      <button onclick={never}><Icon name="eye-off" size={13} />{t("star.never")}</button>
     </div>
   </div>
 {/if}
@@ -229,6 +229,9 @@
     gap: 6px;
   }
   .row button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 5px;
