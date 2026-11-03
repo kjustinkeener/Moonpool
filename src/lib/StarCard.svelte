@@ -125,8 +125,8 @@
         <path class="brow" d="M10.6 14Q12.6 13.8 14.4 11.9M21.4 14Q19.4 13.8 17.6 11.9" />
         <circle class="eye" cx="12.3" cy="17" r="2.8" />
         <circle class="eye" cx="19.7" cy="17" r="2.8" />
-        <circle class="shine" cx="11.4" cy="15.8" r="1.2" />
-        <circle class="shine" cx="18.8" cy="15.8" r="1.2" />
+        <ellipse class="shine" cx="11.4" cy="15.8" rx="1.5" ry="0.95" transform="rotate(-45 11.4 15.8)" />
+        <ellipse class="shine" cx="18.8" cy="15.8" rx="1.5" ry="0.95" transform="rotate(-45 18.8 15.8)" />
         <circle class="shine" cx="13.3" cy="18.3" r="0.6" />
         <circle class="shine" cx="20.7" cy="18.3" r="0.6" />
         <path class="mouth" d="M14.3 23.1Q16 21.7 17.7 23.1" />
