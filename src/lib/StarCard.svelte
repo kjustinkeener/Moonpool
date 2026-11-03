@@ -116,22 +116,20 @@
     </button>
     <div class="head">
       <!-- A star making the pleading face of the 🥺 emoji: big shiny eyes,
-           raised inner brows, a wobbly frown and a blush. -->
+           raised inner brows and a small frown. -->
       <svg class="face" viewBox="0 0 32 32" aria-hidden="true">
         <path
           class="body"
           d="M16 4.5 19.64 12.48 28.36 13.48 21.9 19.42 23.64 28.02 16 23.7 8.36 28.02 10.1 19.42 3.64 13.48 12.36 12.48Z"
         />
-        <ellipse class="blush" cx="9.8" cy="19.2" rx="2.1" ry="1.3" />
-        <ellipse class="blush" cx="22.2" cy="19.2" rx="2.1" ry="1.3" />
-        <path class="brow" d="M10.2 14 13.8 12.8M21.8 14 18.2 12.8" />
-        <ellipse class="eye" cx="12.6" cy="16.6" rx="2.2" ry="2.6" />
-        <ellipse class="eye" cx="19.4" cy="16.6" rx="2.2" ry="2.6" />
-        <circle class="shine" cx="11.8" cy="15.6" r="0.95" />
-        <circle class="shine" cx="18.6" cy="15.6" r="0.95" />
-        <circle class="shine" cx="13.3" cy="17.7" r="0.45" />
-        <circle class="shine" cx="20.1" cy="17.7" r="0.45" />
-        <path class="mouth" d="M14.4 21.9Q16 20.5 17.6 21.9" />
+        <path class="brow" d="M9.4 13.4Q11.8 11.5 14.4 12M22.6 13.4Q20.2 11.5 17.6 12" />
+        <ellipse class="eye" cx="12.3" cy="17" rx="2.9" ry="3.3" />
+        <ellipse class="eye" cx="19.7" cy="17" rx="2.9" ry="3.3" />
+        <circle class="shine" cx="11.2" cy="15.6" r="1.35" />
+        <circle class="shine" cx="18.6" cy="15.6" r="1.35" />
+        <circle class="shine" cx="13.4" cy="18.5" r="0.65" />
+        <circle class="shine" cx="20.8" cy="18.5" r="0.65" />
+        <path class="mouth" d="M14.3 22.6Q16 21.2 17.7 22.6" />
       </svg>
       <p>{t("star.message")}</p>
     </div>
@@ -174,10 +172,6 @@
     stroke: var(--warning);
     stroke-width: 3.5;
     stroke-linejoin: round;
-  }
-  .face .blush {
-    fill: #ff7a8a;
-    opacity: 0.55;
   }
   .face .eye {
     fill: #2b2110;
