@@ -3,6 +3,7 @@
   import { flip } from "svelte/animate";
   import { scrollFade } from "./scrollfade";
   import Icon from "./Icon.svelte";
+  import StarCard from "./StarCard.svelte";
   import { openInstallerWindow } from "./api";
   import { t, formatList } from "./i18n.svelte";
 
@@ -215,6 +216,7 @@
 />
 
 <aside class="sidebar">
+  <StarCard />
   <div class="search">
     <div class="menu-wrap">
       <button class="menu-btn" title={t("sidebar.menu")} onclick={() => (menuOpen = !menuOpen)}><Icon name="more-horizontal" size={16} /></button>
