@@ -228,7 +228,7 @@
     filter: drop-shadow(0 0 5px #ffd21f) drop-shadow(0 0 12px #ffb800);
   }
   .face.chill {
-    filter: drop-shadow(0 0 5px #4aa3ff) drop-shadow(0 0 12px #2f7de1);
+    filter: drop-shadow(0 0 2px #4aa3ff) drop-shadow(0 0 5px #2f7de1);
   }
   .face.cool {
     filter: hue-rotate(170deg) saturate(0.85);
