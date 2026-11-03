@@ -127,6 +127,13 @@
             <stop offset="0.7" stop-color="#ffc42e" />
             <stop offset="1" stop-color="#f59a1c" />
           </radialGradient>
+          <!-- Eye border for the inset look: dark where the socket shades the
+               top, fading to a lit white lip at the bottom. -->
+          <linearGradient id="star-eye-rim" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4a3410" />
+            <stop offset="0.5" stop-color="#c9a15a" />
+            <stop offset="1" stop-color="#ffffff" />
+          </linearGradient>
         </defs>
         <path
           class="rim"
@@ -139,8 +146,10 @@
         <!-- The icon renders at 57px for a 32-unit grid, so 0.55 is about 1px. -->
         <g transform="translate(0 0.55)">
         <path class="brow" d="M9.1 13.8Q10.7 13.6 12.1 12.1M22.9 13.8Q21.3 13.6 19.9 12.1" />
-        <circle class="eye" cx="12.3" cy="17" r="2.8" />
-        <circle class="eye" cx="19.7" cy="17" r="2.8" />
+        <circle class="socket" cx="12.3" cy="17" r="2.7" />
+        <circle class="eye" cx="12.3" cy="17" r="2.4" />
+        <circle class="socket" cx="19.7" cy="17" r="2.7" />
+        <circle class="eye" cx="19.7" cy="17" r="2.4" />
         <ellipse class="shine" cx="11.4" cy="15.8" rx="1.5" ry="0.95" transform="rotate(-45 11.4 15.8)" />
         <ellipse class="shine" cx="18.8" cy="15.8" rx="1.5" ry="0.95" transform="rotate(-45 18.8 15.8)" />
         <circle class="shine" cx="13.3" cy="18.3" r="0.6" />
@@ -198,6 +207,11 @@
   }
   .face .eye {
     fill: #2b2110;
+  }
+  .face .socket {
+    fill: none;
+    stroke: url(#star-eye-rim);
+    stroke-width: 0.6;
   }
   .face .shine {
     fill: #fff;
