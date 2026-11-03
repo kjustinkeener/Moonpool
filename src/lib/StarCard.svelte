@@ -122,14 +122,14 @@
           class="body"
           d="M16 4.5 19.64 12.48 28.36 13.48 21.9 19.42 23.64 28.02 16 23.7 8.36 28.02 10.1 19.42 3.64 13.48 12.36 12.48Z"
         />
-        <path class="brow" d="M9.1 14.4Q10.6 11.2 14.7 11.7M22.9 14.4Q21.4 11.2 17.3 11.7" />
-        <circle class="eye" cx="12.3" cy="17" r="3.1" />
-        <circle class="eye" cx="19.7" cy="17" r="3.1" />
-        <circle class="shine" cx="11.2" cy="15.6" r="1.35" />
-        <circle class="shine" cx="18.6" cy="15.6" r="1.35" />
-        <circle class="shine" cx="13.4" cy="18.5" r="0.65" />
-        <circle class="shine" cx="20.8" cy="18.5" r="0.65" />
-        <path class="mouth" d="M14.3 22.6Q16 21.2 17.7 22.6" />
+        <path class="brow" d="M10.6 14Q12.4 11.7 14.4 11.9M21.4 14Q19.6 11.7 17.6 11.9" />
+        <circle class="eye" cx="12.3" cy="17" r="2.8" />
+        <circle class="eye" cx="19.7" cy="17" r="2.8" />
+        <circle class="shine" cx="11.4" cy="15.8" r="1.2" />
+        <circle class="shine" cx="18.8" cy="15.8" r="1.2" />
+        <circle class="shine" cx="13.3" cy="18.3" r="0.6" />
+        <circle class="shine" cx="20.7" cy="18.3" r="0.6" />
+        <path class="mouth" d="M14.3 23.1Q16 21.7 17.7 23.1" />
       </svg>
       <p>{t("star.message")}</p>
     </div>
