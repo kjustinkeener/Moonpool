@@ -190,8 +190,8 @@
   }
   .face {
     flex: none;
-    width: 74px;
-    height: 74px;
+    width: 66px;
+    height: 66px;
   }
   .face .rim {
     fill: #d8730c;
