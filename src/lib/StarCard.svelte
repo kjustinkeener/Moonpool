@@ -27,6 +27,7 @@
   let saved = load();
   let shown = $state(false);
   let starHot = $state(false);
+  let neverHot = $state(false);
   let visibleSince: number | null = null;
   let lastInput = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -118,7 +119,7 @@
     <div class="head">
       <!-- A star making the pleading face of the 🥺 emoji: big shiny eyes,
            raised inner brows and a small frown. -->
-      <svg class="face" class:glow={starHot} viewBox="0 0 32 32" aria-hidden="true">
+      <svg class="face" class:glow={starHot} class:cool={neverHot} viewBox="0 0 32 32" aria-hidden="true">
         <defs>
           <!-- Lit from the top centre: white fading through yellow to a
                yellow-orange that meets the darker orange rim. -->
@@ -172,7 +173,15 @@
         <Icon name="star" size={13} />{t("star.action")}
       </button>
       <button onclick={later}><Icon name="clock" size={13} />{t("star.later")}</button>
-      <button onclick={never}><Icon name="eye-off" size={13} />{t("star.never")}</button>
+      <button
+        onclick={never}
+        onmouseenter={() => (neverHot = true)}
+        onmouseleave={() => (neverHot = false)}
+        onfocus={() => (neverHot = true)}
+        onblur={() => (neverHot = false)}
+      >
+        <Icon name="eye-off" size={13} />{t("star.never")}
+      </button>
     </div>
   </div>
 {/if}
@@ -208,6 +217,9 @@
   }
   .face.glow {
     filter: drop-shadow(0 0 5px #ffd21f) drop-shadow(0 0 12px #ffb800);
+  }
+  .face.cool {
+    filter: hue-rotate(170deg) saturate(0.85);
   }
   .face .rim {
     fill: #d8730c;
