@@ -164,8 +164,8 @@
   }
   .face {
     flex: none;
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
   }
   .face .body {
     fill: var(--warning);
