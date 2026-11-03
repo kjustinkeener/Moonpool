@@ -184,7 +184,7 @@
   .face .rim {
     fill: #d8730c;
     stroke: #d8730c;
-    stroke-width: 4;
+    stroke-width: 3;
     stroke-linejoin: round;
   }
   .face .body {
