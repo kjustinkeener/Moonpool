@@ -143,7 +143,7 @@
           class="body"
           d="M16 4.5 19.64 12.48 28.36 13.48 21.9 19.42 23.64 28.02 16 23.7 8.36 28.02 10.1 19.42 3.64 13.48 12.36 12.48Z"
         />
-        <!-- The icon renders at 57px for a 32-unit grid, so 0.55 is about 1px. -->
+        <!-- The whole face sits 0.55 grid units lower than where it was first drawn. -->
         <g transform="translate(0 0.55)">
         <path class="brow" d="M9.1 13.8Q10.7 13.6 12.1 12.1M22.9 13.8Q21.3 13.6 19.9 12.1" />
         <circle class="socket" cx="12.3" cy="17" r="2.7" />
@@ -190,8 +190,8 @@
   }
   .face {
     flex: none;
-    width: 57px;
-    height: 57px;
+    width: 74px;
+    height: 74px;
   }
   .face .rim {
     fill: #d8730c;
