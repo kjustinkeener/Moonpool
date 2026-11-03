@@ -28,6 +28,8 @@
   let saved = load();
   let shown = $state(false);
   let starHot = $state(false);
+  // "I gave it a star" only appears once the repo page has been opened.
+  let opened = $state(false);
   let neverHot = $state(false);
   let laterHot = $state(false);
   let visibleSince: number | null = null;
@@ -98,6 +100,7 @@
 
   function star() {
     openUrl(REPO);
+    opened = true;
   }
   function gave() {
     unlockSupporterThemes();
@@ -164,9 +167,11 @@
       <p>{t("star.message")}</p>
     </div>
     <div class="row">
-      <button class="primary" onclick={gave}>
-        <Icon name="check" size={13} />{t("star.gave")}
-      </button>
+      {#if opened}
+        <button class="primary" onclick={gave}>
+          <Icon name="check" size={13} />{t("star.gave")}
+        </button>
+      {/if}
       <button
         class="star-btn"
         onclick={star}
