@@ -12,6 +12,7 @@
   const KEY = "moonpool.starPrompt";
   const NEEDED_MS = 2 * 60_000;
   const QUIET_MS = 30_000;
+  const GAVE_MS = 30 * 60_000;
   const SNOOZE_MS = 24 * 3_600_000;
 
   type Saved = { usedMs: number; snoozeUntil: number; done: boolean };
@@ -30,6 +31,7 @@
   let starHot = $state(false);
   // "I gave it a star" only appears once the repo page has been opened.
   let opened = $state(false);
+  let gaveTimer: ReturnType<typeof setTimeout> | undefined;
   let neverHot = $state(false);
   let laterHot = $state(false);
   let visibleSince: number | null = null;
@@ -91,6 +93,7 @@
     window.addEventListener("pointerdown", onPointerDown, { capture: true, passive: true });
     return () => {
       hide();
+      clearTimeout(gaveTimer);
       document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("focus", check);
       window.removeEventListener("pagehide", hide);
@@ -101,6 +104,8 @@
   function star() {
     openUrl(REPO);
     opened = true;
+    clearTimeout(gaveTimer);
+    gaveTimer = setTimeout(() => (opened = false), GAVE_MS);
   }
   function gave() {
     unlockSupporterThemes();
