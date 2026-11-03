@@ -123,8 +123,8 @@
           d="M16 4.5 19.64 12.48 28.36 13.48 21.9 19.42 23.64 28.02 16 23.7 8.36 28.02 10.1 19.42 3.64 13.48 12.36 12.48Z"
         />
         <path class="brow" d="M9.1 14.4Q10.6 11.2 14.7 11.7M22.9 14.4Q21.4 11.2 17.3 11.7" />
-        <ellipse class="eye" cx="12.3" cy="17" rx="2.9" ry="3.3" />
-        <ellipse class="eye" cx="19.7" cy="17" rx="2.9" ry="3.3" />
+        <circle class="eye" cx="12.3" cy="17" r="3.1" />
+        <circle class="eye" cx="19.7" cy="17" r="3.1" />
         <circle class="shine" cx="11.2" cy="15.6" r="1.35" />
         <circle class="shine" cx="18.6" cy="15.6" r="1.35" />
         <circle class="shine" cx="13.4" cy="18.5" r="0.65" />
