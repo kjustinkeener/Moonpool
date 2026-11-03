@@ -205,7 +205,7 @@
   }
   .head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 9px;
     margin-bottom: 8px;
   }
