@@ -145,7 +145,7 @@
         <ellipse class="shine" cx="18.8" cy="15.8" rx="1.5" ry="0.95" transform="rotate(-45 18.8 15.8)" />
         <circle class="shine" cx="13.3" cy="18.3" r="0.6" />
         <circle class="shine" cx="20.7" cy="18.3" r="0.6" />
-        <path class="mouth" d="M14.7 23.1Q16 22 17.3 23.1" />
+        <path class="mouth" d="M14.7 22.55Q16 21.45 17.3 22.55" />
         </g>
       </svg>
       <p>{t("star.message")}</p>
