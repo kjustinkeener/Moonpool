@@ -179,6 +179,7 @@
       {/if}
       <button
         class="star-btn"
+        class:blue={!opened}
         onclick={star}
         onmouseenter={() => (starHot = true)}
         onmouseleave={() => (starHot = false)}
@@ -297,6 +298,11 @@
   }
   .row button:hover {
     border-color: var(--border-strong);
+  }
+  .row .blue {
+    background: #2f7de1;
+    border-color: #2f7de1;
+    color: #fff;
   }
   .row .primary {
     background: var(--accent);
