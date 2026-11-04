@@ -26,7 +26,7 @@ What you expected to happen instead.
 
 - OS and version: <!-- e.g. Windows 11 23H2 / Ubuntu 24.04 (GNOME) -->
 - Moonpool version: <!-- from the About panel, or the release/tag you installed -->
-- Install method: <!-- Releases installer (.msi/.exe/.deb/.AppImage) or built from source -->
+- Install method: <!-- Releases installer (moonpool.exe/.deb/.rpm/.AppImage) or built from source -->
 
 ## App entry (if relevant)
 

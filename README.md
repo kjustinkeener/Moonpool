@@ -61,7 +61,7 @@ Prebuilt installers are published on the
 
 | OS | Download | Notes |
 | --- | --- | --- |
-| **Windows** | `moonpool.exe` | Recommended. A single self-installing exe: run it and click Install (or Install portable). The `.msi` and NSIS `.exe` bundles are legacy and are not the update path. |
+| **Windows** | `moonpool.exe` | Recommended. A single self-installing exe: run it and click Install (or Install portable). No `.msi` or setup installer is published. |
 | **Linux** | `.AppImage`, `.deb` or `.rpm` | See [docs/linux-setup.md](docs/linux-setup.md) for GNOME tray setup and runtime deps. |
 
 Moonpool ships an auto-updater: once installed, it checks the Releases feed and can update

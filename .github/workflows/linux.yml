@@ -1,0 +1,97 @@
+# Windows releases are built, signed and published from the maintainer's machine
+# (private/release.ps1), which is much faster than a hosted Windows runner. Publishing
+# a release triggers this job, which builds the Linux packages and attaches them to that
+# release a few minutes later, along with the AppImage updater manifest.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   TAURI_SIGNING_PRIVATE_KEY           - the minisign/Tauri signing private key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  - its password (empty string if the key has none)
+
+name: Linux packages
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Install Linux system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            build-essential \
+            file \
+            patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # The Rust crate embeds help/dist with include_dir!, so it must exist before the build.
+      - name: Build help site
+        run: |
+          npm --prefix help ci
+          npm --prefix help run build
+
+      # Fail fast if the tag and the three version sources disagree.
+      - name: Preflight version consistency
+        shell: bash
+        run: |
+          tag="${{ github.event.release.tag_name }}"; tag="${tag#v}"
+          pkg=$(node -p "require('./package.json').version")
+          conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          cargo=$(node -e "const s=require('fs').readFileSync('src-tauri/Cargo.toml','utf8');const sec=s.split(/^\[package\]/m)[1]||'';const m=sec.match(/^\s*version\s*=\s*\"([^\"]+)\"/m);process.stdout.write(m?m[1]:'')")
+          echo "tag=$tag package.json=$pkg tauri.conf.json=$conf Cargo.toml=$cargo"
+          fail=0
+          for pair in "package.json:$pkg" "tauri.conf.json:$conf" "Cargo.toml:$cargo"; do
+            name="${pair%%:*}"; v="${pair#*:}"
+            if [ "$v" != "$tag" ]; then echo "::error::$name version '$v' does not match tag '$tag'"; fail=1; fi
+          done
+          [ "$fail" = 0 ]
+
+      - run: npx tauri build --bundles deb,rpm,appimage
+
+      # AppImages are self-contained and can safely replace their own source file.
+      # Package-manager installs (.deb/.rpm) keep using apt/dnf/rpm for upgrades.
+      # Publish a Linux-specific manifest so the app never mistakes the Windows raw-exe
+      # updater payload for a Linux update.
+      - name: Sign the AppImage and attach everything to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          image=$(find src-tauri/target/release/bundle/appimage -maxdepth 1 -type f -name '*.AppImage' -print -quit)
+          if [ -z "$image" ]; then echo "AppImage not found" >&2; exit 1; fi
+          npx tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$image"
+          signature=$(base64 --decode "$image.sig")
+          version="${TAG#v}"
+          filename=$(basename "$image")
+          url="https://github.com/kjustinkeener/Moonpool/releases/download/${TAG}/${filename}"
+          node -e 'const fs=require("fs"); const a=process.argv; fs.writeFileSync("linux-update.json", JSON.stringify({version:a[1],notes:"",url:a[2],signature:a[3]}))' "$version" "$url" "$signature"
+          gh release upload "$TAG" "$image" linux-update.json src-tauri/target/release/bundle/deb/*.deb src-tauri/target/release/bundle/rpm/*.rpm --clobber
