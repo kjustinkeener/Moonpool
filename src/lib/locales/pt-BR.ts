@@ -36,6 +36,7 @@ export const ptBR: PartialDict = {
   "sidebar.filterPlaceholder": "Filtrar apps...",
   "sidebar.filterLabel": "Filtrar apps",
   "sidebar.showCli": "Mostrar o painel CLI",
+  "sidebar.dragGroup": "Arraste para reordenar os grupos (no teclado, Alt+Seta para cima ou para baixo)",
   "sidebar.statusRunning": "em execução",
   "sidebar.statusStarting": "iniciando...",
   "sidebar.statusStopped": "parado",

@@ -36,6 +36,7 @@ export const ja: PartialDict = {
   "sidebar.filterPlaceholder": "アプリを絞り込む...",
   "sidebar.filterLabel": "アプリを絞り込む",
   "sidebar.showCli": "CLI パネルを表示",
+  "sidebar.dragGroup": "ドラッグしてグループを並べ替えます（キーボードでは Alt+上 または Alt+下）",
   "sidebar.statusRunning": "実行中",
   "sidebar.statusStarting": "起動中...",
   "sidebar.statusStopped": "停止中",

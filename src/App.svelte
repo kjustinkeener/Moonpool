@@ -250,6 +250,22 @@
     }
   }
 
+  // Dragging a group header: the saved order is the order groups first appear in the list,
+  // so move each group's apps together into the new order.
+  async function handleReorderGroups(order: string[]) {
+    const next = [
+      ...order.flatMap((g) => apps.filter((a) => a.group === g)),
+      ...apps.filter((a) => !order.includes(a.group)),
+    ];
+    try {
+      await saveManifest(next);
+      apps = next;
+      persistenceError = "";
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
+  }
+
   // Right-click menu actions from the sidebar.
   async function handleDelete(app: AppEntry) {
     if (!confirm(t("app.confirmDelete", { name: app.name }))) return;
@@ -832,6 +848,7 @@
       onAdd={openAdd}
       onEditFile={handleEdit}
       onReload={handleReload}
+      onReorderGroups={handleReorderGroups}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
       onHelp={() => openHelpWindow()}

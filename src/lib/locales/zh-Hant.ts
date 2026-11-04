@@ -36,6 +36,7 @@ export const zhHant: PartialDict = {
   "sidebar.filterPlaceholder": "篩選應用程式...",
   "sidebar.filterLabel": "篩選應用程式",
   "sidebar.showCli": "顯示 CLI 面板",
+  "sidebar.dragGroup": "拖曳以重新排列群組（鍵盤上按 Alt+上 或 Alt+下）",
   "sidebar.statusRunning": "執行中",
   "sidebar.statusStarting": "啟動中...",
   "sidebar.statusStopped": "已停止",

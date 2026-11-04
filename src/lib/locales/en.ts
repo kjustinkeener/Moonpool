@@ -72,6 +72,7 @@ export const en = {
   "sidebar.filterPlaceholder": "Filter apps...",
   "sidebar.filterLabel": "Filter apps",
   "sidebar.showCli": "Show CLI pane",
+  "sidebar.dragGroup": "Drag to reorder groups (Alt+Up or Alt+Down on the keyboard)",
   "sidebar.statusRunning": "running",
   "sidebar.statusStarting": "starting...",
   "sidebar.statusStopped": "stopped",

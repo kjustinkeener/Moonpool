@@ -36,6 +36,7 @@ export const ko: PartialDict = {
   "sidebar.filterPlaceholder": "앱 검색...",
   "sidebar.filterLabel": "앱 검색",
   "sidebar.showCli": "CLI 창 표시",
+  "sidebar.dragGroup": "끌어서 그룹 순서를 바꿉니다(키보드에서는 Alt+위쪽 또는 Alt+아래쪽)",
   "sidebar.statusRunning": "실행 중",
   "sidebar.statusStarting": "시작 중...",
   "sidebar.statusStopped": "중지됨",

@@ -36,6 +36,7 @@ export const tr: PartialDict = {
   "sidebar.filterPlaceholder": "Uygulamaları filtrele...",
   "sidebar.filterLabel": "Uygulamaları filtrele",
   "sidebar.showCli": "CLI panelini göster",
+  "sidebar.dragGroup": "Grupları yeniden sıralamak için sürükleyin (klavyede Alt+Yukarı veya Alt+Aşağı)",
   "sidebar.statusRunning": "çalışıyor",
   "sidebar.statusStarting": "başlatılıyor...",
   "sidebar.statusStopped": "durduruldu",

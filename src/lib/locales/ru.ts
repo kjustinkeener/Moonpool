@@ -36,6 +36,7 @@ export const ru: PartialDict = {
   "sidebar.filterPlaceholder": "Фильтр приложений...",
   "sidebar.filterLabel": "Фильтр приложений",
   "sidebar.showCli": "Показать панель CLI",
+  "sidebar.dragGroup": "Перетащите, чтобы изменить порядок групп (на клавиатуре Alt+Вверх или Alt+Вниз)",
   "sidebar.statusRunning": "работает",
   "sidebar.statusStarting": "запуск...",
   "sidebar.statusStopped": "остановлено",

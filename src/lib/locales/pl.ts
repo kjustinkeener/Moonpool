@@ -36,6 +36,7 @@ export const pl: PartialDict = {
   "sidebar.filterPlaceholder": "Filtruj aplikacje...",
   "sidebar.filterLabel": "Filtruj aplikacje",
   "sidebar.showCli": "Pokaż panel CLI",
+  "sidebar.dragGroup": "Przeciągnij, aby zmienić kolejność grup (na klawiaturze Alt+Strzałka w górę lub w dół)",
   "sidebar.statusRunning": "działa",
   "sidebar.statusStarting": "uruchamianie...",
   "sidebar.statusStopped": "zatrzymana",

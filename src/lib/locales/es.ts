@@ -36,6 +36,7 @@ export const es: PartialDict = {
   "sidebar.filterPlaceholder": "Filtrar apps...",
   "sidebar.filterLabel": "Filtrar apps",
   "sidebar.showCli": "Mostrar el panel CLI",
+  "sidebar.dragGroup": "Arrastra para reordenar los grupos (con el teclado, Alt+Arriba o Alt+Abajo)",
   "sidebar.statusRunning": "en ejecución",
   "sidebar.statusStarting": "iniciando...",
   "sidebar.statusStopped": "detenida",

@@ -36,6 +36,7 @@ export const nl: PartialDict = {
   "sidebar.filterPlaceholder": "Apps filteren...",
   "sidebar.filterLabel": "Apps filteren",
   "sidebar.showCli": "CLI-paneel tonen",
+  "sidebar.dragGroup": "Sleep om groepen te herordenen (met het toetsenbord Alt+Omhoog of Alt+Omlaag)",
   "sidebar.statusRunning": "actief",
   "sidebar.statusStarting": "starten...",
   "sidebar.statusStopped": "gestopt",
