@@ -8,6 +8,10 @@ Les notes complètes de chaque version se trouvent sur la
 est livrée dans Moonpool : elle décrit donc toujours la version que vous utilisez. Moonpool se
 met à jour tout seul ; voir [Mises à jour](/fr/data/updating/).
 
+## 0.3.23
+
+- Le message de la carte étoile est maintenant plus lumineux et plus lisible.
+
 ## 0.3.22
 
 - **Thèmes Star Supporter.** Une petite carte demande une seule fois une étoile GitHub. Une fois que vous indiquez en avoir mis une, neuf nouveaux thèmes Star Supporter se débloquent dans le navigateur de thèmes.

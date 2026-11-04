@@ -8,6 +8,10 @@ description: "了解 Moonpool 近几个版本的变化、运行所需的环境�
 一起发布，所以它描述的始终是你正在运行的版本。Moonpool 会自动更新；参见
 [更新](/zh-hans/data/updating/)。
 
+## 0.3.23
+
+- 加星卡片上的文字现在更亮，更易阅读。
+
 ## 0.3.22
 
 - **Star Supporter 主题。** 一张小卡片会请你为 GitHub 点一次星。当你表示已加星后，主题浏览器中会解锁九个新的 Star Supporter 主题。

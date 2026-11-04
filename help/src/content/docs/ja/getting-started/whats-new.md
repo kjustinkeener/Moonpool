@@ -5,6 +5,10 @@ description: "最近の Moonpool リリースでの変更点、動作要件、Gi
 
 各リリースの完全なノートは、プロジェクトの[リリースページ](https://github.com/kjustinkeener/Moonpool/releases)にあります。このヘルプは Moonpool に同梱されているため、常に実行しているバージョンの内容を説明しています。Moonpool は自動で更新されます。[更新](/ja/data/updating/)を参照してください。
 
+## 0.3.23
+
+- スターのカードのメッセージが明るくなり、読みやすくなりました。
+
 ## 0.3.22
 
 - **Star Supporter テーマ。** 小さなカードが一度だけ GitHub のスターをお願いします。スターを付けたと伝えると、テーマブラウザーで 9 つの新しい Star Supporter テーマが解除されます。

@@ -8,6 +8,10 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.23
+
+- Yıldız kartındaki mesaj artık daha parlak ve okunması daha kolay.
+
 ## 0.3.22
 
 - **Star Supporter temaları.** Küçük bir kart bir kez GitHub yıldızı ister. Yıldız verdiğinizi belirttiğinizde tema tarayıcısında dokuz yeni Star Supporter teması açılır.

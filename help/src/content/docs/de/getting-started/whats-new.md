@@ -8,6 +8,10 @@ Die vollständigen Hinweise zu jeder Version stehen auf der
 wird in Moonpool mitgeliefert und beschreibt daher immer die Version, die Sie ausführen. Moonpool
 aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
+## 0.3.23
+
+- Der Text der Sternkarte ist jetzt heller und besser lesbar.
+
 ## 0.3.22
 
 - **Star-Supporter-Themes.** Eine kleine Karte bittet einmalig um einen GitHub-Stern. Sobald Sie angeben, einen vergeben zu haben, werden neun neue Star-Supporter-Themes im Theme-Browser freigeschaltet.

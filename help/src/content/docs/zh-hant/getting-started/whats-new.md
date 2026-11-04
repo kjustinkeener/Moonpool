@@ -5,6 +5,10 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.23
+
+- 加星卡片上的文字現在更亮，更易閱讀。
+
 ## 0.3.22
 
 - **Star Supporter 主題。** 一張小卡片會請你為 GitHub 點一次星。當你表示已加星後，主題瀏覽器中會解鎖九個新的 Star Supporter 主題。

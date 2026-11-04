@@ -7,6 +7,10 @@ Pełne informacje o każdym wydaniu znajdują się na [stronie Releases](https:/
 projektu. Ta pomoc jest dostarczana wraz z Moonpool, więc zawsze opisuje używaną wersję. Moonpool
 aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
+## 0.3.23
+
+- Tekst na karcie z gwiazdką jest teraz jaśniejszy i łatwiejszy do odczytania.
+
 ## 0.3.22
 
 - **Motywy Star Supporter.** Mała karta jednorazowo prosi o gwiazdkę na GitHubie. Gdy zaznaczysz, że ją dałeś, w przeglądarce motywów odblokuje się dziewięć nowych motywów Star Supporter.

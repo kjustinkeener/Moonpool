@@ -8,6 +8,10 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.23
+
+- The star card's message is now brighter and easier to read.
+
 ## 0.3.22
 
 - **Star Supporter themes.** A small card now asks once for a GitHub star. After you say you gave one, nine new Star Supporter themes unlock in the theme browser.

@@ -8,6 +8,10 @@ As notas completas de cada versão estão na
 distribuída dentro do Moonpool, então sempre descreve a versão que você usa. O Moonpool se atualiza
 sozinho; veja [Atualização](/pt-br/data/updating/).
 
+## 0.3.23
+
+- A mensagem do cartão da estrela agora é mais clara e fácil de ler.
+
 ## 0.3.22
 
 - **Temas Star Supporter.** Um pequeno cartão pede uma vez uma estrela no GitHub. Quando você indica que deu uma, nove novos temas Star Supporter são desbloqueados no navegador de temas.

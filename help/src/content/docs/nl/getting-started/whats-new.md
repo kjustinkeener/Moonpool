@@ -8,6 +8,10 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.23
+
+- De tekst op de sterkaart is nu helderder en beter leesbaar.
+
 ## 0.3.22
 
 - **Star Supporter-thema's.** Een kleine kaart vraagt eenmalig om een GitHub-ster. Zodra u aangeeft er een te hebben gegeven, worden negen nieuwe Star Supporter-thema's ontgrendeld in de themabrowser.

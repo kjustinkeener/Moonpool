@@ -8,6 +8,10 @@ Le note complete di ogni versione sono nella
 è inclusa in Moonpool, quindi descrive sempre la versione che esegui. Moonpool si aggiorna da
 solo; vedi [Aggiornamenti](/it/data/updating/).
 
+## 0.3.23
+
+- Il messaggio della scheda della stella ora è più luminoso e più leggibile.
+
 ## 0.3.22
 
 - **Temi Star Supporter.** Una piccola scheda chiede una sola volta una stella su GitHub. Dopo aver indicato di averla data, nove nuovi temi Star Supporter si sbloccano nel selettore dei temi.
