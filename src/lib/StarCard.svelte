@@ -147,6 +147,10 @@
     thanks = false;
     shown = false;
   }
+  function closeThanks() {
+    thanks = false;
+    shown = false;
+  }
   function never() {
     saved.done = true;
     shown = false;
@@ -162,6 +166,7 @@
 
 {#if shown && thanks && !hold}
   <div class="star-card thanks" role="region" aria-label={t("star.label")}>
+    <button class="x" title={t("common.dismiss")} aria-label={t("common.dismiss")} onclick={closeThanks}>&times;</button>
     <p>{t("star.thanks")}</p>
     <div class="row">
       <button onclick={browse}><Icon name="layers" size={13} />{t("star.browse")}</button>
@@ -271,12 +276,29 @@
   }
   .star-card.thanks p {
     margin-bottom: 8px;
+    padding-right: 18px;
     font-weight: 600;
   }
   .star-card.thanks button {
     background: #3a2705;
     border-color: #3a2705;
     color: #ffe9a0;
+  }
+  .star-card .x {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: none;
+    border: 0;
+    padding: 0 4px;
+    font-size: 16px;
+    line-height: 1;
+    color: #3a2705;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .star-card .x:hover {
+    opacity: 1;
   }
   .head {
     display: flex;
