@@ -237,7 +237,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 12px;
-    color: var(--text-secondary);
+    color: var(--text);
   }
   .star-card.thanks {
     background: linear-gradient(160deg, #fff1a8, #ffd23f 55%, #f5a31c);
