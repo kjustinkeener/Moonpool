@@ -1,71 +1,91 @@
-[
-  {
-    "id": "example-notepad",
-    "name": "Notepad",
-    "group": "Desktop apps",
-    "type": "desktop",
-    "command": "notepad",
-    "processName": "notepad",
-    "openBrowser": false,
-    "note": "A 'desktop' app shows running when a process named 'processName' (its .exe, without extension) is found, and Stop ends that process."
-  },
-  {
-    "id": "example-web-server",
-    "name": "Example Web Server",
-    "group": "Web apps",
-    "type": "web",
-    "command": "python -m http.server 8000 --bind 127.0.0.1 --directory \"{MP_HOME}/dashboards\"",
-    "port": 8000,
-    "url": "http://127.0.0.1:8000",
-    "openBrowser": true,
-    "env": {
-      "PYTHONUNBUFFERED": "1"
+{
+  "groups": [
+    {
+      "name": "Desktop apps",
+      "apps": [
+        {
+          "id": "example-notepad",
+          "name": "Notepad",
+          "type": "desktop",
+          "command": "notepad",
+          "processName": "notepad",
+          "openBrowser": false,
+          "note": "A 'desktop' app shows running when a process named 'processName' (its .exe, without extension) is found, and Stop ends that process."
+        }
+      ]
     },
-    "note": "Serves the bundled dashboards over HTTP with Python's built-in server (needs Python installed). 'web' apps show running when their port answers, and the browser opens when it goes live. 'env' sets variables for the process; PYTHONUNBUFFERED makes its log lines stream into the terminal immediately."
-  },
-  {
-    "id": "csv-explorer",
-    "name": "Sample CSV Explorer",
-    "group": "Dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/examples/csv/index.html",
-    "openBrowser": true,
-    "note": "Drop-your-data dashboard for CSV/TSV. Auto-profiles any file and renders it; ships differently-shaped sample tabs. Runs offline, no server. {MP_HOME} resolves to Moonpool's folder, so the tile also works from a portable bundle."
-  },
-  {
-    "id": "json-explorer",
-    "name": "Sample JSON Explorer",
-    "group": "Dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/examples/json/index.html",
-    "openBrowser": true,
-    "note": "Drop-your-data dashboard for JSON (arrays, nested objects, or maps; nested keys flattened automatically)."
-  },
-  {
-    "id": "xlsx-explorer",
-    "name": "Sample Excel Explorer",
-    "group": "Dashboards",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/examples/xlsx/index.html",
-    "openBrowser": true,
-    "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
-  },
-  {
-    "id": "example-powershell",
-    "name": "PowerShell Session",
-    "group": "CLI tools",
-    "type": "cli",
-    "cwd": "{MP_HOME}",
-    "command": "powershell -NoLogo -NoProfile -NoExit -Command Get-Date",
-    "note": "A 'cli' app opens an interactive shell in 'cwd'. This one prints the date first, then stays open. Use the unquoted '-NoExit -Command <tokens>' form; leave off '-Command ...' for a plain shell."
-  },
-  {
-    "id": "docs-browser",
-    "name": "Moonpool Docs",
-    "group": "Docs",
-    "type": "static",
-    "url": "file:///{MP_HOME}/dashboards/examples/docs/index.html",
-    "openBrowser": true,
-    "note": "Offline Markdown docs browser hosting Moonpool's own help."
-  }
-]
+    {
+      "name": "Web apps",
+      "apps": [
+        {
+          "id": "example-web-server",
+          "name": "Example Web Server",
+          "type": "web",
+          "command": "python -m http.server 8000 --bind 127.0.0.1 --directory \"{MP_HOME}/dashboards\"",
+          "port": 8000,
+          "url": "http://127.0.0.1:8000",
+          "openBrowser": true,
+          "env": {
+            "PYTHONUNBUFFERED": "1"
+          },
+          "note": "Serves the bundled dashboards over HTTP with Python's built-in server (needs Python installed). 'web' apps show running when their port answers, and the browser opens when it goes live. 'env' sets variables for the process; PYTHONUNBUFFERED makes its log lines stream into the terminal immediately."
+        }
+      ]
+    },
+    {
+      "name": "Dashboards",
+      "apps": [
+        {
+          "id": "csv-explorer",
+          "name": "Sample CSV Explorer",
+          "type": "static",
+          "url": "file:///{MP_HOME}/dashboards/examples/csv/index.html",
+          "openBrowser": true,
+          "note": "Drop-your-data dashboard for CSV/TSV. Auto-profiles any file and renders it; ships differently-shaped sample tabs. Runs offline, no server. {MP_HOME} resolves to Moonpool's folder, so the tile also works from a portable bundle."
+        },
+        {
+          "id": "json-explorer",
+          "name": "Sample JSON Explorer",
+          "type": "static",
+          "url": "file:///{MP_HOME}/dashboards/examples/json/index.html",
+          "openBrowser": true,
+          "note": "Drop-your-data dashboard for JSON (arrays, nested objects, or maps; nested keys flattened automatically)."
+        },
+        {
+          "id": "xlsx-explorer",
+          "name": "Sample Excel Explorer",
+          "type": "static",
+          "url": "file:///{MP_HOME}/dashboards/examples/xlsx/index.html",
+          "openBrowser": true,
+          "note": "Drop-your-data dashboard for Excel .xlsx / .xls workbooks, parsed offline with a vendored SheetJS."
+        }
+      ]
+    },
+    {
+      "name": "CLI tools",
+      "apps": [
+        {
+          "id": "example-powershell",
+          "name": "PowerShell Session",
+          "type": "cli",
+          "cwd": "{MP_HOME}",
+          "command": "powershell -NoLogo -NoProfile -NoExit -Command Get-Date",
+          "note": "A 'cli' app opens an interactive shell in 'cwd'. This one prints the date first, then stays open. Use the unquoted '-NoExit -Command <tokens>' form; leave off '-Command ...' for a plain shell."
+        }
+      ]
+    },
+    {
+      "name": "Docs",
+      "apps": [
+        {
+          "id": "docs-browser",
+          "name": "Moonpool Docs",
+          "type": "static",
+          "url": "file:///{MP_HOME}/dashboards/examples/docs/index.html",
+          "openBrowser": true,
+          "note": "Offline Markdown docs browser hosting Moonpool's own help."
+        }
+      ]
+    }
+  ]
+}

@@ -6,7 +6,7 @@ launchable apps and register them in Moonpool's manifest.
 
 ## The manifest
 
-Moonpool reads a single JSON file (an array of app objects):
+Moonpool reads a single JSON file (groups, each holding its app objects):
 
 ```
 %USERPROFILE%\.moonpool\moonpool-config\apps.json      (Windows: C:\Users\<user>\.moonpool\moonpool-config\apps.json)
@@ -22,14 +22,31 @@ e.g. `C:\Users\<user>\.moonpool\moonpool-config\apps.json`, not a `%USERPROFILE%
 shortcut. Some sandboxed agents get silently redirected to a private copy when they use the
 variable form, and then edit a file the real Moonpool never sees.
 
+The file is an object with a `groups` list. Each group has a `name` and its `apps`; the groups
+show in the sidebar in this order, and the user can reorder them by dragging a group header.
+Add an app by appending it to the `apps` of the group it belongs in (create a new group object to
+start a new group):
+
+```jsonc
+{
+  "groups": [
+    { "name": "Web apps", "apps": [ { "id": "my-site", "name": "My Site", "type": "web", "command": "npm run dev", "port": 5173 } ] },
+    { "name": "Docs",     "apps": [ ] }
+  ]
+}
+```
+
+An app's group is the group it is listed under, so an app object has **no `group` field** (one
+there is rejected). Group names must be unique. A group with no apps is dropped the next time
+Moonpool saves. The older layout, a flat array of apps that each carry a `"group"` field, is
+still accepted anywhere you hand Moonpool a manifest and is converted to the layout above.
+
 ## App object schema
 
 ```jsonc
 {
   "id": "unique-slug",           // required, unique, kebab-case
   "name": "Display Name",        // required
-  "group": "Web apps",           // required; any label. Groups render in first-seen order.
-                                 //   Conventional groups: "Desktop apps", "Web apps", "Docs", "CLI tools"
   "type": "web",                 // required: desktop | web | static | cli
   "cwd": "C:\\path\\to\\app",    // working directory the command runs in
   "command": "npm run dev",      // launch command (run via `cmd /c`; `$SHELL -c` on Linux)
@@ -126,7 +143,7 @@ Look under the user's project roots for launchable things:
 - **CLI/scripts**: a script the user runs by hand -> `type: cli`.
 
 Confirm each app's real launch command and port before adding it. Preserve any existing entries
-in `apps.json`; append new ones.
+in `apps.json`; append new ones to the right group.
 
 ## Controlling Moonpool while it's running
 

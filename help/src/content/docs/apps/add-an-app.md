@@ -21,7 +21,7 @@ environment. Moonpool runs the command in its own managed terminal.
 1. The **type** select; its hint says how that type runs.
 2. The **port** field, used by `web` apps.
 
-The result is one entry in `apps.json`, for example:
+The result is one app in a group in `apps.json`. Shown here with its group as a key; in the file the group is the object that holds it:
 
 ```json title="apps.json"
 {

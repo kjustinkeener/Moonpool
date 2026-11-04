@@ -3,8 +3,10 @@ title: "Copy-paste apps.json examples for common app setups"
 description: "Complete, valid apps.json entries for a dev server, a desktop app, a static page, a CLI tool, Docker Compose, and a portable app to copy and adapt."
 ---
 
-Each snippet is one entry. Put them inside the top-level array of `apps.json`, separated by
-commas. Change the ids, names and paths to match your own setup.
+Each snippet is one app. Its `group` line says which group it belongs in: put the app in the
+`apps` list of the group with that name (add the group if it is missing) and leave the
+`group` line out, separated from its neighbors by commas. Change the ids, names and paths to
+match your own setup.
 
 ## Web dev server
 

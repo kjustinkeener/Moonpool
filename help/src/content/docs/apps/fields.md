@@ -15,7 +15,7 @@ the selected type are dimmed in the dialog but still saved, with one exception:
 | --- | --- | --- | --- | --- |
 | `id` | string | yes | all | Unique key. Letters, digits, `.`, `_`, `-`, not starting with `-`. See [Overview](/apps/apps-json/#the-id). |
 | `name` | string | yes | all | Label in the sidebar. Not blank. |
-| `group` | string | yes | all | Sidebar heading the app is listed under. Not blank in a hand edit; the dialog saves a blank group as `Apps`. Any text; a new name creates a new group. |
+| `group` | string | the group it is listed under | all | Sidebar heading the app is listed under. In `apps.json` this is the `name` of the group whose `apps` list holds the app, not a key on the app (the examples show it as a key to say which group). The dialog saves a blank group as `Apps`. Any text; a new name creates a new group. |
 | `type` | string | yes | all | `web`, `desktop`, `static` or `cli`. See [App types](/apps/types/). |
 | `command` | string | all but `static` | all | Run in a terminal to start the app, through `cmd /c` on Windows and `$SHELL -c` elsewhere (`/bin/sh` if `SHELL` is unset). Optional for `static`. |
 | `cwd` | string | no | all with a `command` | Folder the command runs in. Defaults to Moonpool's own working folder. Supports tokens and `./`. See [Paths and environment](/apps/paths-and-environment/). |

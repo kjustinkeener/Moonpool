@@ -951,7 +951,7 @@ fn tool_list() -> Value {
             "inputSchema": json!({
                 "type": "object",
                 "properties": {
-                    "manifest": { "type": "string", "description": "The full new apps.json content (a JSON array of app entries) as text." },
+                    "manifest": { "type": "string", "description": "The full new apps.json content as text: {\"groups\": [{\"name\": ..., \"apps\": [...]}]}. The older flat array of apps that each have a \"group\" field is also accepted and converted." },
                     "expected_token": { "type": "string", "description": "The token from your most recent moonpool_read_config. The write commits only if apps.json still matches it." }
                 },
                 "required": ["manifest", "expected_token"]

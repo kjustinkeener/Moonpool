@@ -32,6 +32,7 @@ use tauri_plugin_opener::OpenerExt;
 // `screenshot` verb (hwnd capture via the `windows` crate) is Windows-only.
 mod control;
 mod dashboards;
+mod manifest;
 mod help;
 mod i18n;
 mod install;
@@ -1087,7 +1088,7 @@ fn validate_manifest(entries: &[AppEntry]) -> Result<(), String> {
 }
 
 fn parse_manifest_text(text: &str) -> Result<Vec<AppEntry>, String> {
-    let entries: Vec<AppEntry> = serde_json::from_str(text).map_err(|e| e.to_string())?;
+    let entries = manifest::parse(text)?;
     validate_manifest(&entries)?;
     Ok(entries)
 }
@@ -1125,6 +1126,20 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
     let text = text.ok_or_else(|| format!("cannot read {}: {last_err}", path.display()))?;
     let entries = parse_manifest_text(&text)
         .map_err(|e| format!("invalid {}: {e}; file preserved", path.display()))?;
+    // An older flat file is rewritten in the current layout; the original is kept beside it.
+    if manifest::is_legacy(&text) {
+        let backup = path.with_file_name("apps.json.pre-groups");
+        if !backup.exists() {
+            let _ = std::fs::write(&backup, &text);
+        }
+        match manifest::to_text(&entries) {
+            Ok(nested) => match persistence::atomic_write(&path, nested.as_bytes()) {
+                Ok(()) => log_line(app, "rewrote apps.json with apps nested under their groups"),
+                Err(e) => log_line(app, &format!("cannot rewrite apps.json: {e}")),
+            },
+            Err(e) => log_line(app, &format!("cannot rewrite apps.json: {e}")),
+        }
+    }
     log_line(
         app,
         &format!("loaded {} apps from {}", entries.len(), path.display()),
@@ -1181,7 +1196,7 @@ fn reload_manifest(app: AppHandle, state: State<HubState>) -> Result<Vec<AppEntr
     // Capture a known-good snapshot of what we just loaded, so a hand-edit made
     // outside the app (then reloaded) enters the rollback ring too. Dedup in
     // snapshot_known_good keeps an unchanged reload from churning it.
-    if let Ok(pretty) = serde_json::to_string_pretty(&m) {
+    if let Ok(pretty) = manifest::to_text(&m) {
         snapshot_known_good(&app, &pretty);
     }
     Ok(m)
@@ -1661,7 +1676,7 @@ fn save_manifest(
     }
     let path = manifest_path(&app).ok_or("no config directory")?;
     validate_manifest(&entries)?;
-    let json = serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())?;
+    let json = manifest::to_text(&entries)?;
     persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
     set_manifest_good(&state, entries);
     snapshot_known_good(&app, &json);
@@ -2627,7 +2642,7 @@ fn plan_config_write(
     }
     let entries =
         parse_manifest_text(new_text).map_err(|e| format!("rejected invalid manifest: {e}"))?;
-    serde_json::to_string_pretty(&entries).map_err(|e| e.to_string())
+    manifest::to_text(&entries)
 }
 
 /// How many known-good manifests to retain in the rollback ring.
@@ -2713,7 +2728,7 @@ fn commit_manifest_json(app: &AppHandle, path: &Path, json: &str) -> Result<(), 
         .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
     if let (Some(state), Ok(entries)) = (
         app.try_state::<HubState>(),
-        serde_json::from_str::<Vec<AppEntry>>(json),
+        manifest::parse(json),
     ) {
         set_manifest_good(&state, entries);
     }
@@ -2864,7 +2879,7 @@ fn restore_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, St
     if let Err(e) = commit_manifest_json(app, &path, &json) {
         return ("error", e);
     }
-    let count = serde_json::from_str::<Vec<AppEntry>>(&json)
+    let count = manifest::parse(&json)
         .map(|v| v.len())
         .unwrap_or(0);
     (
@@ -3933,7 +3948,7 @@ mod kill_mode_tests {
 
 #[cfg(test)]
 mod example_manifest_tests {
-    use super::{EXAMPLE_MANIFEST_LINUX, EXAMPLE_MANIFEST_WINDOWS};
+    use super::{parse_manifest_text, EXAMPLE_MANIFEST_LINUX, EXAMPLE_MANIFEST_WINDOWS};
 
     #[test]
     fn seeded_manifests_parse_with_unique_ids_and_no_machine_paths() {
@@ -3941,13 +3956,10 @@ mod example_manifest_tests {
             ("windows", EXAMPLE_MANIFEST_WINDOWS),
             ("linux", EXAMPLE_MANIFEST_LINUX),
         ] {
-            let v: serde_json::Value = serde_json::from_str(src).expect(name);
-            let ids: Vec<&str> = v
-                .as_array()
-                .expect(name)
-                .iter()
-                .map(|e| e["id"].as_str().expect(name))
-                .collect();
+            // Seeded files must be in the current layout and pass full validation.
+            assert!(!super::manifest::is_legacy(src), "{name}: not nested");
+            let entries = parse_manifest_text(src).expect(name);
+            let ids: Vec<&str> = entries.iter().map(|e| e.id.as_str()).collect();
             let mut sorted = ids.clone();
             sorted.sort();
             sorted.dedup();

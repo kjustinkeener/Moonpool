@@ -43,26 +43,45 @@ never overwritten.
 - **By hand.** **Edit apps.json** in the same menu opens the file in your default editor.
   Save it, then choose **Reload** in the menu (or press F5 or Ctrl+R).
 
-Hand edits are not picked up until you reload. Reload only reads the file; it does not
-rewrite it.
+Hand edits are not picked up until you reload. Reload reads the file and does not change it,
+with one exception: a file in the older flat layout (see Shape) is rewritten once in the
+current layout, and the original is kept as `apps.json.pre-groups`.
 
 Saving from the dialog rewrites the whole file in a normalized, indented form. Keys Moonpool
 does not know are dropped, and JSON has no comments, so keep notes in the `note` field.
 
 ## Shape
 
-The file is a JSON array of objects. Four keys are required on every entry: `id`, `name`,
-`group`, `type`. Everything else is optional. See [App fields](/apps/fields/).
+The file is an object with a `groups` list. Each group has a `name` and an `apps` list of
+objects. Three keys are required on every app: `id`, `name`, `type`. Everything else is
+optional. See [App fields](/apps/fields/).
 
 ```json title="apps.json"
-[
-  { "id": "site", "name": "Site", "group": "Web apps", "type": "web",
-    "cwd": "C:\\code\\site", "command": "npm run dev", "port": 5173,
-    "url": "http://localhost:5173", "openBrowser": true }
-]
+{
+  "groups": [
+    {
+      "name": "Web apps",
+      "apps": [
+        { "id": "site", "name": "Site", "type": "web",
+          "cwd": "C:\\code\\site", "command": "npm run dev", "port": 5173,
+          "url": "http://localhost:5173", "openBrowser": true }
+      ]
+    }
+  ]
+}
 ```
 
-Groups appear in the sidebar in the order they first occur in the file.
+Groups appear in the sidebar in the order they are listed. Drag a group header in the
+sidebar to reorder them (or focus it and press Alt+Up or Alt+Down); the new order is saved
+here. An app has no `group` key: it belongs to the group it is listed under. Group names
+must be unique, and a group with no apps is dropped the next time Moonpool saves.
+
+Examples elsewhere in this help show a single app with a `group` key. Put that entry in the
+`apps` list of the group it names, without the `group` key.
+
+The older layout, a flat array of apps that each carry a `"group"` key, is still accepted
+wherever Moonpool reads a manifest (the file, an agent write, a restore) and is converted to
+the layout above.
 
 ## What reload does
 
@@ -82,7 +101,8 @@ A single bad entry rejects the whole file.
 | `id` is empty, starts with `-`, or has characters other than letters, digits, `.`, `_`, `-` | `invalid id` |
 | Two entries share an `id` | `duplicate app id` |
 | `name` is blank | `has an empty name` |
-| `group` is blank | `has an empty group` |
+| A group has no `name`, two groups share a name, or an app inside a group has its own `group` key | the message names the group |
+| `group` is blank (older layout) | `has an empty group` |
 | `type` is not `desktop`, `web`, `static` or `cli` | `unknown type` |
 | `port` is `0` (a `port` above 65535 fails to parse) | `invalid port 0` |
 | `static` entry with no `url` | `requires a url` |
