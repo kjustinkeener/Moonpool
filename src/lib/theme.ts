@@ -49,10 +49,8 @@ const KNOWN = new Set(THEMES.map((t) => t.id));
 // repo (the star card's "I gave it a star" button). Storage is shared by every
 // window, so the theme browser sees the unlock without a message.
 const UNLOCK_KEY = "moonpool.starSupporter";
-const LOCKED = new Set(["star"]);
-
 export function isLocked(id: string): boolean {
-  if (!LOCKED.has(id)) return false;
+  if (id !== "star" && !id.startsWith("star-")) return false;
   try {
     return localStorage.getItem(UNLOCK_KEY) !== "1";
   } catch {

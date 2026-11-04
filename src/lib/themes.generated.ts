@@ -75,4 +75,12 @@ export const THEMES: { id: string; label: string; group: string }[] = [
   { id: "tokyonight", label: "Skyline", group: "Pastel" },
   { id: "mauve", label: "Mauve", group: "Pastel" },
   { id: "star", label: "Star Supporter", group: "Supporter" },
+  { id: "star-nova", label: "Supernova", group: "Supporter" },
+  { id: "star-dust", label: "Stardust", group: "Supporter" },
+  { id: "star-comet", label: "Comet", group: "Supporter" },
+  { id: "star-nebula", label: "Nebula", group: "Supporter" },
+  { id: "star-aurora", label: "Aurora", group: "Supporter" },
+  { id: "star-eclipse", label: "Eclipse", group: "Supporter" },
+  { id: "star-light", label: "Starlight", group: "Supporter" },
+  { id: "star-constellation", label: "Constellation", group: "Supporter" },
 ];

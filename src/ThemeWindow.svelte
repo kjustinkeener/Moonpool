@@ -148,7 +148,7 @@
           {#each items as th (th.id)}
             {@const p = pal[th.id]}
             {@const name = themeLabel(th.id, th.label)}
-            {@const off = th.id === "star" && locked}
+            {@const off = (th.id === "star" || th.id.startsWith("star-")) && locked}
             <!-- The card ground is the palette's own solid --bg: previews must stay
                  opaque however transparent the window is set. -->
             <button

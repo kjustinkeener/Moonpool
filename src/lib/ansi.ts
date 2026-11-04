@@ -510,7 +510,7 @@ export const ANSI: Record<string, AnsiPalette> = {
 // Resolve a color set for a RESOLVED theme id (never "auto"); falls back to
 // dark, so a theme with no set of its own still renders.
 export function ansiFor(id: string): AnsiPalette {
-  return ANSI[id] ?? ANSI.dark;
+  return ANSI[id] ?? (id.startsWith("star-") ? ANSI.star : ANSI.dark);
 }
 
 // The same set under xterm's named ITheme color slots (xterm wants keys, not an
