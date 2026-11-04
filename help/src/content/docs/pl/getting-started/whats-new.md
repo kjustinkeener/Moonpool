@@ -7,6 +7,11 @@ Pełne informacje o każdym wydaniu znajdują się na [stronie Releases](https:/
 projektu. Ta pomoc jest dostarczana wraz z Moonpool, więc zawsze opisuje używaną wersję. Moonpool
 aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
+## 0.3.22
+
+- **Motywy Star Supporter.** Mała karta jednorazowo prosi o gwiazdkę na GitHubie. Gdy zaznaczysz, że ją dałeś, w przeglądarce motywów odblokuje się dziewięć nowych motywów Star Supporter.
+- Przycisk ołówka w wierszu zniknął. Zmiana nazwy, Ustaw ikonę i reszta są w menu kontekstowym, które ma teraz ikony.
+
 ## 0.3.21
 
 - **Szybszy stan.** Ikony aplikacji zmieniają się, gdy tylko aplikacja się uruchomi lub zatrzyma, zatrzymanie aplikacji webowej nie czeka już około sekundy, a sprawdzanie stanu nie zwalnia już z każdą zatrzymaną aplikacją webową.

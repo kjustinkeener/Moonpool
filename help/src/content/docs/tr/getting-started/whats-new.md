@@ -8,6 +8,11 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.22
+
+- **Star Supporter temaları.** Küçük bir kart bir kez GitHub yıldızı ister. Yıldız verdiğinizi belirttiğinizde tema tarayıcısında dokuz yeni Star Supporter teması açılır.
+- Satırdaki kalem düğmesi kaldırıldı. Yeniden adlandırma, Simge belirleme ve diğerleri artık simgeli sağ tık menüsünde.
+
 ## 0.3.21
 
 - **Daha hızlı durum.** Uygulama simgeleri bir uygulama başlar başlamaz veya durur durmaz değişir, bir web uygulamasını durdurmak artık yaklaşık bir saniye beklemez ve durum denetimleri durdurulmuş her web uygulaması için artık yavaşlamaz.

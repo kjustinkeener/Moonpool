@@ -8,6 +8,11 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.22
+
+- **Star Supporter-thema's.** Een kleine kaart vraagt eenmalig om een GitHub-ster. Zodra u aangeeft er een te hebben gegeven, worden negen nieuwe Star Supporter-thema's ontgrendeld in de themabrowser.
+- De potloodknop in de rij is weg. Hernoemen, Pictogram instellen en de rest staan in het rechtsklikmenu, dat nu pictogrammen heeft.
+
 ## 0.3.21
 
 - **Snellere status.** App-pictogrammen veranderen zodra een app start of stopt, Stoppen van een web-app wacht niet langer ongeveer een seconde, en statuscontroles worden niet meer trager voor elke gestopte web-app.

@@ -8,6 +8,11 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.22
+
+- **Star Supporter themes.** A small card now asks once for a GitHub star. After you say you gave one, nine new Star Supporter themes unlock in the theme browser.
+- The row pencil button is gone. Rename, Set icon and the rest are in the right-click menu, which now has icons.
+
 ## 0.3.21
 
 - **Faster status.** App icons update as soon as an app starts or stops, Stop on a web app no longer waits about a second, and status checks no longer slow down for each stopped web app.

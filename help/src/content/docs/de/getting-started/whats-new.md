@@ -8,6 +8,11 @@ Die vollständigen Hinweise zu jeder Version stehen auf der
 wird in Moonpool mitgeliefert und beschreibt daher immer die Version, die Sie ausführen. Moonpool
 aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
+## 0.3.22
+
+- **Star-Supporter-Themes.** Eine kleine Karte bittet einmalig um einen GitHub-Stern. Sobald Sie angeben, einen vergeben zu haben, werden neun neue Star-Supporter-Themes im Theme-Browser freigeschaltet.
+- Die Stift-Schaltfläche in der Zeile entfällt. Umbenennen, Symbol festlegen und mehr stehen im Kontextmenü, das jetzt Symbole hat.
+
 ## 0.3.21
 
 - **Schnellere Statusanzeige.** App-Symbole ändern sich, sobald eine App startet oder stoppt, Stoppen einer Web-App wartet nicht mehr etwa eine Sekunde, und die Statusprüfung wird nicht mehr mit jeder gestoppten Web-App langsamer.

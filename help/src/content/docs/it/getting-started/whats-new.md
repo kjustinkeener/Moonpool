@@ -8,6 +8,11 @@ Le note complete di ogni versione sono nella
 è inclusa in Moonpool, quindi descrive sempre la versione che esegui. Moonpool si aggiorna da
 solo; vedi [Aggiornamenti](/it/data/updating/).
 
+## 0.3.22
+
+- **Temi Star Supporter.** Una piccola scheda chiede una sola volta una stella su GitHub. Dopo aver indicato di averla data, nove nuovi temi Star Supporter si sbloccano nel selettore dei temi.
+- Il pulsante a matita della riga non c'è più. Rinomina, Imposta icona e il resto sono nel menu contestuale, che ora ha le icone.
+
 ## 0.3.21
 
 - **Stato più rapido.** Le icone delle app cambiano appena un'app si avvia o si ferma, l'arresto di un'app web non attende più circa un secondo e i controlli di stato non rallentano più per ogni app web ferma.

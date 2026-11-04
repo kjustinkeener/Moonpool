@@ -5,6 +5,11 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.22
+
+- **Star Supporter 主題。** 一張小卡片會請你為 GitHub 點一次星。當你表示已加星後，主題瀏覽器中會解鎖九個新的 Star Supporter 主題。
+- 已移除列內的鉛筆按鈕。重新命名、設定圖示等操作都在右鍵選單中，選單現在帶有圖示。
+
 ## 0.3.21
 
 - **更快的狀態顯示。** 應用程式啟動或停止後圖示立即更新，停止 Web 應用程式不再等待約一秒，狀態檢查也不再因每個已停止的 Web 應用程式而變慢。

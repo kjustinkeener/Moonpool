@@ -8,6 +8,11 @@ As notas completas de cada versão estão na
 distribuída dentro do Moonpool, então sempre descreve a versão que você usa. O Moonpool se atualiza
 sozinho; veja [Atualização](/pt-br/data/updating/).
 
+## 0.3.22
+
+- **Temas Star Supporter.** Um pequeno cartão pede uma vez uma estrela no GitHub. Quando você indica que deu uma, nove novos temas Star Supporter são desbloqueados no navegador de temas.
+- O botão de lápis da linha foi removido. Renomear, Definir ícone e o resto estão no menu de clique direito, que agora tem ícones.
+
 ## 0.3.21
 
 - **Status mais rápido.** Os ícones dos apps mudam assim que um app inicia ou para, parar um app web não espera mais cerca de um segundo e as verificações de status não ficam mais lentas a cada app web parado.
