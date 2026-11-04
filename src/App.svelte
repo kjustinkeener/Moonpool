@@ -907,18 +907,6 @@
           <img class="ph-moon" src={brandIcon} alt="" aria-hidden="true" width="48" height="48" />
           <p class="ph-title">{t("app.pickApp")}</p>
 
-              </span>
-              {#if !updateDone}
-                <button class="ub-btn" disabled={updating} onclick={installUpdate}>
-                  {updating ? t("app.installing") : t("app.downloadInstall")}
-                </button>
-                {#if !updating}
-                  <button class="ub-x" title={t("common.dismiss")} aria-label={t("common.dismiss")} onclick={() => (update = null)}>&times;</button>
-                {/if}
-              {/if}
-            </div>
-          {/if}
-
           <div class="quickstart">
             <div class="qs-head">
               <span>{t("app.newHere")}</span>
