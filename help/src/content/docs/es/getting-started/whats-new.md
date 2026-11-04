@@ -8,6 +8,12 @@ Las notas completas de cada versión están en la
 distribuye dentro de Moonpool, así que siempre describe la versión que usas. Moonpool se actualiza solo;
 consulta [Actualización](/es/data/updating/).
 
+## 0.3.28
+
+- apps.json ahora lista cada app dentro de su grupo. Los archivos antiguos se convierten automáticamente y el original se conserva como apps.json.pre-groups.
+- Arrastra el encabezado de un grupo en la barra lateral para reordenar los grupos. Alt+Arriba y Alt+Abajo hacen lo mismo con el teclado.
+- Los grupos pueden estar vacíos. Usa Nuevo grupo en el menú de la barra lateral y Eliminar grupo en uno vacío.
+
 ## 0.3.27
 
 - El botón de cierre de la tarjeta de agradecimiento ahora se muestra como una x sencilla.

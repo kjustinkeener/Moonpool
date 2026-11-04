@@ -8,6 +8,12 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
+## 0.3.28
+
+- apps.json zet elke app nu binnen zijn groep. Oudere bestanden worden automatisch omgezet en het origineel blijft bewaard als apps.json.pre-groups.
+- Sleep een groepskop in de zijbalk om groepen te herordenen. Alt+Omhoog en Alt+Omlaag doen hetzelfde met het toetsenbord.
+- Groepen mogen leeg zijn. Gebruik Nieuwe groep in het zijbalkmenu en Groep verwijderen bij een lege groep.
+
 ## 0.3.27
 
 - De sluitknop van de bedankkaart wordt nu als een gewone x getoond.

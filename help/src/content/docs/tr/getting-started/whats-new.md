@@ -8,6 +8,12 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
+## 0.3.28
+
+- apps.json artık her uygulamayı kendi grubunun içinde listeliyor. Eski dosyalar otomatik olarak dönüştürülür ve özgün dosya apps.json.pre-groups olarak saklanır.
+- Grupları yeniden sıralamak için kenar çubuğunda bir grup başlığını sürükleyin. Klavyede Alt+Yukarı ve Alt+Aşağı aynı işi yapar.
+- Gruplar boş olabilir. Kenar çubuğu menüsünden Yeni grup'u kullanın, boş bir grupta ise Grubu sil'i kullanın.
+
 ## 0.3.27
 
 - Teşekkür kartının kapatma düğmesi artık sade bir x olarak görünüyor.

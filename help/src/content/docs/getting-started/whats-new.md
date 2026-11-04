@@ -8,6 +8,12 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.28
+
+- apps.json now lists each app inside its group. Older files are converted automatically and the original is kept as apps.json.pre-groups.
+- Drag a group header in the sidebar to reorder groups. Alt+Up and Alt+Down do the same from the keyboard.
+- Groups can be empty. Use New group in the sidebar menu, and Delete group on an empty one.
+
 ## 0.3.27
 
 - The star thank-you card's close button now shows as a plain x.

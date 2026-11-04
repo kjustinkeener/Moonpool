@@ -5,6 +5,12 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
+## 0.3.28
+
+- apps.json 現在把每個應用程式列在所屬群組之內。舊檔案會自動轉換，原檔案保留為 apps.json.pre-groups。
+- 在側邊欄中拖曳群組標題即可重新排列群組。鍵盤上按 Alt+上 或 Alt+下 也可以。
+- 群組可以是空的。在側邊欄選單中使用「新增群組」，對空群組使用「刪除群組」。
+
 ## 0.3.27
 
 - 感謝卡片的關閉按鈕現在顯示為簡單的 ×。
