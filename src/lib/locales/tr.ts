@@ -30,6 +30,8 @@ export const tr: PartialDict = {
   "star.action": "GitHub'da yıldız ver",
   "star.later": "Sonra hatırlat",
   "star.gave": "Yıldız verdim",
+  "star.thanks": "Desteğiniz için teşekkürler!\nStar Supporter temaları açıldı!",
+  "star.browse": "Temalara göz at",
   "star.never": "Bir daha gösterme",
   "sidebar.filterPlaceholder": "Uygulamaları filtrele...",
   "sidebar.filterLabel": "Uygulamaları filtrele",

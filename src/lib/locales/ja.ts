@@ -30,6 +30,8 @@ export const ja: PartialDict = {
   "star.action": "GitHub でスターを付ける",
   "star.later": "後で通知",
   "star.gave": "スターを付けました",
+  "star.thanks": "ご支援ありがとうございます！\nStar Supporter テーマが解除されました！",
+  "star.browse": "テーマを見る",
   "star.never": "今後表示しない",
   "sidebar.filterPlaceholder": "アプリを絞り込む...",
   "sidebar.filterLabel": "アプリを絞り込む",

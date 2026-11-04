@@ -30,6 +30,8 @@ export const ru: PartialDict = {
   "star.action": "Поставить звезду на GitHub",
   "star.later": "Напомнить позже",
   "star.gave": "Я поставил звезду",
+  "star.thanks": "Спасибо за поддержку!\nТемы Star Supporter разблокированы!",
+  "star.browse": "Открыть темы",
   "star.never": "Больше не показывать",
   "sidebar.filterPlaceholder": "Фильтр приложений...",
   "sidebar.filterLabel": "Фильтр приложений",

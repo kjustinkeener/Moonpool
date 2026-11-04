@@ -30,6 +30,8 @@ export const ko: PartialDict = {
   "star.action": "GitHub에서 별 주기",
   "star.later": "나중에 알림",
   "star.gave": "별을 눌렀어요",
+  "star.thanks": "응원해 주셔서 감사합니다!\nStar Supporter 테마가 잠금 해제되었습니다!",
+  "star.browse": "테마 둘러보기",
   "star.never": "다시 표시 안 함",
   "sidebar.filterPlaceholder": "앱 검색...",
   "sidebar.filterLabel": "앱 검색",

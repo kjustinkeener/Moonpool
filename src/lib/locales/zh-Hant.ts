@@ -30,6 +30,8 @@ export const zhHant: PartialDict = {
   "star.action": "在 GitHub 上加星",
   "star.later": "稍後提醒",
   "star.gave": "我已加星",
+  "star.thanks": "感謝你的支持！\nStar Supporter 主題已解鎖！",
+  "star.browse": "瀏覽主題",
   "star.never": "不再顯示",
   "sidebar.filterPlaceholder": "篩選應用程式...",
   "sidebar.filterLabel": "篩選應用程式",

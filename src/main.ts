@@ -34,7 +34,7 @@ async function boot() {
   }
 
   // The detached theme browser loads the same bundle at #themes.
-  if (window.location.hash === "#themes") {
+  if (window.location.hash.startsWith("#themes")) {
     return mount(ThemeWindow, { target });
   }
 

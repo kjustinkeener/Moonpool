@@ -30,6 +30,8 @@ export const fr: PartialDict = {
   "star.action": "Mettre une étoile sur GitHub",
   "star.later": "Me le rappeler plus tard",
   "star.gave": "J'ai mis une étoile",
+  "star.thanks": "Merci pour votre soutien !\nLes thèmes Star Supporter sont débloqués !",
+  "star.browse": "Parcourir les thèmes",
   "star.never": "Ne plus afficher",
   "sidebar.filterPlaceholder": "Filtrer les apps...",
   "sidebar.filterLabel": "Filtrer les apps",

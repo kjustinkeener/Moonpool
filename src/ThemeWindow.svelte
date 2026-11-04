@@ -4,7 +4,7 @@
   // thumbnail. Clicking applies live here, persists (theme.ts), and broadcasts
   // "settings:theme" so every other window retints. The window stays open so
   // themes can be compared. Based on the shared Themes pattern's ThemeBrowser.
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { emit, listen } from "@tauri-apps/api/event";
   import type { UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -94,6 +94,13 @@
   let unlistenTransparency: UnlistenFn | null = null;
   let unlistenTheme: UnlistenFn | null = null;
   let unlistenLocale: UnlistenFn | null = null;
+  let unlistenGoto: UnlistenFn | null = null;
+
+  // Scroll a palette group to the top of the list.
+  async function goto(group: string) {
+    await tick();
+    document.querySelector(`[data-group="${CSS.escape(group)}"]`)?.scrollIntoView({ block: "start" });
+  }
 
   onMount(async () => {
     // The page paints its own tint, so the transparent window shows the desktop through.
@@ -114,11 +121,15 @@
       setTheme(e.payload);
     });
     unlistenLocale = await watchLocale();
+    unlistenGoto = await listen<string>("themes:goto", (e) => goto(e.payload));
+    const [, g] = window.location.hash.split(":");
+    if (g) goto(decodeURIComponent(g));
   });
   onDestroy(() => {
     unlistenTransparency?.();
     unlistenTheme?.();
     unlistenLocale?.();
+    unlistenGoto?.();
   });
 </script>
 
@@ -143,7 +154,7 @@
     {#each GROUP_ORDER as g (g)}
       {@const items = THEMES.filter((th) => th.group === g)}
       {#if items.length}
-        <div class="grouplabel">{groupLabel(g)}</div>
+        <div class="grouplabel" data-group={g}>{groupLabel(g)}</div>
         <div class="grid">
           {#each items as th (th.id)}
             {@const p = pal[th.id]}

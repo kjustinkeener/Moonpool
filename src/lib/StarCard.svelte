@@ -4,7 +4,7 @@
   // the window is shown again, and when it gains focus.
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
-  import { openUrl } from "./api";
+  import { openUrl, openThemesWindow } from "./api";
   import { t } from "./i18n.svelte";
   import { unlockSupporterThemes } from "./theme";
 
@@ -31,6 +31,8 @@
   let starHot = $state(false);
   // "I gave it a star" only appears once the repo page has been opened.
   let opened = $state(false);
+  // After "I gave it a star": a thank-you card replaces the ask.
+  let thanks = $state(false);
   let gaveTimer: ReturnType<typeof setTimeout> | undefined;
   let neverHot = $state(false);
   let laterHot = $state(false);
@@ -109,7 +111,15 @@
   }
   function gave() {
     unlockSupporterThemes();
-    never();
+    clearTimeout(gaveTimer);
+    saved.done = true;
+    save();
+    thanks = true;
+  }
+  function browse() {
+    openThemesWindow("Supporter").catch(() => {});
+    thanks = false;
+    shown = false;
   }
   function never() {
     saved.done = true;
@@ -124,7 +134,14 @@
   }
 </script>
 
-{#if shown}
+{#if shown && thanks}
+  <div class="star-card thanks" role="region" aria-label={t("star.label")}>
+    <p>{t("star.thanks")}</p>
+    <div class="row">
+      <button onclick={browse}><Icon name="layers" size={13} />{t("star.browse")}</button>
+    </div>
+  </div>
+{:else if shown}
   <div class="star-card" role="region" aria-label={t("star.label")}>
     <div class="head">
       <!-- A star making the pleading face of the 🥺 emoji: big shiny eyes,
@@ -220,6 +237,20 @@
     border-radius: 6px;
     font-size: 12px;
     color: var(--text-secondary);
+  }
+  .star-card.thanks {
+    background: linear-gradient(160deg, #fff1a8, #ffd23f 55%, #f5a31c);
+    border-color: #d8730c;
+    color: #3a2705;
+  }
+  .star-card.thanks p {
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .star-card.thanks button {
+    background: #3a2705;
+    border-color: #3a2705;
+    color: #ffe9a0;
   }
   .head {
     display: flex;

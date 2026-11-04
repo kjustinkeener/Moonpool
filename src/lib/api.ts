@@ -154,17 +154,19 @@ export async function openAboutWindow(): Promise<void> {
 
 // Open (or focus) the detached theme browser (loads the app at #themes). Opened
 // from the Settings theme button; frameless like Settings, resizable because
-// the number of cards per row follows the width.
-export async function openThemesWindow(): Promise<void> {
+// the number of cards per row follows the width. `group` scrolls the browser to
+// that palette group (a new window reads it from the URL, an open one from an event).
+export async function openThemesWindow(group?: string): Promise<void> {
   const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
   const existing = await WebviewWindow.getByLabel("themes");
   if (existing) {
     await existing.show().catch(() => {});
     await existing.setFocus().catch(() => {});
+    if (group) await existing.emit("themes:goto", group).catch(() => {});
     return;
   }
   const w = new WebviewWindow("themes", {
-    url: "index.html#themes",
+    url: group ? `index.html#themes:${encodeURIComponent(group)}` : "index.html#themes",
     title: "Moonpool Themes",
     width: 760,
     height: 640,

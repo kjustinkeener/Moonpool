@@ -66,6 +66,8 @@ export const en = {
   "star.action": "Star on GitHub",
   "star.later": "Remind me later",
   "star.gave": "I gave it a star",
+  "star.thanks": "Thanks for your support!\nStar Supporter themes have been unlocked!",
+  "star.browse": "Browse Themes",
   "star.never": "Never show this again",
   "sidebar.filterPlaceholder": "Filter apps...",
   "sidebar.filterLabel": "Filter apps",

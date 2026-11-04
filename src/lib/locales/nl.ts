@@ -30,6 +30,8 @@ export const nl: PartialDict = {
   "star.action": "Geef een ster op GitHub",
   "star.later": "Herinner me later",
   "star.gave": "Ik heb een ster gegeven",
+  "star.thanks": "Bedankt voor je steun!\nDe Star Supporter-thema's zijn ontgrendeld!",
+  "star.browse": "Thema's bekijken",
   "star.never": "Nooit meer tonen",
   "sidebar.filterPlaceholder": "Apps filteren...",
   "sidebar.filterLabel": "Apps filteren",
