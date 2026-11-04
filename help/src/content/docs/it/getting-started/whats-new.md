@@ -8,9 +8,10 @@ Le note complete di ogni versione sono nella
 è inclusa in Moonpool, quindi descrive sempre la versione che esegui. Moonpool si aggiorna da
 solo; vedi [Aggiornamenti](/it/data/updating/).
 
-## 0.3.25
+## 0.3.26
 
 - L'avviso di aggiornamento ora è in alto nella barra laterale e la scheda della stella attende che scompaia. La scheda della stella compare dopo 10 minuti di utilizzo dall'avvio, contando solo il tempo in cui la finestra è visibile.
+- La scheda di ringraziamento della stella ha un pulsante per chiuderla.
 
 ## 0.3.23
 

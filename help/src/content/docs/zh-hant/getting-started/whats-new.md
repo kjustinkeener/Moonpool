@@ -5,9 +5,10 @@ description: "了解 Moonpool 近幾個版本的變更、執行所需的環境�
 
 每個版本的完整說明都在專案的 [Releases 頁面](https://github.com/kjustinkeener/Moonpool/releases)上。這份說明隨 Moonpool 一起發行，所以它描述的永遠是你正在執行的版本。Moonpool 會自動更新；請參閱[更新](/zh-hant/data/updating/)。
 
-## 0.3.25
+## 0.3.26
 
 - 更新通知現在顯示在側邊欄頂部，加星卡片會等它消失後再出現。加星卡片在啟動後使用 10 分鐘時出現，只計算視窗可見的時間。
+- 加星感謝卡片現在有關閉按鈕。
 
 ## 0.3.23
 

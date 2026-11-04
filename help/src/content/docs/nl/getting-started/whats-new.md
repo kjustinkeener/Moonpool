@@ -8,9 +8,10 @@ De volledige notities van elke release staan op de
 help wordt met Moonpool meegeleverd en beschrijft dus altijd de versie die je gebruikt.
 Moonpool werkt zichzelf bij; zie [Bijwerken](/nl/data/updating/).
 
-## 0.3.25
+## 0.3.26
 
 - De updatemelding staat nu bovenaan de zijbalk en de sterkaart wacht tot die verdwenen is. De sterkaart verschijnt na 10 minuten gebruik sinds het opstarten, waarbij alleen de tijd telt dat het venster zichtbaar is.
+- De bedankkaart van de ster heeft nu een sluitknop.
 
 ## 0.3.23
 
