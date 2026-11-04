@@ -284,7 +284,7 @@
     border-color: #3a2705;
     color: #ffe9a0;
   }
-  .star-card .x {
+  .star-card.thanks .x {
     position: absolute;
     top: 4px;
     right: 6px;
@@ -297,7 +297,7 @@
     cursor: pointer;
     opacity: 0.7;
   }
-  .star-card .x:hover {
+  .star-card.thanks .x:hover {
     opacity: 1;
   }
   .head {
