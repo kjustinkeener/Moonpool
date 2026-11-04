@@ -37,8 +37,8 @@ start a new group):
 ```
 
 An app's group is the group it is listed under, so an app object has **no `group` field** (one
-there is rejected). Group names must be unique. A group with no apps is dropped the next time
-Moonpool saves. The older layout, a flat array of apps that each carry a `"group"` field, is
+there is rejected). Group names must be unique. A group may have an empty `apps` list; it
+stays in the sidebar until deleted there. The older layout, a flat array of apps that each carry a `"group"` field, is
 still accepted anywhere you hand Moonpool a manifest and is converted to the layout above.
 
 ## App object schema

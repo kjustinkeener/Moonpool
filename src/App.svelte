@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import {
     getApps,
+    getGroups,
     onStatus,
     stopApp,
     openUrl,
@@ -44,6 +45,8 @@
   import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 
   let apps = $state<AppEntry[]>([]);
+  // Every group name in display order, including groups with no apps.
+  let groupNames = $state<string[]>([]);
   let persistenceError = $state("");
   // apps.json load state from the hub. While `error` is set the sidebar shows a banner
   // over the (dimmed) last good list; it clears once a reload succeeds.
@@ -196,6 +199,12 @@
   function openEdit(app: AppEntry) {
     openEditorWindow(app.id);
   }
+  // Save the list and the group order, then take the backend's normalized group list.
+  async function save(next: AppEntry[], order: string[] = groupNames) {
+    await saveManifest(next, order);
+    groupNames = await getGroups().catch(() => order);
+  }
+
   async function handleEditorSave(entry: AppEntry, originalId?: string) {
     let next = [...apps];
     const idx = originalId ? next.findIndex((a) => a.id === originalId) : -1;
@@ -215,7 +224,7 @@
       next = next.concat(entry);
     }
     try {
-      await saveManifest(next);
+      await save(next);
     } catch (e) {
       persistenceError = `Could not save apps.json: ${String(e)}`;
       return;
@@ -242,7 +251,7 @@
     await stopIfManaged(id);
     const next = apps.filter((a) => a.id !== id);
     try {
-      await saveManifest(next);
+      await save(next);
       apps = next;
       persistenceError = "";
     } catch (e) {
@@ -258,8 +267,30 @@
       ...apps.filter((a) => !order.includes(a.group)),
     ];
     try {
-      await saveManifest(next);
+      await save(next, order);
       apps = next;
+      persistenceError = "";
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
+  }
+
+  async function handleAddGroup(name: string) {
+    const trimmed = name.trim();
+    if (!trimmed || groupNames.includes(trimmed)) return;
+    try {
+      await save(apps, [...groupNames, trimmed]);
+      persistenceError = "";
+    } catch (e) {
+      persistenceError = `Could not save apps.json: ${String(e)}`;
+    }
+  }
+
+  // Only a group with no apps can be deleted; its apps would otherwise be lost with it.
+  async function handleDeleteGroup(name: string) {
+    if (apps.some((a) => a.group === name)) return;
+    try {
+      await save(apps, groupNames.filter((g) => g !== name));
       persistenceError = "";
     } catch (e) {
       persistenceError = `Could not save apps.json: ${String(e)}`;
@@ -272,7 +303,7 @@
     await stopIfManaged(app.id);
     const next = apps.filter((a) => a.id !== app.id);
     try {
-      await saveManifest(next);
+      await save(next);
       apps = next;
       persistenceError = "";
     } catch (e) {
@@ -284,7 +315,7 @@
     if (!trimmed || trimmed === app.name) return;
     const next = apps.map((a) => (a.id === app.id ? { ...a, name: trimmed } : a));
     try {
-      await saveManifest(next);
+      await save(next);
       apps = next;
       persistenceError = "";
     } catch (e) {
@@ -301,7 +332,7 @@
     if (typeof picked !== "string" || !picked) return;
     const next = apps.map((a) => (a.id === app.id ? { ...a, icon: picked } : a));
     try {
-      await saveManifest(next);
+      await save(next);
       apps = next;
       persistenceError = "";
       loadIcon(app.id);
@@ -497,6 +528,7 @@
 
     try {
       apps = await getApps();
+      groupNames = await getGroups();
       loadAllIcons(true);
     } catch (e) {
       persistenceError = `Could not load apps.json: ${String(e)}`;
@@ -730,6 +762,7 @@
     let error: string | null = null;
     try {
       apps = await reloadManifest();
+      groupNames = await getGroups().catch(() => groupNames);
       persistenceError = "";
       iconSrc = {};
       loadAllIcons(true);
@@ -848,7 +881,10 @@
       onAdd={openAdd}
       onEditFile={handleEdit}
       onReload={handleReload}
+      groupNames={groupNames}
       onReorderGroups={handleReorderGroups}
+      onAddGroup={handleAddGroup}
+      onDeleteGroup={handleDeleteGroup}
       onAbout={() => openAboutWindow()}
       onSettings={() => openSettingsWindow()}
       onHelp={() => openHelpWindow()}

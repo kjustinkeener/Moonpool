@@ -19,8 +19,11 @@ export const manifestDir = () => invoke<string>("manifest_dir");
 export const cliOutputDir = () => invoke<string>("cli_output_dir_str");
 export const revealCliOutputDir = () => invoke<void>("reveal_cli_output_dir");
 
-export const saveManifest = (entries: AppEntry[]) =>
-  invoke<void>("save_manifest", { entries });
+/** Every group name in display order, including groups that hold no apps. */
+export const getGroups = () => invoke<string[]>("get_groups");
+
+export const saveManifest = (entries: AppEntry[], groups: string[]) =>
+  invoke<void>("save_manifest", { entries, groups });
 
 export const appIcon = (id: string, refresh = false) =>
   invoke<string | null>("app_icon", { id, refresh });

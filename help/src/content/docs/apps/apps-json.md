@@ -74,7 +74,8 @@ optional. See [App fields](/apps/fields/).
 Groups appear in the sidebar in the order they are listed. Drag a group header in the
 sidebar to reorder them (or focus it and press Alt+Up or Alt+Down); the new order is saved
 here. An app has no `group` key: it belongs to the group it is listed under. Group names
-must be unique, and a group with no apps is dropped the next time Moonpool saves.
+must be unique. A group may have an empty `apps` list: it stays in the sidebar until you
+delete it there. Use the sidebar menu, New group, to add one.
 
 Examples elsewhere in this help show a single app with a `group` key. Put that entry in the
 `apps` list of the group it names, without the `group` key.

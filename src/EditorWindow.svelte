@@ -1,6 +1,6 @@
 <script lang="ts">
   import AppEditor from "./lib/AppEditor.svelte";
-  import { getApps, getSettings } from "./lib/api";
+  import { getApps, getGroups, getSettings } from "./lib/api";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { ask } from "@tauri-apps/plugin-dialog";
   import { emit, listen } from "@tauri-apps/api/event";
@@ -33,7 +33,7 @@
 
   onMount(async () => {
     const apps = await getApps().catch(() => [] as AppEntry[]);
-    groups = [...new Set(apps.map((a) => a.group))];
+    groups = await getGroups().catch(() => [...new Set(apps.map((a) => a.group))]);
     entry = editId ? (apps.find((a) => a.id === editId) ?? null) : null;
     ready = true;
 

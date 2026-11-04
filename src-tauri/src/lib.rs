@@ -334,6 +334,8 @@ struct HubState {
     /// Hands out the monotonic value written into `stop_epoch` on each stop.
     stop_seq: AtomicU64,
     manifest: Mutex<Vec<AppEntry>>,
+    /// Every group name in display order, including groups that hold no apps.
+    groups: Mutex<Vec<String>>,
     /// Set when an existing apps.json cannot be loaded. The file is preserved
     /// and the frontend receives this recovery error instead of example data.
     manifest_error: Mutex<Option<String>>,
@@ -1087,15 +1089,15 @@ fn validate_manifest(entries: &[AppEntry]) -> Result<(), String> {
     Ok(())
 }
 
-fn parse_manifest_text(text: &str) -> Result<Vec<AppEntry>, String> {
-    let entries = manifest::parse(text)?;
-    validate_manifest(&entries)?;
-    Ok(entries)
+fn parse_manifest_text(text: &str) -> Result<manifest::Layout, String> {
+    let layout = manifest::parse(text)?;
+    validate_manifest(&layout.apps)?;
+    Ok(layout)
 }
 
 /// Read and validate the manifest, seeding examples only when no file exists.
 /// A malformed existing file is left untouched for repair.
-fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
+fn load_manifest(app: &AppHandle) -> Result<manifest::Layout, String> {
     let Some(path) = manifest_path(app) else {
         return Err("no config directory".into());
     };
@@ -1124,7 +1126,7 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
         }
     }
     let text = text.ok_or_else(|| format!("cannot read {}: {last_err}", path.display()))?;
-    let entries = parse_manifest_text(&text)
+    let layout = parse_manifest_text(&text)
         .map_err(|e| format!("invalid {}: {e}; file preserved", path.display()))?;
     // An older flat file is rewritten in the current layout; the original is kept beside it.
     if manifest::is_legacy(&text) {
@@ -1132,7 +1134,7 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
         if !backup.exists() {
             let _ = std::fs::write(&backup, &text);
         }
-        match manifest::to_text(&entries) {
+        match manifest::to_text(&layout.apps, &layout.groups) {
             Ok(nested) => match persistence::atomic_write(&path, nested.as_bytes()) {
                 Ok(()) => log_line(app, "rewrote apps.json with apps nested under their groups"),
                 Err(e) => log_line(app, &format!("cannot rewrite apps.json: {e}")),
@@ -1142,9 +1144,9 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
     }
     log_line(
         app,
-        &format!("loaded {} apps from {}", entries.len(), path.display()),
+        &format!("loaded {} apps from {}", layout.apps.len(), path.display()),
     );
-    Ok(entries)
+    Ok(layout)
 }
 
 /// The in-memory list. While `manifest_error` is set this is the last list that loaded (or
@@ -1152,6 +1154,12 @@ fn load_manifest(app: &AppHandle) -> Result<Vec<AppEntry>, String> {
 #[tauri::command]
 fn get_apps(state: State<HubState>) -> Vec<AppEntry> {
     lock(&state.manifest).clone()
+}
+
+/// Group names in display order, including groups with no apps.
+#[tauri::command]
+fn get_groups(state: State<HubState>) -> Vec<String> {
+    lock(&state.groups).clone()
 }
 
 /// Whether apps.json currently fails to load, for the sidebar banner.
@@ -1176,8 +1184,9 @@ fn manifest_status(state: State<HubState>) -> ManifestStatus {
 }
 
 /// Record a successfully loaded or saved list: clears the error, marks a list as loaded.
-fn set_manifest_good(state: &HubState, entries: Vec<AppEntry>) {
-    *lock(&state.manifest) = entries;
+fn set_manifest_good(state: &HubState, layout: manifest::Layout) {
+    *lock(&state.manifest) = layout.apps;
+    *lock(&state.groups) = layout.groups;
     *lock(&state.manifest_error) = None;
     state.manifest_loaded.store(true, Ordering::Relaxed);
 }
@@ -1185,18 +1194,20 @@ fn set_manifest_good(state: &HubState, entries: Vec<AppEntry>) {
 /// Re-read the manifest from disk into state and return it.
 #[tauri::command]
 fn reload_manifest(app: AppHandle, state: State<HubState>) -> Result<Vec<AppEntry>, String> {
-    let m = match load_manifest(&app) {
-        Ok(manifest) => manifest,
+    let layout = match load_manifest(&app) {
+        Ok(layout) => layout,
         Err(error) => {
             *lock(&state.manifest_error) = Some(error.clone());
             return Err(error);
         }
     };
-    set_manifest_good(&state, m.clone());
+    let m = layout.apps.clone();
+    let pretty = manifest::to_text(&layout.apps, &layout.groups);
+    set_manifest_good(&state, layout);
     // Capture a known-good snapshot of what we just loaded, so a hand-edit made
     // outside the app (then reloaded) enters the rollback ring too. Dedup in
     // snapshot_known_good keeps an unchanged reload from churning it.
-    if let Ok(pretty) = manifest::to_text(&m) {
+    if let Ok(pretty) = pretty {
         snapshot_known_good(&app, &pretty);
     }
     Ok(m)
@@ -1667,6 +1678,7 @@ fn resolve_icon(mut entry: AppEntry, id: String, app: AppHandle, refresh: bool) 
 fn save_manifest(
     app: AppHandle,
     entries: Vec<AppEntry>,
+    groups: Vec<String>,
     state: State<HubState>,
 ) -> Result<(), String> {
     if let Some(error) = lock(&state.manifest_error).clone() {
@@ -1676,9 +1688,10 @@ fn save_manifest(
     }
     let path = manifest_path(&app).ok_or("no config directory")?;
     validate_manifest(&entries)?;
-    let json = manifest::to_text(&entries)?;
+    let json = manifest::to_text(&entries, &groups)?;
     persistence::atomic_write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
-    set_manifest_good(&state, entries);
+    let groups = manifest::group_order(&groups, &entries);
+    set_manifest_good(&state, manifest::Layout { apps: entries, groups });
     snapshot_known_good(&app, &json);
     Ok(())
 }
@@ -2640,9 +2653,9 @@ fn plan_config_write(
             ));
         }
     }
-    let entries =
+    let layout =
         parse_manifest_text(new_text).map_err(|e| format!("rejected invalid manifest: {e}"))?;
-    manifest::to_text(&entries)
+    manifest::to_text(&layout.apps, &layout.groups)
 }
 
 /// How many known-good manifests to retain in the rollback ring.
@@ -2726,11 +2739,8 @@ fn write_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, Stri
 fn commit_manifest_json(app: &AppHandle, path: &Path, json: &str) -> Result<(), String> {
     persistence::atomic_write(path, json.as_bytes())
         .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
-    if let (Some(state), Ok(entries)) = (
-        app.try_state::<HubState>(),
-        manifest::parse(json),
-    ) {
-        set_manifest_good(&state, entries);
+    if let (Some(state), Ok(layout)) = (app.try_state::<HubState>(), manifest::parse(json)) {
+        set_manifest_good(&state, layout);
     }
     snapshot_known_good(app, json);
     // Nudge the UI to re-pull so the grid reflects the change (mirrors a `reload`).
@@ -2811,7 +2821,7 @@ fn restore_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, St
                 let name = names.get(i).cloned().unwrap_or_default();
                 let text = std::fs::read_to_string(p).unwrap_or_default();
                 let (app_count, valid) = match parse_manifest_text(&text) {
-                    Ok(v) => (v.len() as i64, true),
+                    Ok(v) => (v.apps.len() as i64, true),
                     Err(_) => (-1, false),
                 };
                 // The millis timestamp is the filename prefix before the first '-'.
@@ -2880,7 +2890,7 @@ fn restore_config_cmd(app: &AppHandle, positional: &[&str]) -> (&'static str, St
         return ("error", e);
     }
     let count = manifest::parse(&json)
-        .map(|v| v.len())
+        .map(|v| v.apps.len())
         .unwrap_or(0);
     (
         "ok",
@@ -3295,6 +3305,7 @@ pub fn run() {
             stop_epoch: Mutex::new(HashMap::new()),
             stop_seq: AtomicU64::new(1),
             manifest: Mutex::new(Vec::new()),
+            groups: Mutex::new(Vec::new()),
             manifest_error: Mutex::new(None),
             manifest_loaded: AtomicBool::new(false),
             settings: Mutex::new(Settings::default()),
@@ -3346,10 +3357,11 @@ pub fn run() {
             log_line(&handle, "=== Moonpool starting ===");
             // Load the user-editable manifest (seeded from the example on first run).
             match load_manifest(&handle) {
-                Ok(manifest) => set_manifest_good(&handle.state::<HubState>(), manifest),
+                Ok(layout) => set_manifest_good(&handle.state::<HubState>(), layout),
                 Err(error) => {
                     log_line(&handle, &error);
                     *lock(&handle.state::<HubState>().manifest) = Vec::new();
+                    *lock(&handle.state::<HubState>().groups) = Vec::new();
                     *lock(&handle.state::<HubState>().manifest_error) = Some(error);
                 }
             }
@@ -3519,6 +3531,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_apps,
+            get_groups,
             manifest_status,
             reload_manifest,
             open_manifest,
@@ -3958,7 +3971,7 @@ mod example_manifest_tests {
         ] {
             // Seeded files must be in the current layout and pass full validation.
             assert!(!super::manifest::is_legacy(src), "{name}: not nested");
-            let entries = parse_manifest_text(src).expect(name);
+            let entries = parse_manifest_text(src).expect(name).apps;
             let ids: Vec<&str> = entries.iter().map(|e| e.id.as_str()).collect();
             let mut sorted = ids.clone();
             sorted.sort();
