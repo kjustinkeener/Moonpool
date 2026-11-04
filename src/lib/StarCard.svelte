@@ -3,6 +3,8 @@
   // moment the card could next be due, and it re-checks when it fires, when
   // the window is shown again, and when it gains focus.
   import { onMount } from "svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   // Another card (an available update) has priority: hide this one while it shows.
   let { hold = false }: { hold?: boolean } = $props();
   import Icon from "./Icon.svelte";
@@ -81,9 +83,21 @@
     visibleSince = null;
   }
 
-  function sync() {
-    if (document.hidden) hide();
-    else show();
+  // "Visible" means the window is shown on screen: not hidden to the tray and not
+  // minimized. The page's own visibility flag does not always follow a tray hide, so
+  // the window is asked directly, and the backend announces hides and shows.
+  async function sync() {
+    let visible = !document.hidden;
+    if (visible) {
+      try {
+        const w = getCurrentWindow();
+        visible = (await w.isVisible()) && !(await w.isMinimized());
+      } catch {
+        /* no window API (plain browser): trust the page flag */
+      }
+    }
+    if (visible) show();
+    else hide();
   }
 
   function onPointerDown(e: PointerEvent) {
@@ -93,6 +107,13 @@
 
   onMount(() => {
     sync();
+    const unlisten: Promise<UnlistenFn>[] = [];
+    try {
+      unlisten.push(listen("hub:visibility", () => sync()));
+      unlisten.push(getCurrentWindow().onResized(() => sync()));
+    } catch {
+      /* no window API (plain browser) */
+    }
     document.addEventListener("visibilitychange", sync);
     window.addEventListener("focus", check);
     window.addEventListener("pagehide", hide);
@@ -100,6 +121,7 @@
     return () => {
       hide();
       clearTimeout(gaveTimer);
+      for (const u of unlisten) u.then((f) => f()).catch(() => {});
       document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("focus", check);
       window.removeEventListener("pagehide", hide);

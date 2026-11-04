@@ -3064,6 +3064,7 @@ fn show_main(app: &AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
         let _ = win.unminimize();
+        let _ = app.emit("hub:visibility", true);
         // If the window was hidden while collapsed to the borderless minimize
         // sliver (~215x26), showing it would bring back that sliver. Re-assert the
         // last good size so Show always restores a usable window.
@@ -3412,6 +3413,7 @@ pub fn run() {
                     if close_to_tray && window.label() == "main" =>
                 {
                     let _ = window.hide();
+                    let _ = window.app_handle().emit("hub:visibility", false);
                     api.prevent_close();
                 }
                 // With "minimize to tray" on, minimizing hides to the tray too,
@@ -3434,6 +3436,7 @@ pub fn run() {
                         if w.is_minimized().unwrap_or(false) {
                             let _ = w.hide();
                             let _ = w.unminimize();
+                            let _ = w.app_handle().emit("hub:visibility", false);
                         }
                     });
                 }
