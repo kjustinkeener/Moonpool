@@ -8,6 +8,10 @@ The full notes for every release are on the project's
 Moonpool, so it always describes the version you run. Moonpool updates itself; see
 [Updating](/data/updating/).
 
+## 0.3.24
+
+- The update notice now sits at the top of the sidebar, and the star card waits until it is gone. The star card appears after 10 minutes of use since launch, counting only time the window is shown.
+
 ## 0.3.23
 
 - The star card's message is now brighter and easier to read.
