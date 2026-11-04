@@ -7,7 +7,7 @@ Pełne informacje o każdym wydaniu znajdują się na [stronie Releases](https:/
 projektu. Ta pomoc jest dostarczana wraz z Moonpool, więc zawsze opisuje używaną wersję. Moonpool
 aktualizuje się samodzielnie; zob. [Aktualizacje](/pl/data/updating/).
 
-## 0.3.24
+## 0.3.25
 
 - Powiadomienie o aktualizacji jest teraz na górze paska bocznego, a karta z gwiazdką czeka, aż zniknie. Karta z gwiazdką pojawia się po 10 minutach używania od uruchomienia; liczy się tylko czas, gdy okno jest widoczne.
 

@@ -8,7 +8,7 @@ Las notas completas de cada versión están en la
 distribuye dentro de Moonpool, así que siempre describe la versión que usas. Moonpool se actualiza solo;
 consulta [Actualización](/es/data/updating/).
 
-## 0.3.24
+## 0.3.25
 
 - El aviso de actualización ahora aparece arriba en la barra lateral y la tarjeta de la estrella espera a que desaparezca. La tarjeta de la estrella aparece tras 10 minutos de uso desde el inicio, contando solo el tiempo con la ventana visible.
 

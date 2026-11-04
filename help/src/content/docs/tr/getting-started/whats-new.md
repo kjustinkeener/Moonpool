@@ -8,7 +8,7 @@ Her sürümün tam notları projenin
 Moonpool'un içinde gelir, bu yüzden her zaman çalıştırdığınız sürümü anlatır. Moonpool
 kendini günceller; bkz. [Güncelleme](/tr/data/updating/).
 
-## 0.3.24
+## 0.3.25
 
 - Güncelleme bildirimi artık kenar çubuğunun üstünde duruyor ve yıldız kartı o kaybolana kadar bekliyor. Yıldız kartı, açılıştan sonra 10 dakikalık kullanımın ardından görünür; yalnızca pencerenin görünür olduğu süre sayılır.
 

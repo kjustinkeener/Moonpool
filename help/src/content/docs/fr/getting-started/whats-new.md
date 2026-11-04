@@ -8,7 +8,7 @@ Les notes complètes de chaque version se trouvent sur la
 est livrée dans Moonpool : elle décrit donc toujours la version que vous utilisez. Moonpool se
 met à jour tout seul ; voir [Mises à jour](/fr/data/updating/).
 
-## 0.3.24
+## 0.3.25
 
 - L'avis de mise à jour s'affiche maintenant en haut de la barre latérale, et la carte étoile attend qu'il disparaisse. La carte étoile apparaît après 10 minutes d'utilisation depuis le lancement, en ne comptant que le temps où la fenêtre est affichée.
 

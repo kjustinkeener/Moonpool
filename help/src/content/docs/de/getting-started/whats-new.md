@@ -8,7 +8,7 @@ Die vollständigen Hinweise zu jeder Version stehen auf der
 wird in Moonpool mitgeliefert und beschreibt daher immer die Version, die Sie ausführen. Moonpool
 aktualisiert sich selbst; siehe [Aktualisieren](/de/data/updating/).
 
-## 0.3.24
+## 0.3.25
 
 - Der Update-Hinweis steht jetzt oben in der Seitenleiste, und die Sternkarte wartet, bis er verschwunden ist. Die Sternkarte erscheint nach 10 Minuten Nutzung seit dem Start; es zählt nur die Zeit, in der das Fenster sichtbar ist.
 
