@@ -72,8 +72,6 @@ export const en = {
   "sidebar.filterPlaceholder": "Filter apps...",
   "sidebar.filterLabel": "Filter apps",
   "sidebar.showCli": "Show CLI pane",
-  "sidebar.updateOpenToInstall": "Update available, open to install",
-  "sidebar.updateShowCli": "Update available, show CLI pane",
   "sidebar.statusRunning": "running",
   "sidebar.statusStarting": "starting...",
   "sidebar.statusStopped": "stopped",

@@ -36,8 +36,6 @@ export const ko: PartialDict = {
   "sidebar.filterPlaceholder": "앱 검색...",
   "sidebar.filterLabel": "앱 검색",
   "sidebar.showCli": "CLI 창 표시",
-  "sidebar.updateOpenToInstall": "업데이트가 있습니다. 열어서 설치하세요",
-  "sidebar.updateShowCli": "업데이트가 있습니다. CLI 창 표시",
   "sidebar.statusRunning": "실행 중",
   "sidebar.statusStarting": "시작 중...",
   "sidebar.statusStopped": "중지됨",

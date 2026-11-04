@@ -3,6 +3,8 @@
   // moment the card could next be due, and it re-checks when it fires, when
   // the window is shown again, and when it gains focus.
   import { onMount } from "svelte";
+  // Another card (an available update) has priority: hide this one while it shows.
+  let { hold = false }: { hold?: boolean } = $props();
   import Icon from "./Icon.svelte";
   import { openUrl, openThemesWindow } from "./api";
   import { t } from "./i18n.svelte";
@@ -135,14 +137,14 @@
   }
 </script>
 
-{#if shown && thanks}
+{#if shown && thanks && !hold}
   <div class="star-card thanks" role="region" aria-label={t("star.label")}>
     <p>{t("star.thanks")}</p>
     <div class="row">
       <button onclick={browse}><Icon name="layers" size={13} />{t("star.browse")}</button>
     </div>
   </div>
-{:else if shown}
+{:else if shown && !hold}
   <div class="star-card" role="region" aria-label={t("star.label")}>
     <div class="head">
       <!-- A star making the pleading face of the 🥺 emoji: big shiny eyes,

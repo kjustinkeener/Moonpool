@@ -36,8 +36,6 @@ export const fr: PartialDict = {
   "sidebar.filterPlaceholder": "Filtrer les apps...",
   "sidebar.filterLabel": "Filtrer les apps",
   "sidebar.showCli": "Afficher le panneau CLI",
-  "sidebar.updateOpenToInstall": "Mise à jour disponible, ouvrir pour l'installer",
-  "sidebar.updateShowCli": "Mise à jour disponible, afficher le panneau CLI",
   "sidebar.statusRunning": "en cours",
   "sidebar.statusStarting": "démarrage...",
   "sidebar.statusStopped": "arrêtée",

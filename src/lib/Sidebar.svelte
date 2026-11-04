@@ -3,6 +3,7 @@
   import { flip } from "svelte/animate";
   import { scrollFade } from "./scrollfade";
   import Icon from "./Icon.svelte";
+  import type { Snippet } from "svelte";
   import StarCard from "./StarCard.svelte";
   import { openInstallerWindow } from "./api";
   import { t, formatList } from "./i18n.svelte";
@@ -34,7 +35,8 @@
     onHelp,
     cliHidden = false,
     onExpandCli,
-    updateWaiting = false,
+    banner,
+    holdStar = false,
     showMcpProcesses = true,
     clashes,
     manifestError = null,
@@ -66,7 +68,10 @@
     onHelp: () => void;
     cliHidden?: boolean;
     onExpandCli?: () => void;
-    updateWaiting?: boolean;
+    /** Rendered above the star card (the update card). */
+    banner?: Snippet;
+    /** Keep the star card hidden while the banner is showing. */
+    holdStar?: boolean;
     showMcpProcesses?: boolean;
     clashes: { port: number; names: string[] }[];
     /** Set while apps.json fails to load: the list below is then the last good one. */
@@ -216,7 +221,8 @@
 />
 
 <aside class="sidebar">
-  <StarCard />
+  {@render banner?.()}
+  <StarCard hold={holdStar} />
   <div class="search">
     <div class="menu-wrap">
       <button class="menu-btn" title={t("sidebar.menu")} onclick={() => (menuOpen = !menuOpen)}><Icon name="more-horizontal" size={16} /></button>
@@ -253,9 +259,8 @@
     {#if cliHidden}
       <button
         class="cli-expand"
-        class:attention={updateWaiting}
-        title={updateWaiting ? t("sidebar.updateOpenToInstall") : t("sidebar.showCli")}
-        aria-label={updateWaiting ? t("sidebar.updateShowCli") : t("sidebar.showCli")}
+        title={t("sidebar.showCli")}
+        aria-label={t("sidebar.showCli")}
         onclick={() => onExpandCli?.()}
       >
         <Icon name="chevron-right" size={15} width={2.5} />
@@ -454,33 +459,6 @@
   .cli-expand:hover {
     color: var(--text-strong);
     border-color: var(--focus);
-  }
-  /* Update waiting behind the collapsed pane: pulse the button so the user knows
-     to open it and install. Uses the same aqua as the update banner. */
-  .cli-expand.attention {
-    color: var(--on-run);
-    background: var(--dot-run);
-    border-color: var(--dot-run);
-    animation: cli-pulse 1.6s ease-in-out infinite;
-  }
-  .cli-expand.attention:hover {
-    color: var(--on-run);
-    border-color: var(--dot-run);
-  }
-  @keyframes cli-pulse {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 var(--dot-run-glow);
-    }
-    50% {
-      box-shadow: 0 0 8px 3px var(--dot-run-glow);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .cli-expand.attention {
-      animation: none;
-      box-shadow: 0 0 8px 2px var(--dot-run-glow);
-    }
   }
   .menu-wrap {
     position: relative;

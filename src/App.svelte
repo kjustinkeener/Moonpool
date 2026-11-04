@@ -837,12 +837,35 @@
       onHelp={() => openHelpWindow()}
       cliHidden={showExpand}
       onExpandCli={expandCli}
-      updateWaiting={!!update && !updateDone}
+      holdStar={!!update}
       {showMcpProcesses}
       {clashes}
       manifestError={manifest.error}
       manifestLoaded={manifest.loaded}
-    />
+    >
+      {#snippet banner()}
+        {#if update}
+          <div class="update-banner" class:done={updateDone}>
+            <span class="ub-icon"><Icon name={updateDone ? "check" : "arrow-up"} size={15} /></span>
+            <span class="ub-text">
+              {#if updateStatus}
+                {updateStatus}
+              {:else}
+                {t("app.updateAvailable", { version: update.version, current: currentVersion })}
+              {/if}
+            </span>
+            {#if !updateDone}
+              <button class="ub-btn" disabled={updating} onclick={installUpdate}>
+                {updating ? t("app.installing") : t("app.downloadInstall")}
+              </button>
+              {#if !updating}
+                <button class="ub-x" title={t("common.dismiss")} aria-label={t("common.dismiss")} onclick={() => (update = null)}>&times;</button>
+              {/if}
+            {/if}
+          </div>
+        {/if}
+      {/snippet}
+    </Sidebar>
   </div>
   <div
     class="resizer"
@@ -884,15 +907,6 @@
           <img class="ph-moon" src={brandIcon} alt="" aria-hidden="true" width="48" height="48" />
           <p class="ph-title">{t("app.pickApp")}</p>
 
-          {#if update}
-            <div class="update-banner" class:done={updateDone}>
-              <span class="ub-icon"><Icon name={updateDone ? "check" : "arrow-up"} size={15} /></span>
-              <span class="ub-text">
-                {#if updateStatus}
-                  {updateStatus}
-                {:else}
-                  {t("app.updateAvailable", { version: update.version, current: currentVersion })}
-                {/if}
               </span>
               {#if !updateDone}
                 <button class="ub-btn" disabled={updating} onclick={installUpdate}>
@@ -1149,10 +1163,9 @@
     color: var(--text-faint);
   }
   .update-banner {
-    width: 100%;
-    max-width: 560px;
-    margin-top: 22px;
+    margin: 10px 10px 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
@@ -1177,7 +1190,7 @@
     font-weight: 700;
   }
   .ub-text {
-    flex: 1;
+    flex: 1 1 120px;
     line-height: 1.4;
   }
   .ub-btn {

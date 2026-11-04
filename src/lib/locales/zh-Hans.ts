@@ -36,8 +36,6 @@ export const zhHans: PartialDict = {
   "sidebar.filterPlaceholder": "筛选应用...",
   "sidebar.filterLabel": "筛选应用",
   "sidebar.showCli": "显示 CLI 面板",
-  "sidebar.updateOpenToInstall": "有可用更新，打开以安装",
-  "sidebar.updateShowCli": "有可用更新，显示 CLI 面板",
   "sidebar.statusRunning": "运行中",
   "sidebar.statusStarting": "启动中...",
   "sidebar.statusStopped": "已停止",

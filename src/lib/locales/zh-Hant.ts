@@ -36,8 +36,6 @@ export const zhHant: PartialDict = {
   "sidebar.filterPlaceholder": "篩選應用程式...",
   "sidebar.filterLabel": "篩選應用程式",
   "sidebar.showCli": "顯示 CLI 面板",
-  "sidebar.updateOpenToInstall": "有可用更新，開啟以安裝",
-  "sidebar.updateShowCli": "有可用更新，顯示 CLI 面板",
   "sidebar.statusRunning": "執行中",
   "sidebar.statusStarting": "啟動中...",
   "sidebar.statusStopped": "已停止",

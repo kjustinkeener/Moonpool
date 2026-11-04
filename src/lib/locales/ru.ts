@@ -36,8 +36,6 @@ export const ru: PartialDict = {
   "sidebar.filterPlaceholder": "Фильтр приложений...",
   "sidebar.filterLabel": "Фильтр приложений",
   "sidebar.showCli": "Показать панель CLI",
-  "sidebar.updateOpenToInstall": "Доступно обновление, откройте для установки",
-  "sidebar.updateShowCli": "Доступно обновление, показать панель CLI",
   "sidebar.statusRunning": "работает",
   "sidebar.statusStarting": "запуск...",
   "sidebar.statusStopped": "остановлено",
