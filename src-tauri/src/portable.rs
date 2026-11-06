@@ -68,6 +68,15 @@ pub fn is_portable() -> bool {
     })
 }
 
+/// Config folder name under `$XDG_CONFIG_HOME` / `~/.config` on non-Windows. Debug builds get
+/// their own so a dev run never shares the installed app's data.
+#[cfg(not(windows))]
+const UNIX_CONFIG_NAME: &str = if cfg!(debug_assertions) {
+    "Moonpool-dev"
+} else {
+    "Moonpool"
+};
+
 /// The `{MP_HOME}` anchor: the bundle root in portable mode, the install dir otherwise.
 /// `install_dir()` is Windows-only (USERPROFILE-based), so non-Windows falls back to the
 /// same XDG_CONFIG_HOME/$HOME/.config pattern `data_dir()` uses - without this, `mp_home()`
@@ -87,7 +96,7 @@ pub fn mp_home() -> Option<PathBuf> {
             .map(PathBuf::from)
             .filter(|p| !p.as_os_str().is_empty())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-        Some(base.join("Moonpool"))
+        Some(base.join(UNIX_CONFIG_NAME))
     }
 }
 
@@ -111,7 +120,7 @@ pub fn data_dir() -> Option<PathBuf> {
             .map(PathBuf::from)
             .filter(|p| !p.as_os_str().is_empty())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-        Some(base.join("Moonpool"))
+        Some(base.join(UNIX_CONFIG_NAME))
     }
 }
 

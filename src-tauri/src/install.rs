@@ -30,13 +30,22 @@ use crate::platform;
 const APP_NAME: &str = "Moonpool";
 const UNINSTALL_KEY: &str = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Moonpool";
 
-/// `%USERPROFILE%\.moonpool`, the per-user install dir. Deliberately not under
-/// `%LOCALAPPDATA%`/`%APPDATA%` - see the module doc comment above. Empirically
-/// verified unshadowed by Claude's container on 2026-09-11 (write via the in-container
-/// Bash tool, read back via the out-of-container PowerShell tool: identical bytes and
-/// mtime both directions, no shadow copy created).
+/// The app folder name under the user profile. Debug builds (`cargo tauri dev`, `cargo test`)
+/// use their own folder so a dev run never touches the installed app's config, webview profile
+/// or logs.
+pub const DIR_NAME: &str = if cfg!(debug_assertions) {
+    ".moonpool-dev"
+} else {
+    ".moonpool"
+};
+
+/// `%USERPROFILE%\.moonpool` (`.moonpool-dev` in debug builds), the per-user install dir.
+/// Deliberately not under `%LOCALAPPDATA%`/`%APPDATA%` - see the module doc comment above.
+/// Empirically verified unshadowed by Claude's container on 2026-09-11 (write via the
+/// in-container Bash tool, read back via the out-of-container PowerShell tool: identical bytes
+/// and mtime both directions, no shadow copy created).
 pub fn install_dir() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE").map(|p| PathBuf::from(p).join(".moonpool"))
+    std::env::var_os("USERPROFILE").map(|p| PathBuf::from(p).join(DIR_NAME))
 }
 
 /// The installed exe path, `<install_dir>\moonpool.exe`.

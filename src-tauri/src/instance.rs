@@ -24,8 +24,14 @@ use std::time::{Duration, Instant};
 
 use crate::portable;
 
-/// The bare base name every per-copy name is derived from.
-const BASE: &str = "moonpool";
+/// The bare base name every per-copy name is derived from (pipe, mutex, socket, temp files).
+/// Debug builds use their own so a dev hub never answers, locks out or forwards to the
+/// installed one.
+pub(crate) const BASE: &str = if cfg!(debug_assertions) {
+    "moonpool-dev"
+} else {
+    "moonpool"
+};
 
 /// The identity string for a config folder: canonicalized when possible (so `C:\X\..\Y` and
 /// `C:\Y` agree), lowercased on Windows. Pure so tests can feed it any path.
@@ -197,6 +203,10 @@ pub(crate) fn try_lock_named(name: &str) -> std::io::Result<Option<InstanceLock>
 /// hub beside an old one (it forwards to it instead, as before).
 #[cfg(windows)]
 fn legacy_hub_present() -> bool {
+    // A dev build is never the installed copy, so an old installed hub is none of its business.
+    if cfg!(debug_assertions) {
+        return false;
+    }
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::OpenMutexW;
     const SYNCHRONIZE: u32 = 0x0010_0000;
@@ -267,7 +277,7 @@ fn acquire_once() -> std::io::Result<Acquire> {
                 "no data dir for the lock file",
             )
         })?;
-        match try_lock_file(&dir.join("moonpool.lock"))? {
+        match try_lock_file(&dir.join(format!("{BASE}.lock")))? {
             Some(lock) => Ok(Acquire::Owned(lock)),
             None => Ok(Acquire::HeldElsewhere),
         }
@@ -428,17 +438,28 @@ mod tests {
 
     #[test]
     fn installed_keeps_the_bare_names() {
-        assert_eq!(pipe_name_for(None), r"\\.\pipe\moonpool");
-        assert_eq!(mutex_name_for(None), r"Local\moonpool-instance");
+        assert_eq!(pipe_name_for(None), format!(r"\\.\pipe\{BASE}"));
+        assert_eq!(mutex_name_for(None), format!(r"Local\{BASE}-instance"));
         assert_eq!(suffix_for(None), "");
         assert_eq!(
             pipe_name_for(Some("0badf00d")),
-            r"\\.\pipe\moonpool-0badf00d"
+            format!(r"\\.\pipe\{BASE}-0badf00d")
         );
         assert_eq!(
             mutex_name_for(Some("0badf00d")),
-            r"Local\moonpool-instance-0badf00d"
+            format!(r"Local\{BASE}-instance-0badf00d")
         );
+    }
+
+    /// Release builds keep the names existing MCP registrations and scripts rely on; debug
+    /// builds must never share them with an installed hub.
+    #[test]
+    fn debug_and_release_names_differ() {
+        if cfg!(debug_assertions) {
+            assert_eq!(BASE, "moonpool-dev");
+        } else {
+            assert_eq!(BASE, "moonpool");
+        }
     }
 
     #[test]

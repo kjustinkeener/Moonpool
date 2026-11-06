@@ -180,12 +180,12 @@ fn socket_path_for(
 ) -> PathBuf {
     let base = if portable { data } else { xdg.or(data) };
     if let Some(base) = base {
-        let candidate = base.join("moonpool.sock");
+        let candidate = base.join(format!("{}.sock", crate::instance::BASE));
         if candidate.as_os_str().len() <= MAX_SOCKET_PATH {
             return candidate;
         }
     }
-    tmp_fallback_dir(uid).join(format!("moonpool{suffix}.sock"))
+    tmp_fallback_dir(uid).join(format!("{}{suffix}.sock", crate::instance::BASE))
 }
 
 /// Start the control server on Tauri's async runtime. Called from `.setup()` with the app
@@ -919,13 +919,14 @@ mod tests {
     fn socket_path_prefers_xdg_runtime_dir() {
         let xdg = Path::new("/run/user/1000");
         let data = Path::new("/home/u/.config/Moonpool");
+        let sock = format!("{}.sock", crate::instance::BASE);
         assert_eq!(
             socket_path_for(false, Some(xdg), Some(data), 1000, ""),
-            xdg.join("moonpool.sock")
+            xdg.join(&sock)
         );
         assert_eq!(
             socket_path_for(false, None, Some(data), 1000, ""),
-            data.join("moonpool.sock")
+            data.join(&sock)
         );
     }
 
@@ -935,7 +936,7 @@ mod tests {
         let data = Path::new("/media/usb/moonpool/.moonpool");
         assert_eq!(
             socket_path_for(true, Some(xdg), Some(data), 1000, "-0badf00d"),
-            data.join("moonpool.sock")
+            data.join(format!("{}.sock", crate::instance::BASE))
         );
     }
 
@@ -943,17 +944,21 @@ mod tests {
     fn socket_path_too_long_falls_back_to_short_tmp_dir() {
         let long = PathBuf::from(format!("/home/u/{}", "deep/".repeat(30)));
         let p = socket_path_for(false, None, Some(&long), 1234, "");
-        assert_eq!(p, PathBuf::from("/tmp/moonpool-1234").join("moonpool.sock"));
+        let base = crate::instance::BASE;
+        assert_eq!(
+            p,
+            PathBuf::from("/tmp/moonpool-1234").join(format!("{base}.sock"))
+        );
         // And with nothing to base it on at all.
         assert_eq!(
             socket_path_for(false, None, None, 7, ""),
-            PathBuf::from("/tmp/moonpool-7").join("moonpool.sock")
+            PathBuf::from("/tmp/moonpool-7").join(format!("{base}.sock"))
         );
         // A portable copy's fallback socket carries its id, so it cannot collide with the
         // installed copy's (or another portable copy's) in the shared /tmp directory.
         assert_eq!(
             socket_path_for(true, None, Some(&long), 1234, "-0badf00d"),
-            PathBuf::from("/tmp/moonpool-1234").join("moonpool-0badf00d.sock")
+            PathBuf::from("/tmp/moonpool-1234").join(format!("{base}-0badf00d.sock"))
         );
     }
 

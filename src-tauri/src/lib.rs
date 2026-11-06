@@ -1637,8 +1637,11 @@ fn resolve_icon(mut entry: AppEntry, id: String, app: AppHandle, refresh: bool) 
             .or_else(|| entry.process_name.as_deref().and_then(running_exe_path));
         if let (true, Some(exe)) = (id_is_safe_filename, exe) {
             // Per copy: two Moonpools can register the same app id for different exes.
-            let out =
-                std::env::temp_dir().join(format!("moonpool-icon{}-{id}.png", instance::suffix()));
+            let out = std::env::temp_dir().join(format!(
+                "{}-icon{}-{id}.png",
+                instance::BASE,
+                instance::suffix()
+            ));
             let cached_fresh = !refresh
                 && file_mtime(&out)
                     .zip(file_mtime(&exe))
